@@ -25,6 +25,11 @@ export function membershipsOf(raw: unknown): Membership[] {
   return out;
 }
 
+/** Whether a Person is listed in a Household, a past member too. */
+export function hasMember(household: { id: string; members?: unknown }, personId: string): boolean {
+  return membershipsOf(household.members).some((m) => m.personId === personId);
+}
+
 /**
  * Who a Household stands for on a day (ADR 0117): the ids of whoever was a
  * member then, since and until both included, a blank bound meaning always.
@@ -90,8 +95,8 @@ export function memberCandidates(household: { members?: unknown }, people: reado
 }
 
 /** The Households a Person belongs to (several, maybe), A to Z by title. */
-export function householdsOf<H extends { title: string; members?: unknown }>(personId: string, households: readonly H[]): H[] {
-  return households.filter((h) => membershipsOf(h.members).some((m) => m.personId === personId)).sort((a, b) => byName(a.title, b.title));
+export function householdsOf<H extends { id: string; title: string; members?: unknown }>(personId: string, households: readonly H[]): H[] {
+  return households.filter((h) => hasMember(h, personId)).sort((a, b) => byName(a.title, b.title));
 }
 
 /**

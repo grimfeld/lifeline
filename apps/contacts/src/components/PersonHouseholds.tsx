@@ -4,16 +4,16 @@ import { Button, Combobox, Dialog, DialogContent, DialogDescription, DialogHeade
 import { Search } from "lucide-react";
 import { householdHref } from "../constants";
 import { type Household, type Person } from "../domain/types";
-import { householdsOf, membershipsOf } from "../domain/households";
+import { hasMember, householdsOf } from "../domain/households";
 import { addMember, joinNewHousehold, useHouseholds } from "../data/households";
 import { message } from "./writes";
 
-/** "Add to a Household…": an existing Household of this Workspace by name, or a new one made of the name typed. */
+/** "Add to a household…": an existing Household of this Workspace by name, or a new one made of the name typed. */
 function JoinHouseholdDialog({ person, households, onOpenChange }: { person: Person; households: readonly Household[]; onOpenChange: (open: boolean) => void }) {
   const [query, setQuery] = useState("");
   const [error, setError] = useState("");
   const options = useMemo(
-    () => households.filter((h) => !membershipsOf(h.members).some((m) => m.personId === person.id)).map((h) => ({ value: h.id, label: h.title, keywords: h.aliases })),
+    () => households.filter((h) => !hasMember(h, person.id)).map((h) => ({ value: h.id, label: h.title, keywords: h.aliases })),
     [households, person.id],
   );
   async function join(write: () => Promise<unknown>) {
@@ -51,7 +51,7 @@ function JoinHouseholdDialog({ person, households, onOpenChange }: { person: Per
   );
 }
 
-/** The line on a Person's page naming the Households they belong to (ADR 0117), each a link, and "Add to a Household…". */
+/** The line on a Person's page naming the Households they belong to (ADR 0117), each a link, and "Add to a household…". */
 export function PersonHouseholds({ person }: { person: Person }) {
   const households = useHouseholds();
   const theirs = useMemo(() => householdsOf(person.id, households), [person.id, households]);
@@ -69,7 +69,7 @@ export function PersonHouseholds({ person }: { person: Person }) {
         </span>
       ))}
       <Button variant="link" size="xs" className="px-0" onClick={() => setJoining(true)}>
-        Add to a Household…
+        Add to a household…
       </Button>
       {joining && <JoinHouseholdDialog person={person} households={households} onOpenChange={(o) => !o && setJoining(false)} />}
     </div>

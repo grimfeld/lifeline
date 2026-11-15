@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import { PERSON_TYPE, createDocument, documentsOf, documentsOfUngated, getDocument, normalizeTags, patchDocument, renameDocument, useDocuments, type Document } from "@lifeline/core";
 import { HOUSEHOLD, type Household, type Membership } from "../domain/types";
-import { membershipsOf } from "../domain/households";
+import { hasMember, membershipsOf } from "../domain/households";
+import { cleanAliases } from "../domain/person";
 import type { Removed } from "./repo";
 
 /** A Household as stored, with its keys well-formed whatever a Base wrote. */
@@ -19,12 +20,10 @@ export function useHouseholds(): Household[] {
 /** Every Household in the Workspace, read once. */
 export const allHouseholds = async () => (await documentsOf<Household>(HOUSEHOLD)).map(normalizeHousehold);
 
-const cleanAliases = (aliases: readonly string[] | undefined) => (aliases ?? []).map((a) => a.trim()).filter(Boolean);
-
 /** Add a Household: a name is all it takes. Lands in its folder, with no members. Throws when the name is empty or taken there. */
 export async function addHousehold(input: { name: string; aliases?: string[]; tags?: string[] }): Promise<Household> {
   const name = input.name.trim();
-  if (!name) throw new Error("A Household needs a name");
+  if (!name) throw new Error("A Household needs a name.");
   return normalizeHousehold(
     (await createDocument({ type: HOUSEHOLD, title: name, fields: { aliases: cleanAliases(input.aliases), members: [], tags: normalizeTags(input.tags ?? []) } })) as Household,
   );
@@ -33,7 +32,7 @@ export async function addHousehold(input: { name: string; aliases?: string[]; ta
 /** Change a Household's name (every `[[link]]` to it follows), its aliases or its Tags: only the keys given. */
 export async function patchHousehold(id: string, patch: { title?: string; aliases?: string[]; tags?: string[] }): Promise<void> {
   if (patch.title !== undefined) {
-    if (!patch.title.trim()) throw new Error("A Household needs a name");
+    if (!patch.title.trim()) throw new Error("A Household needs a name.");
     const doc = await getDocument(id);
     if (doc) await renameDocument(doc, patch.title);
   }
@@ -58,7 +57,7 @@ export async function addMember(householdId: string, personId: string): Promise<
   const { household, members } = await membershipsIn(householdId);
   const person = await getDocument(personId);
   if (!person || person.type !== PERSON_TYPE || (person.workspace ?? "") !== (household.workspace ?? "")) throw new Error("Only a Person of this Workspace can be a member");
-  if (members.some((m) => m.personId === personId)) return;
+  if (hasMember(household, personId)) return;
   await patchDocument(householdId, { members: [...members, { personId }] });
 }
 
@@ -78,7 +77,7 @@ export async function setMembershipDays(householdId: string, personId: string, d
   await patchDocument(householdId, { members: members.map((m) => (m.personId === personId ? membershipsOf([next])[0]! : m)) });
 }
 
-/** Make a Household of that name and the Person its first member: "Add to a Household…" on their page, with a new one. */
+/** Make a Household of that name and the Person its first member: "Add to a household…" on their page, with a new one. */
 export async function joinNewHousehold(personId: string, name: string): Promise<Household> {
   const household = await addHousehold({ name });
   await addMember(household.id, personId);
@@ -108,8 +107,7 @@ export async function restoreMember(householdId: string, removed: Removed<Member
  */
 export async function dropMembershipsOf(personId: string): Promise<void> {
   for (const h of await documentsOfUngated<Household>([HOUSEHOLD])) {
-    const members = membershipsOf(h.members);
-    if (!members.some((m) => m.personId === personId)) continue;
-    await patchDocument(h.id, { members: members.filter((m) => m.personId !== personId), workspace: h.workspace ?? "" });
+    if (!hasMember(h, personId)) continue;
+    await patchDocument(h.id, { members: membershipsOf(h.members).filter((m) => m.personId !== personId), workspace: h.workspace ?? "" });
   }
 }

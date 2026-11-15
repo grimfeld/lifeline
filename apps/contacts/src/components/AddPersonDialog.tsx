@@ -59,7 +59,7 @@ export function AddPersonDialog({ open, onOpenChange, handoff, initial, onSaved 
         try {
           await addMember(h.id, p.id);
         } catch (e) {
-          toast.error(message(e));
+          toast.error(`${p.title} could not join ${h.title}.`, { description: message(e) });
         }
       }
       onSaved?.(p.id);
@@ -103,7 +103,7 @@ export function AddPersonDialog({ open, onOpenChange, handoff, initial, onSaved 
                 setError("");
               }}
               placeholder="Anne Dupont"
-                            autoComplete="off"
+              autoComplete="off"
             />
           </Field>
           {suggested.length > 0 && (

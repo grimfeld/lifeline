@@ -44,6 +44,7 @@ export function TidyNamesDialog({ open, onOpenChange, rows }: { open: boolean; o
           <DialogTitle>Tidy given names</DialogTitle>
           <DialogDescription>These people's names start with one of their aliases. Fill in their Given and Family names and drop that alias; links to it keep working through the Given name. Untick anyone to leave as they are.</DialogDescription>
         </DialogHeader>
+        {/* At most 60% of the screen's height: a long list scrolls inside, so the title and the buttons stay in view. */}
         <ul className="grid max-h-[60vh] min-w-0 gap-2 overflow-y-auto">
           {rows.map((r) => (
             <li key={r.id}>

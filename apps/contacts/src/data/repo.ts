@@ -5,7 +5,7 @@ import { normalizeAddresses } from "../domain/addresses";
 import { contactDetailsOf } from "../domain/contactDetails";
 import { putBack, takeOut } from "../domain/parts";
 import { normalizeOccasions, occasionProblem } from "../domain/occasions";
-import { composeTitle, findPerson } from "../domain/person";
+import { cleanAliases, composeTitle, findPerson } from "../domain/person";
 import { tidyPatch } from "../domain/givenNames";
 
 /** A Person as stored, with the App's keys filled in for a row written before they existed. */
@@ -97,8 +97,6 @@ export async function removePart<K extends PartKey>(personId: string, key: K, id
 export async function restorePart<K extends PartKey>(personId: string, key: K, removed: Removed<PartOf<K>>): Promise<void> {
   await updateParts(personId, key, (list) => putBack(list, removed.entry, removed.index));
 }
-
-const cleanAliases = (aliases: readonly string[] | undefined) => (aliases ?? []).map((a) => a.trim()).filter(Boolean);
 
 /**
  * Add a Person: a name is all it takes (#404 story 1). Aliases, a

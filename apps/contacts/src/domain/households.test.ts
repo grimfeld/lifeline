@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { householdsForFamilyName, householdsOf, memberCandidates, memberIdsOn, membershipSpan, membershipsOf, membersOf, splitMembers } from "./households";
+import { hasMember, householdsForFamilyName, householdsOf, memberCandidates, memberIdsOn, membershipSpan, membershipsOf, membersOf, splitMembers } from "./households";
 import { householdTypeDef } from "../types";
 import { HOUSEHOLD } from "./types";
 
@@ -22,6 +22,13 @@ describe("a Household's memberships (ADR 0117)", () => {
     expect(membershipsOf(undefined)).toEqual([]);
     expect(membershipsOf("paul")).toEqual([]);
     expect(membershipsOf([null, { personId: "" }, { personId: 3 }, { personId: "paul" }, { personId: "paul", since: "2020-01-01" }])).toEqual([{ personId: "paul" }]);
+  });
+});
+
+describe("whether a Person is a member", () => {
+  it("is yes for anyone listed, past members too, whatever the stored shape", () => {
+    const smiths = { id: "smiths", members: [{ personId: "paul" }, { personId: "tom", until: "2024-09-01" }] };
+    expect([hasMember(smiths, "paul"), hasMember(smiths, "tom"), hasMember(smiths, "mary"), hasMember({ id: "odd", members: "paul" }, "paul")]).toEqual([true, true, false, false]);
   });
 });
 

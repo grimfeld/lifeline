@@ -6,6 +6,7 @@ import { CalendarDays, Search, User, X } from "lucide-react";
 import { personHref } from "../constants";
 import { type Household } from "../domain/types";
 import { memberCandidates, membersOf, membershipSpan, splitMembers, type MemberRow } from "../domain/households";
+import { asName } from "../domain/person";
 import { usePeople } from "../data/repo";
 import { addMember, normalizeHousehold, patchHousehold, removeMember, restoreMember, setMembershipDays } from "../data/households";
 import { AddRow, CardList } from "./Cards";
@@ -142,9 +143,6 @@ export function HouseholdMembers({ household }: { household: Household }) {
     </>
   );
 }
-
-/** An alias is a name, kept as written: not lower-cased and hyphenated as a Tag is. */
-const asName = (raw: string) => raw.trim() || null;
 
 /** A Household's aliases: other names that link to it ("Smiths", "Paul and Mary's"). */
 export function HouseholdAliases({ household }: { household: Household }) {

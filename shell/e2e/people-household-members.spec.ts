@@ -33,7 +33,7 @@ test("a Household is made, takes members from its page and from a Person's, and 
   await page.goto(`/app/people/person/${tom}`);
   await workLocally(page);
   const line = page.getByTestId("person-households");
-  await line.getByRole("button", { name: "Add to a Household…" }).click();
+  await line.getByRole("button", { name: "Add to a household…" }).click();
   const join = page.getByRole("dialog", { name: "Add to a household" });
   await join.getByRole("combobox").fill("the Hht");
   await page.getByRole("option", { name: "the Hhtests" }).click();

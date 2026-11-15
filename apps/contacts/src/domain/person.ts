@@ -42,3 +42,9 @@ export function findPerson<P extends { title: string; aliases?: string[] }>(peop
  * Family names, "Anne Dupont". Only at add: after that neither rewrites the other.
  */
 export const composeTitle = (given: string | undefined, family: string | undefined) => [given, family].map((n) => (n ?? "").trim()).filter(Boolean).join(" ");
+
+/** An alias is a name, kept as written: not lower-cased and hyphenated as a Tag is. A TagInput's `normalize`. */
+export const asName = (raw: string) => raw.trim() || null;
+
+/** Aliases as stored: each trimmed, blanks dropped. A Person's and a Household's alike. */
+export const cleanAliases = (aliases: readonly string[] | undefined) => (aliases ?? []).map((a) => a.trim()).filter(Boolean);

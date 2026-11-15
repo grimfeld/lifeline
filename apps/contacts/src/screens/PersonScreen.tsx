@@ -146,7 +146,7 @@ export function PersonScreen() {
             <TiesSection person={person} />
             {editing ? (
               <Section title="More">
-                <PersonFields person={person} relationship={false} names={false} />
+                <PersonFields person={person} relationship={false} nameFields={false} />
               </Section>
             ) : (
               (person.tags.length > 0 || person.excludedFromDrifting) && (
