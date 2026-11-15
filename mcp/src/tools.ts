@@ -1,5 +1,5 @@
 import { z, type ZodTypeAny } from "zod";
-import { isInvocable, macroCommand, commandKey, type CommandArg, type CommandDef, type MacroShape, type OwnedCommand } from "@lifeline/core";
+import { isInvocable, MAX_LINK_VALUES, macroCommand, commandKey, type CommandArg, type CommandDef, type MacroShape, type OwnedCommand } from "@lifeline/core";
 import { GUIDE_PAGES, guidePage } from "@lifeline/guide";
 import { guideBody } from "@lifeline/guide/pages";
 import { manifests } from "./apps";
@@ -246,8 +246,10 @@ function argSchema(arg: CommandArg): ZodTypeAny {
       s = z.array(arg.options?.length ? z.enum(arg.options.map((o) => o.value) as [string, ...string[]]) : z.string());
       break;
     case "list":
-    case "links":
       s = z.array(z.string());
+      break;
+    case "links":
+      s = z.array(z.string()).max(MAX_LINK_VALUES);
       break;
     case "json":
       s = z.record(z.string(), z.unknown());

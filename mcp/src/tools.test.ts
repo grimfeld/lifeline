@@ -150,3 +150,12 @@ describe("Macro tools", () => {
     expect(by("create_macro")!.input.steps!.safeParse([{ command: "tasks/add", args: { title: { from: "guess" } } }]).success).toBe(false);
   });
 });
+
+describe("a list of links is capped", () => {
+  it("refuses 51 entries in the schema, accepts 50", () => {
+    const add = TOOLS.find((t) => t.name === "calendar_add_event")!;
+    const many = (n: number) => Array.from({ length: n }, (_, i) => `p${i}`);
+    expect(add.input.with!.safeParse(many(50)).success).toBe(true);
+    expect(add.input.with!.safeParse(many(51)).success).toBe(false);
+  });
+});
