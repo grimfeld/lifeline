@@ -160,3 +160,40 @@ test("the phone's capture sheet offers Add place", async ({ page, isMobile }) =>
   await dialog.getByRole("button", { name: "Add", exact: true }).click();
   await expect.poll(() => placeNamed(page, "Lidl Jean Jaurès")).toMatchObject({ kind: "" });
 });
+
+test("a Place's page shows when it was last visited, Mentioned beside it, and its upcoming Events above Today", async ({ page }) => {
+  await page.goto("/app/places");
+  await workLocally(page);
+  const id = await makePlace(page, "Chez Janou");
+  const days = await inCore(
+    page,
+    async (core, at: string) => {
+      const today = core.todayStr();
+      const day = (n: number) => core.addDays(today, n);
+      // Two Events on one day count one visit; a two-day weekend counts two; next week's booking none.
+      await core.createDocument({ type: "event", title: "Lunch", fields: { date: day(-5), at } });
+      await core.createDocument({ type: "event", title: "Drinks", fields: { date: day(-5), notes: "after, [[Chez Janou]]" } });
+      await core.createDocument({ type: "event", title: "Weekend", fields: { date: day(-12), endDate: day(-11), at } });
+      await core.createDocument({ type: "event", title: "Booked dinner", fields: { date: day(7), at } });
+      await core.createDocument({ type: "daily", title: day(-2), body: "Still thinking of [[Chez Janou]]." });
+      return { last: core.formatHuman(day(-5)) as string };
+    },
+    id,
+  );
+  await page.goto(`/app/places/place/${id}`);
+  await workLocally(page);
+  await expect(page.getByText(`Last visited ${days.last} · 3 visits`)).toBeVisible();
+  const reports = page.getByRole("region", { name: "Reports" });
+  await expect(reports.getByText("Last visited", { exact: true })).toBeVisible();
+  await expect(reports.getByText("Visits", { exact: true })).toBeVisible();
+  await expect(reports.getByText(/in all/)).toHaveText(/3 in all/);
+  await expect(reports.getByText("Last mentioned", { exact: true })).toBeVisible();
+
+  const timeline = page.getByRole("region", { name: "Timeline" });
+  await expect(timeline.getByRole("button", { name: /Booked dinner/ })).toBeVisible();
+  // Each stop in reading order: an entry by its title, the Today line by its name.
+  const order = await timeline.locator("li").evaluateAll((els) =>
+    els.flatMap((el) => (el.getAttribute("aria-label") === "Today" ? ["Today"] : el.querySelector(":scope > button") ? [el.querySelector(":scope > button > span")?.textContent ?? ""] : [])),
+  );
+  expect(order).toEqual(["Booked dinner", "Today", expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), "Drinks", "Lunch", "Weekend"]);
+});

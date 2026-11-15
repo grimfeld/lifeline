@@ -1,8 +1,9 @@
 import { useMemo } from "react";
 import { addDays, diffDays, formatHuman, type DateStr } from "../dates";
 import { mentionable, type Backlink, type LinkIndex } from "./links";
-import type { Document, DocumentTypeDef, ReportKind, ReportSetting } from "./types";
+import type { Document, DocumentTypeDef, ReportKind, ReportSetting, SeenAs } from "./types";
 import { PERSON_TYPE } from "../people";
+import { lastDayCovered } from "../contracts/timed";
 
 /**
  * Reports (CONTEXT.md, ADR 0076): read-only figures about the Documents of one
@@ -76,6 +77,15 @@ export function reportsIn(def: DocumentTypeDef | undefined, family: ReportFamily
   return reportsOf(def).filter((r) => reportKind(r.kind).family === family);
 }
 
+/**
+ * What a Journal period rolls up for a type (ADR 0076, ADR 0119): its Top
+ * mentioned, then its Top seen (a Place's Top visited) — never added together.
+ */
+export function periodReportsOf(def: DocumentTypeDef | undefined): ReportSetting[] {
+  const chosen = reportsOf(def);
+  return (["top", "topSeen"] as const).flatMap((kind) => chosen.filter((r) => r.kind === kind));
+}
+
 /** A stretch of days, both ends included; an open end runs on. */
 export interface ReportWindow {
   from?: DateStr;
@@ -137,13 +147,18 @@ export function seenDays(index: LinkIndex, docId: string, today: DateStr): DateS
 /** A field read as a date, when it is one. */
 const dateIn = (v: unknown): DateStr | undefined => (typeof v === "string" && DATE.test(v) ? v : undefined);
 
-/** The days an Event is on, first to last (an `endDate` before its `date` is ignored); nothing for any other Document or an undated Event. */
+/**
+ * The days an Event is on, first to last (an `endDate` before its `date` is
+ * ignored, and an end at 00:00 doesn't cover its day: `lastDayCovered`, ADR
+ * 0090); nothing for any other Document or an undated Event.
+ */
 function eventSpan(src: Document | undefined): { from: DateStr; to: DateStr } | undefined {
   if (src?.type !== EVENT_TYPE) return undefined;
   const from = dateIn(src.date);
   if (!from) return undefined;
   const end = dateIn(src.endDate);
-  return { from, to: end && end > from ? end : from };
+  if (!end || end <= from) return { from, to: from };
+  return { from, to: lastDayCovered({ date: from, endDate: end, end: typeof src.end === "string" ? src.end : "" }) };
 }
 
 /** The days source of a Report family, as of `today`. */
@@ -163,8 +178,25 @@ const WORDS: Record<ReportSource, ReportWords> = {
   seen: { count: "Seen", heatmap: "days seen", linker: "Event" },
 };
 
-export function reportWords(source: ReportSource): ReportWords {
-  return WORDS[source];
+/** The words a Report of one source uses, in the type's own words for Seen (a Place's Visits). */
+export function reportWords(source: ReportSource, def?: DocumentTypeDef): ReportWords {
+  if (source !== "seen" || !def?.seenAs) return WORDS[source];
+  return { count: capital(def.seenAs.many), heatmap: `days ${def.seenAs.verb}`, linker: WORDS.seen.linker };
+}
+
+/** A kind's label for one type: the Seen kinds in its own words (a Place's "Last visited", ADR 0119). */
+export function reportLabel(kind: ReportKind, def?: DocumentTypeDef): string {
+  const k = reportKind(kind);
+  const w = def?.seenAs;
+  if (k.source !== "seen" || !w) return k.label;
+  const labels: Record<ReportShape, string> = {
+    top: `Top ${w.verb}`,
+    quiet: `Not ${w.verb} lately`,
+    last: `Last ${w.verb}`,
+    count: capital(w.many),
+    heatmap: `${capital(w.verb)} heatmap`,
+  };
+  return labels[k.shape];
 }
 
 /** How long ago, said in days. */
@@ -172,6 +204,21 @@ export function agoText(days: number): string {
   if (days <= 0) return "today";
   if (days === 1) return "yesterday";
   return `${days} days ago`;
+}
+
+/** The Seen family's words when a type gives none: seen, in days. */
+const SEEN: SeenAs = { verb: "seen", one: "day", many: "days" };
+const seenAs = (def: DocumentTypeDef | undefined): SeenAs => def?.seenAs ?? SEEN;
+const capital = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/**
+ * One Document's Seen in a line, in its type's words: "Last visited 10 Nov ·
+ * 1 visit" for a Place (ADR 0119), "Last seen … · 3 days" for a Person.
+ */
+export function seenSummary(f: Pick<DocumentFigures, "last" | "allTime">, def: DocumentTypeDef | undefined): string {
+  const w = seenAs(def);
+  if (!f.last) return `Not ${w.verb} yet`;
+  return `Last ${w.verb} ${formatHuman(f.last)} · ${f.allTime} ${f.allTime === 1 ? w.one : w.many}`;
 }
 
 /** A "Last …" Report's value: the last day and how long ago, or never. */

@@ -27,6 +27,10 @@ export const placeTypeDef: DocumentTypeDef = {
   // An agent's search shows what and where each Place is (ADR 0119: Places have no wall).
   searchFields: ["kind", "address"],
   order: 31,
+  // Visited is the Seen family in a Place's words (ADR 0119): last visit, visits, and Mentioned beside them, never added.
+  // Top visited rolls up on a Journal period and is a placeable Card.
+  seenAs: { verb: "visited", one: "visit", many: "visits" },
+  reports: [{ kind: "lastSeen" }, { kind: "seenCount" }, { kind: "last" }, { kind: "topSeen", n: 5 }],
   builtIn: true,
   // "Create …" in an Event's At (ADR 0119): a Place by name, or the one that already has it.
   async createNamed(name) {

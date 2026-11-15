@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { formatHuman } from "../dates";
 import { buildLinkIndex } from "./links";
-import { DEFAULT_REPORTS, agoText, documentFigures, lastText, reportWords, mentionDays, notMentionedSince, rankingRows, seenDays, sourceOf, reportsIn, reportsOf, topMentioned } from "./reports";
+import { DEFAULT_REPORTS, agoText, periodReportsOf, reportLabel, seenSummary, documentFigures, lastText, reportWords, mentionDays, notMentionedSince, rankingRows, seenDays, sourceOf, reportsIn, reportsOf, topMentioned } from "./reports";
 import type { Document, DocumentTypeDef } from "./types";
 import { PERSON_TYPE } from "../people";
 import { PLACE_TYPE } from "../places";
@@ -208,6 +208,58 @@ describe("Seen (ADR 0112)", () => {
   });
   it("offers a Person Last seen and Last mentioned by default", () => {
     expect(reportsOf(T("person", { reports: [{ kind: "lastSeen" }, { kind: "last" }] })).map((r) => r.kind)).toEqual(["lastSeen", "last"]);
+  });
+});
+
+describe("Visited: a Place's Seen (ADR 0119)", () => {
+  const placeType = T(PLACE_TYPE, { seenAs: { verb: "visited", one: "visit", many: "visits" }, reports: [{ kind: "lastSeen" }, { kind: "seenCount" }, { kind: "last" }] });
+  const visitTypes = [
+    placeType,
+    T("daily", { titleRule: "date", linkable: { mentions: false } }),
+    T("event", {
+      body: "none",
+      linkingText: ["notes"],
+      fields: [
+        { key: "notes", label: "Notes", kind: "longtext" },
+        { key: "at", label: "At", kind: "link", linkType: [PLACE_TYPE, PERSON_TYPE] },
+      ],
+    }),
+  ];
+  type Ev = { date: string; endDate?: string | null; end?: string; at?: string; notes?: string };
+  const event = (id: string, e: Ev) => ({ ...doc(id, "event", id), body: undefined, endDate: null, notes: "", ...e }) as unknown as Document;
+  const janou = doc("janou", PLACE_TYPE, "Chez Janou");
+  const visited = (docs: Document[], on = "2026-11-15") => seenSummary(documentFigures(buildLinkIndex([janou, ...docs], visitTypes), "janou", on, sourceOf("seen", on)), placeType);
+
+  it("shows an Event At Chez Janou on 10 Nov as its last visit, and a future Event not at all", () => {
+    expect(visited([event("dinner", { date: "2026-11-10", at: "janou" }), event("booked", { date: "2026-11-20", at: "janou" })])).toBe(`Last visited ${formatHuman("2026-11-10")} · 1 visit`);
+    expect(visited([event("booked", { date: "2026-11-20", at: "janou" })])).toBe("Not visited yet");
+  });
+  it("counts each day of a two-day Event, and two Events on one day once", () => {
+    expect(visited([event("weekend", { date: "2026-11-07", endDate: "2026-11-08", at: "janou" })])).toBe(`Last visited ${formatHuman("2026-11-08")} · 2 visits`);
+    expect(visited([event("lunch", { date: "2026-11-10", at: "janou" }), event("drinks", { date: "2026-11-10", notes: "after, [[Chez Janou]]" })])).toBe(`Last visited ${formatHuman("2026-11-10")} · 1 visit`);
+  });
+  it("reads an Event that ends at midnight as over the day before (ADR 0090)", () => {
+    expect(visited([event("late", { date: "2026-11-10", endDate: "2026-11-11", end: "00:00", at: "janou" })])).toBe(`Last visited ${formatHuman("2026-11-10")} · 1 visit`);
+  });
+  it("keeps Mentioned apart from Visited, never added to it", () => {
+    const docs = [event("dinner", { date: "2026-11-10", at: "janou" }), doc("d1", "daily", "2026-11-12", "back at [[Chez Janou]]")];
+    const vidx = buildLinkIndex([janou, ...docs], visitTypes);
+    expect(visited(docs)).toBe(`Last visited ${formatHuman("2026-11-10")} · 1 visit`);
+    expect(documentFigures(vidx, "janou", "2026-11-15", sourceOf("mentioned", "2026-11-15")).allTime).toBe(1);
+  });
+  it("rolls up Top visited on a Journal period beside Top mentioned, and nothing a type didn't choose", () => {
+    const both = T(PLACE_TYPE, { reports: [{ kind: "lastSeen" }, { kind: "topSeen", n: 3 }, { kind: "top" }, { kind: "quietSeen" }] });
+    expect(periodReportsOf(both).map((r) => [r.kind, r.n])).toEqual([["top", undefined], ["topSeen", 3]]);
+    expect(periodReportsOf(T("person", { reports: [{ kind: "lastSeen" }, { kind: "last" }] }))).toEqual([]);
+    expect(periodReportsOf(T("note")).map((r) => r.kind)).toEqual(["top"]);
+  });
+  it("names the Seen Reports Visited for a Place, and Seen for any other type", () => {
+    expect(["lastSeen", "seenCount", "topSeen", "quietSeen", "seenHeatmap", "last"].map((k) => reportLabel(k as never, placeType))).toEqual(["Last visited", "Visits", "Top visited", "Not visited lately", "Visited heatmap", "Last mentioned"]);
+    expect(["lastSeen", "seenCount", "topSeen"].map((k) => reportLabel(k as never, T("person")))).toEqual(["Last seen", "Seen count", "Top seen"]);
+    expect([reportWords("seen", placeType), reportWords("seen", T("person"))]).toEqual([
+      { count: "Visits", heatmap: "days visited", linker: "Event" },
+      { count: "Seen", heatmap: "days seen", linker: "Event" },
+    ]);
   });
 });
 
