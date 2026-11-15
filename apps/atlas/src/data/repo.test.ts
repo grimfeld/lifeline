@@ -1,8 +1,8 @@
 import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DOCUMENT_TYPES, EVENT_TYPE, PLACE_TYPE, createDocument, db, documentType, documentsTable, getDocument, initApps, patchDocument, putDocument, type DocumentTypeDef } from "@lifeline/core";
+import { DOCUMENT_TYPES, EVENT_TYPE, PLACE_TYPE, allDocumentTypes, allDocuments, buildLinkIndex, createDocument, db, documentType, documentsOf, documentsTable, getDocument, initApps, patchDocument, putDocument, type DocumentTypeDef } from "@lifeline/core";
 import { placeTypeDef } from "../types";
-import { kindOptions, placeCoordsOf, placesList } from "../domain/place";
+import { kindOptions, lastVisitOf, placeCoordsOf, placesList } from "../domain/place";
 import { PlaceTaken, addPlace, livePlace, patchPlace, saveKindOptions, settleToTry } from "./repo";
 
 // A stand-in for Calendar's Event (Atlas never imports it, ADR 0100): an At, and notes whose wikilinks count.
@@ -302,5 +302,38 @@ describe("closed (ADR 0119)", () => {
     expect((await getDocument(day.id))?.body).toBe("Lunch at [[Chez Janou]].");
     await patchPlace(janou.id, { closed: false });
     expect(placeCoordsOf((await getDocument(janou.id))!)).toEqual({ lat: 48.85, lon: 2.36 });
+  });
+});
+
+describe("the Places list's order (#487 story 58)", () => {
+  beforeEach(() => vi.useFakeTimers({ toFake: ["Date"], now: TODAY }));
+  afterEach(() => vi.useRealTimers());
+
+  async function listed(sort: "name" | "lastVisit") {
+    const index = buildLinkIndex(await allDocuments(), allDocumentTypes());
+    const places = (await documentsOf(PLACE_TYPE)).map((d) => livePlace(d)!);
+    return placesList(places, { sort, lastVisit: (id) => lastVisitOf(index, id, "2026-11-15") }).map((p) => p.title);
+  }
+
+  it("is A to Z by name, or by last visit, newest first, the Places never visited last", async () => {
+    const janou = await addPlace({ name: "Chez Janou" });
+    const flore = await addPlace({ name: "Café de Flore" });
+    await addPlace({ name: "Musée d'Orsay" });
+    await addPlace({ name: "Bistrot Paul Bert" });
+    await event("Coffee", { date: "2026-11-01", at: flore.id });
+    await event("Dinner", { date: "2026-11-10", at: janou.id });
+    // Still to come: no visit yet.
+    await event("Lunch", { date: "2026-11-20", at: flore.id });
+    expect(await listed("name")).toEqual(["Bistrot Paul Bert", "Café de Flore", "Chez Janou", "Musée d'Orsay"]);
+    expect(await listed("lastVisit")).toEqual(["Chez Janou", "Café de Flore", "Bistrot Paul Bert", "Musée d'Orsay"]);
+  });
+
+  it("puts two Places last visited on one day A to Z", async () => {
+    const janou = await addPlace({ name: "Chez Janou" });
+    const flore = await addPlace({ name: "Café de Flore" });
+    await event("Dinner", { date: "2026-11-10", at: janou.id });
+    await event("Coffee", { date: "2026-11-10", notes: "At [[Café de Flore]] first.", at: "" });
+    expect(flore.title).toBe("Café de Flore");
+    expect(await listed("lastVisit")).toEqual(["Café de Flore", "Chez Janou"]);
   });
 });

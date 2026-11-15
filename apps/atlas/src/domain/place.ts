@@ -1,4 +1,4 @@
-import { PLACE_TYPE, documentType, eventLastDay, foldName, normalizeName, readGeo, type Coords, type DateStr, type Document, type FieldOption, type LinkIndex } from "@lifeline/core";
+import { PLACE_TYPE, documentFigures, documentType, eventLastDay, sourceOf, foldName, normalizeName, readGeo, type Coords, type DateStr, type Document, type FieldOption, type LinkIndex } from "@lifeline/core";
 import { KINDS, type Place } from "./types";
 
 /** The Kind options as they stand: the App's, under the user's names, then the user's own. */
@@ -61,12 +61,28 @@ export type PlacesShown = "open" | "toTry" | "closed";
 /** Whether a Place belongs in a list: a closed one is in the closed list only (ADR 0119). */
 const shownIn = (p: Place, show: PlacesShown) => (show === "closed" ? p.closed : !p.closed && (show === "open" || p.toTry));
 
-/** The Places screen's list: the open Places, those To try or the closed ones, of one Kind when one is picked, A to Z by name. */
-export function placesList(places: readonly Place[], filter: { kind?: string; show?: PlacesShown } = {}): Place[] {
-  return places
-    .filter((p) => shownIn(p, filter.show ?? "open") && (!filter.kind || p.kind === filter.kind))
-    .sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: "base" }));
+/** How the Places screen orders its list (#487 story 58): A to Z by name, or by last visit, newest first. */
+export type PlacesSort = "name" | "lastVisit";
+
+const byName = (a: Place, b: Place) => a.title.localeCompare(b.title, undefined, { sensitivity: "base" });
+
+/**
+ * The Places screen's list: the open Places, those To try or the closed ones,
+ * of one Kind when one is picked; A to Z by name, or by last visit (newest
+ * first, the Places never visited last, a tie A to Z), read through `lastVisit`.
+ */
+export function placesList(
+  places: readonly Place[],
+  filter: { kind?: string; show?: PlacesShown; sort?: PlacesSort; lastVisit?: (id: string) => DateStr | undefined } = {},
+): Place[] {
+  const shown = places.filter((p) => shownIn(p, filter.show ?? "open") && (!filter.kind || p.kind === filter.kind));
+  if (filter.sort !== "lastVisit" || !filter.lastVisit) return shown.sort(byName);
+  const last = new Map(shown.map((p) => [p.id, filter.lastVisit!(p.id) ?? ""]));
+  return shown.sort((a, b) => last.get(b.id)!.localeCompare(last.get(a.id)!) || byName(a, b));
 }
+
+/** A Place's last visit: the Visited figure (ADR 0119), the last day an Event that links here was on, up to today; none if never. */
+export const lastVisitOf = (index: LinkIndex, placeId: string, today: DateStr): DateStr | undefined => documentFigures(index, placeId, today, sourceOf("seen", today)).last ?? undefined;
 
 /** Whether an Event has happened: its last day is before today (ADR 0119). Today's is still to come. */
 export const hasHappened = (doc: Document | undefined, today: DateStr): boolean => {
