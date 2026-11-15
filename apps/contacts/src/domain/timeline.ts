@@ -56,10 +56,22 @@ export function timelineOf(index: LinkIndex, personId: string): TimelineEntry[] 
   return [...byId.values()].sort((a, b) => (b.day ?? "").localeCompare(a.day ?? "") || a.title.localeCompare(b.title));
 }
 
+/** A stop above the Today line: an Occasion, or a Document dated today or later, or one still under way. */
+export type AheadStop = { day: DateStr } & (
+  | { kind: "occasion"; occasion: UpcomingOccasion; /** Days from today. */ inDays: number }
+  | { kind: "entry"; entry: TimelineEntry; /** Days from today; null for an Event under way, begun before today. */ inDays: number | null }
+);
+
+/** A stop below the Today line: a Document that is past, or has no day; it says nothing of how soon. */
+export interface PastStop {
+  kind: "entry";
+  day: DateStr | null;
+  entry: TimelineEntry;
+  inDays: null;
+}
+
 /** One stop on the line: an Occasion ahead, or a Document that links in. */
-export type TimelineStop =
-  | { kind: "occasion"; day: DateStr; occasion: UpcomingOccasion }
-  | { kind: "entry"; day: DateStr | null; entry: TimelineEntry; /** Days from today, for what is today or later. */ inDays?: number };
+export type TimelineStop = AheadStop | PastStop;
 
 export interface TimelineMonth {
   /** "2026-11"; null for what has no day. */
@@ -80,6 +92,8 @@ export function timelineMonths(stops: readonly TimelineStop[]): TimelineMonth[] 
 }
 
 const stopTitle = (s: TimelineStop) => (s.kind === "occasion" ? s.occasion.label : s.entry.title);
+/** On a shared day, an Occasion comes before a Document. */
+const kindRank = (s: TimelineStop) => (s.kind === "occasion" ? 0 : 1);
 
 /**
  * The two sides of the Today line, each by month, newest first. Ahead:
@@ -93,13 +107,13 @@ export function timelineSides(
   occasions: readonly UpcomingOccasion[],
   today: DateStr,
 ): { ahead: TimelineMonth[]; past: TimelineMonth[] } {
-  const ahead: TimelineStop[] = occasions.map((occasion) => ({ kind: "occasion", day: occasion.date, occasion }));
-  const past: TimelineStop[] = [];
+  const ahead: AheadStop[] = occasions.map((occasion) => ({ kind: "occasion", day: occasion.date, occasion, inDays: occasion.inDays }));
+  const past: PastStop[] = [];
   for (const entry of entries) {
     if (entry.ownDay && entry.day !== null && (entry.endDay ?? entry.day) >= today)
-      ahead.push({ kind: "entry", day: entry.day, entry, ...(entry.day >= today ? { inDays: diffDays(today, entry.day) } : {}) });
-    else past.push({ kind: "entry", day: entry.day, entry });
+      ahead.push({ kind: "entry", day: entry.day, entry, inDays: entry.day >= today ? diffDays(today, entry.day) : null });
+    else past.push({ kind: "entry", day: entry.day, entry, inDays: null });
   }
-  ahead.sort((a, b) => (b.day ?? "").localeCompare(a.day ?? "") || (a.kind === b.kind ? 0 : a.kind === "occasion" ? -1 : 1) || stopTitle(a).localeCompare(stopTitle(b)));
+  ahead.sort((a, b) => b.day.localeCompare(a.day) || kindRank(a) - kindRank(b) || stopTitle(a).localeCompare(stopTitle(b)));
   return { ahead: timelineMonths(ahead), past: timelineMonths(past) };
 }

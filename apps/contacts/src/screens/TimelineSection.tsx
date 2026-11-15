@@ -68,7 +68,7 @@ export function TimelineSection({ person }: { person: Person }) {
         <button type="button" onClick={() => void openPeek(e.sourceId)} className="hover:bg-accent focus-visible:ring-ring -mx-1 block w-full min-w-0 rounded-md px-1 text-left focus-visible:ring-2 focus-visible:outline-none">
           <span className="block min-w-0 truncate text-sm">{e.title || "Untitled"}</span>
           <span className="text-muted-foreground block min-w-0 truncate text-xs">
-            {dotJoin([def && singularOf(def), e.day && formatHuman(e.day), s.inDays !== undefined && whenOf(s.inDays), how])}
+            {dotJoin([def && singularOf(def), e.day && formatHuman(e.day), s.inDays !== null && whenOf(s.inDays), how])}
           </span>
         </button>
       </Stop>

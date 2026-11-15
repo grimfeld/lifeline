@@ -55,16 +55,16 @@ describe("the two sides of the Today line", () => {
   const occasion = (label: string, date: string, inDays: number): UpcomingOccasion => ({ personId: "anne", occasionId: label, name: "Anne", label, date, inDays, age: null });
   const names = (months: ReturnType<typeof timelineSides>["ahead"]) =>
     months.map((m) => [m.month, m.stops.map((s) => (s.kind === "occasion" ? s.occasion.label : s.entry.sourceId))]);
-  // As timelineOf gives them: newest first.
-  const entries = [entry("housewarming", "2026-12-13"), entry("film", "2026-11-15"), entry("tonight", "2026-11-14"), entry("day", "2026-10-28"), entry("undated", null)];
+  // As timelineOf gives them: newest first. "dinner" shares today with "Today's" and sorts before it by title.
+  const entries = [entry("housewarming", "2026-12-13"), entry("film", "2026-11-15"), entry("dinner", "2026-11-14"), entry("day", "2026-10-28"), entry("undated", null)];
   const occasions = [occasion("Today's", "2026-11-14", 0), occasion("Birthday", "2026-11-20", 6), occasion("Wedding", "2027-03-01", 107)];
   const sides = timelineSides(entries, occasions, today);
 
-  it("puts today and what is after it above the line, Occasions and Documents in one order, furthest first", () => {
+  it("puts today and what is after it above the line, Occasions and Documents in one order, furthest first, an Occasion before a Document on its day", () => {
     expect(names(sides.ahead)).toEqual([
       ["2027-03", ["Wedding"]],
       ["2026-12", ["housewarming"]],
-      ["2026-11", ["Birthday", "film", "Today's", "tonight"]],
+      ["2026-11", ["Birthday", "film", "Today's", "dinner"]],
     ]);
   });
   it("keeps what is past, then what has no day, below it", () => {
@@ -78,9 +78,9 @@ describe("the two sides of the Today line", () => {
     expect(stops.map((s) => [s.entry.sourceId, s.inDays])).toEqual([
       ["housewarming", 29],
       ["film", 1],
-      ["tonight", 0],
-      ["day", undefined],
-      ["undated", undefined],
+      ["dinner", 0],
+      ["day", null],
+      ["undated", null],
     ]);
   });
   it("shows a Document however far ahead it is", () => {
@@ -93,7 +93,7 @@ describe("the two sides of the Today line", () => {
     expect(sides.ahead).toEqual([]);
     const first = sides.past[0]?.stops[0];
     expect(first?.kind === "entry" && first.entry.sourceId).toBe("n");
-    expect(first?.kind === "entry" && first.inDays).toBeUndefined();
+    expect(first?.kind === "entry" && first.inDays).toBeNull();
   });
   it("keeps an Event still under way above the line, by its first day, with no how soon", () => {
     const trip = { ...base, id: "trip", type: "event", title: "Trip", date: "2026-11-13", endDate: "2026-11-20", with: ["anne"] } as unknown as Document;
@@ -103,7 +103,7 @@ describe("the two sides of the Today line", () => {
     expect(names(sides.past)).toEqual([["2026-11", ["over"]]]);
     const [stop] = sides.ahead[0]!.stops;
     expect(stop?.kind === "entry" && stop.day).toBe("2026-11-13");
-    expect(stop?.kind === "entry" && stop.inDays).toBeUndefined();
+    expect(stop?.kind === "entry" && stop.inDays).toBeNull();
   });
   it("keeps an Event ending today above the line, below one starting today", () => {
     const ending = { ...entry("ending", "2026-11-10"), endDay: "2026-11-14" };
@@ -126,7 +126,7 @@ describe("an undated entry's day", () => {
     // 23:30 on 30 Nov local is 04:30 on 1 Dec UTC.
     const [e] = timelineWith({ updatedAt: "2026-12-01T04:30:00Z" });
     expect(e?.day).toBe("2026-11-30");
-    expect(timelineMonths([{ kind: "entry", day: e!.day, entry: e! }]).map((m) => m.month)).toEqual(["2026-11"]);
+    expect(timelineMonths([{ kind: "entry", day: e!.day, entry: e!, inDays: null }]).map((m) => m.month)).toEqual(["2026-11"]);
   });
   it("ignores a date in the title of a note, but not of a Day", () => {
     vi.stubEnv("TZ", "UTC");
