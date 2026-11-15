@@ -1,13 +1,9 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 import { openPalette } from "./support/palette";
 import { inCore } from "./support/core";
+import { workLocally } from "./support/journal";
 
 /** An Event's With offers Households (ADR 0117, #463): picking one adds its members of today as People, each removable; With keeps People only. */
-
-async function workLocally(page: Page) {
-  const local = page.getByRole("button", { name: "Work locally" });
-  await local.waitFor({ timeout: 8000 }).then(() => local.click(), () => {});
-}
 
 test("a Household picked in an Event's With adds its current members; one is taken off and the Event saves People only", async ({ page }) => {
   const stamp = Date.now();

@@ -1,12 +1,8 @@
 import { test, expect, type Page } from "@playwright/test";
 import { inCore } from "./support/core";
+import { workLocally } from "./support/journal";
 
 /** The one-off tidy-up of given-name aliases (ADR 0117), offered from the People home. */
-
-async function workLocally(page: Page) {
-  const local = page.getByRole("button", { name: "Work locally" });
-  await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
-}
 
 const make = (page: Page, title: string, aliases: string[]) =>
   inCore(page, async (core, a: { title: string; aliases: string[] }) => (await core.createDocument({ type: "contacts_person", title: a.title, fields: { aliases: a.aliases } })).id as string, { title, aliases });

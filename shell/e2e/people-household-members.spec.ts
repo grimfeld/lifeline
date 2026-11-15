@@ -1,13 +1,9 @@
 import { test, expect, type Page } from "@playwright/test";
 import { inCore } from "./support/core";
+import { workLocally } from "./support/journal";
 import { openPalette } from "./support/palette";
 
 /** Households (ADR 0117, #460): made, given members, joined from a Person's page, linked, and left by a deleted Person. */
-
-async function workLocally(page: Page) {
-  const local = page.getByRole("button", { name: "Work locally" });
-  await local.waitFor({ timeout: 8000 }).then(() => local.click(), () => {});
-}
 
 async function makePerson(page: Page, title: string): Promise<string> {
   return inCore(page, async (core, t: string) => (await core.createDocument({ type: "contacts_person", title: t })).id as string, title);
