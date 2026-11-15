@@ -19,7 +19,9 @@ cases need. Run the layout test locally before pushing a change that touches a s
 
 Each run starts its own servers on the first free three ports from 1421 on (1421, 1424,
 1427…), so runs in several worktrees at once don't collide; `E2E_PORT` picks the first of
-the three instead. The two Demo builds start only when the run includes the `demo` or
+the three instead. In a cloud container the config launches the Chromium in
+`/opt/pw-browsers` on its own, whatever build it is: never run `playwright install` there,
+and never change that directory. The two Demo builds start only when the run includes the `demo` or
 `demo-setup` project (no `--project` at all, or one of those).
 
 - Open the command palette with `openPalette(page)` from `support/palette.ts`, never a bare key press: it waits for a closing palette, then for the input. Press `Control` (editor chords: `pressMod` in `support/keys.ts`), never `ControlOrMeta` (the `desktop` project is a Windows user agent; `scripts/e2e-keys.test.mjs` checks).
