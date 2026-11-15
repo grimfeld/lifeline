@@ -263,9 +263,11 @@ export interface DocumentTypeDef {
   followers?: (doc: Document) => Promise<string[]>;
   /**
    * Run once a Document has moved to another Workspace, with the rest of that
-   * move already written (so Documents moved together see each other there):
-   * the owning App drops what now points across the boundary, as `onDelete`
-   * does on delete (a Household's members of another Workspace, ADR 0117).
+   * move already written, Attachments included (so Documents moved together
+   * see each other there): the owning App drops what now points across the
+   * boundary, as `onDelete` does on delete (a Household's members of another
+   * Workspace). Every moved Document's hook runs; the first that throws is
+   * reported after them, and the move stays written (ADR 0118).
    */
   onMove?: (doc: Document, workspace: string) => Promise<void>;
   /**

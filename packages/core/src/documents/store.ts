@@ -293,16 +293,28 @@ export async function moveDocumentsToWorkspace(ids: string[], workspace: string)
     moved.push({ ...doc, workspace });
     if (typeof doc.body === "string" && doc.body) bodies.push(doc.body);
   }
-  // Each type then drops what its moved Documents left pointing across the boundary.
-  for (const doc of moved) await documentTypeSync(doc.type)?.onMove?.(doc, workspace);
   // Attachments follow the Document that embeds them (ADR 0048). Left behind,
   // the moved body could not resolve its images, and "Clean up attachments"
-  // in either Workspace took them for orphans.
-  if (!bodies.length) return;
-  type AttachmentRow = SyncedRecord & { name: string; workspace?: string };
-  const rows = await db().collection<AttachmentRow>(ATTACHMENTS).where("deleted").equals(0).toArray();
-  const byId = new Map(rows.map((r) => [r.id, r]));
-  for (const id of attachmentsFollowing(rows, bodies, workspace)) await put<AttachmentRow>(ATTACHMENTS, { ...byId.get(id)!, workspace });
+  // in either Workspace took them for orphans. Moved before any type's hook
+  // runs, so a hook that throws cannot split a Document from its attachments.
+  if (bodies.length) {
+    type AttachmentRow = SyncedRecord & { name: string; workspace?: string };
+    const rows = await db().collection<AttachmentRow>(ATTACHMENTS).where("deleted").equals(0).toArray();
+    const byId = new Map(rows.map((r) => [r.id, r]));
+    for (const id of attachmentsFollowing(rows, bodies, workspace)) await put<AttachmentRow>(ATTACHMENTS, { ...byId.get(id)!, workspace });
+  }
+  // Each type then drops what its moved Documents left pointing across the
+  // boundary (ADR 0118). The move itself is done: every hook runs, and the
+  // first failure is reported once they have.
+  let failure: { error: unknown } | null = null;
+  for (const doc of moved) {
+    try {
+      await documentTypeSync(doc.type)?.onMove?.(doc, workspace);
+    } catch (error) {
+      failure ??= { error };
+    }
+  }
+  if (failure) throw failure.error;
 }
 
 /** Ids of the live Attachments these bodies embed that are not in `workspace` yet. Pure. */
