@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { buildLinkIndex, documentsOf, documentsTable, getDocument, initApps, moveDocumentsToWorkspace, removeDocument } from "@lifeline/core";
 import { householdTypeDef, personTypeDef, tieTypeDef } from "../types";
 import { addPerson } from "./repo";
-import { addHousehold, addMember, allHouseholds, joinNewHousehold, removeMember, restoreMember } from "./households";
+import { addHousehold, addMember, allHouseholds, joinNewHousehold, removeMember, restoreMember, setMembershipDays } from "./households";
 import type { Household } from "../domain/types";
 
 initApps([{ id: "contacts", title: "Contacts", module: "people", types: [personTypeDef, tieTypeDef, householdTypeDef], screens: [], cards: [], commands: [] }]);
@@ -87,5 +87,38 @@ describe("Households (ADR 0117)", () => {
     await removeDocument(smiths.id);
     expect(await allHouseholds()).toEqual([]);
     expect(await getDocument(paul.id)).toEqual(before);
+  });
+});
+
+describe("a membership's days (ADR 0117)", () => {
+  it("are set and cleared per membership, the other keys and members left alone", async () => {
+    const paul = await addPerson({ name: "Paul" });
+    const tom = await addPerson({ name: "Tom" });
+    const h = await addHousehold({ name: "the Smiths" });
+    await addMember(h.id, paul.id);
+    await addMember(h.id, tom.id);
+    await setMembershipDays(h.id, tom.id, { since: "2001-04-02", until: "2024-09-01" });
+    expect((await getDocument<Household>(h.id))?.members).toEqual([{ personId: paul.id }, { personId: tom.id, since: "2001-04-02", until: "2024-09-01" }]);
+    await setMembershipDays(h.id, tom.id, { since: "" });
+    expect((await getDocument<Household>(h.id))?.members[1]).toEqual({ personId: tom.id, until: "2024-09-01" });
+  });
+
+  it("refuse an until before the since, and a Person who is not a member", async () => {
+    const paul = await addPerson({ name: "Paul" });
+    const h = await addHousehold({ name: "the Smiths" });
+    await addMember(h.id, paul.id);
+    await setMembershipDays(h.id, paul.id, { since: "2020-05-01" });
+    await expect(setMembershipDays(h.id, paul.id, { until: "2020-04-30" })).rejects.toThrow("before");
+    await expect(setMembershipDays(h.id, "nobody", { until: "2020-04-30" })).rejects.toThrow("not in it");
+  });
+
+  it("stay with a former member removed and put back by Undo", async () => {
+    const paul = await addPerson({ name: "Paul" });
+    const h = await addHousehold({ name: "the Smiths" });
+    await addMember(h.id, paul.id);
+    await setMembershipDays(h.id, paul.id, { until: "2024-09-01" });
+    const removed = await removeMember(h.id, paul.id);
+    await restoreMember(h.id, removed);
+    expect((await getDocument<Household>(h.id))?.members).toEqual([{ personId: paul.id, until: "2024-09-01" }]);
   });
 });

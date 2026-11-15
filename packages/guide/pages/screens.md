@@ -80,7 +80,7 @@ These work everywhere, on any type:
   last mentioned, a year as a heatmap. Over this month, this year or all time. **Mentioned**
   counts the Days that link to it; **Seen** (Top seen, Not seen lately, Last seen, Seen count,
   Seen heatmap) counts the days of the Events that link to it, up to today. The two are never added.
-  A link to a Household counts for each of its members (see People).
+  A link to a Household counts for whoever lived there on the link's date (see People).
 
 ## Lifeline's own Commands
 

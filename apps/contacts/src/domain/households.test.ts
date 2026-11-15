@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { householdsForFamilyName, householdsOf, memberCandidates, memberIdsOn, membershipsOf, membersOf } from "./households";
+import { householdsForFamilyName, householdsOf, memberCandidates, memberIdsOn, membershipSpan, membershipsOf, membersOf, splitMembers } from "./households";
 import { householdTypeDef } from "../types";
 import { HOUSEHOLD } from "./types";
 
@@ -116,5 +116,26 @@ describe("the Households suggested for a Family name (ADR 0117)", () => {
 
   it("ignores a member who is not among the People visible", () => {
     expect(householdsForFamilyName("Smith", [smiths], [])).toEqual([]);
+  });
+});
+
+describe("former members (ADR 0117)", () => {
+  const rows = [{ personId: "a" }, { personId: "b", until: "2026-06-30" }, { personId: "c", until: "2026-11-15" }, { personId: "d", since: "2027-01-01" }];
+  it("are those whose until day has passed, still listed; the rest are members", () => {
+    const { current, former } = splitMembers(rows, "2026-11-15");
+    expect(former.map((r) => r.personId)).toEqual(["b"]);
+    expect(current.map((r) => r.personId)).toEqual(["a", "c", "d"]);
+  });
+  it("say their days in a phrase", () => {
+    expect(membershipSpan({})).toBe("");
+    expect(membershipSpan({ since: "2001-04-02" })).toBe("since 2001-04-02");
+    expect(membershipSpan({ since: "2001-04-02", until: "2024-09-01" })).toBe("since 2001-04-02 until 2024-09-01");
+  });
+  it("count on the first and last day of their stay and not outside it, a dateless source only for the unbounded", () => {
+    const stay = [{ personId: "tom", since: "2020-01-01", until: "2024-09-01" }, { personId: "paul" }];
+    expect(memberIdsOn(stay, "2019-12-31")).toEqual(["paul"]);
+    expect(memberIdsOn(stay, "2020-01-01")).toEqual(["tom", "paul"]);
+    expect(memberIdsOn(stay, "2024-09-01")).toEqual(["tom", "paul"]);
+    expect(memberIdsOn(stay, "2024-09-02")).toEqual(["paul"]);
   });
 });

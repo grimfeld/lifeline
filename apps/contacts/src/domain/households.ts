@@ -58,6 +58,20 @@ export function membersOf(household: { members?: unknown }, people: readonly Pic
   return rows.sort((a, b) => byName(a.name, b.name));
 }
 
+/**
+ * A Household's members split on `today`: those still in it (an until day
+ * today or later, or none) and the former ones, whose until day has passed.
+ * A former member stays listed, never removed (ADR 0117); one whose since day
+ * is still to come counts as a member, with the day shown.
+ */
+export function splitMembers<R extends Membership>(rows: readonly R[], today: string): { current: R[]; former: R[] } {
+  const former = (r: R) => !!r.until && r.until < today;
+  return { current: rows.filter((r) => !former(r)), former: rows.filter(former) };
+}
+
+/** A membership's days as one phrase for a row: "since 2001-04-02", "until 2024-09-01", or both; nothing when neither is set. */
+export const membershipSpan = (m: Pick<Membership, "since" | "until">): string => [m.since && `since ${m.since}`, m.until && `until ${m.until}`].filter(Boolean).join(" ");
+
 /** A Person the Household can take as a member, as the name completion offers them. */
 export interface MemberCandidate {
   value: string;

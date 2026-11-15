@@ -95,3 +95,36 @@ test("Add person suggests joining a Household of the same Family name, and joins
   await dialog.getByRole("button", { name: "Add", exact: true }).click();
   await expect.poll(() => members("the Zzsmiths")).toBe(2);
 });
+
+test("a member who moved out stays listed as a former member, and their days are edited from the page", async ({ page }) => {
+  await page.goto("/app/people/households");
+  await workLocally(page);
+  const paul = await makePerson(page, "Paul Mvtest");
+  const tom = await makePerson(page, "Tom Mvtest");
+  const id = await inCore(
+    page,
+    async (core, a: { paul: string; tom: string }) =>
+      (await core.createDocument({ type: "contacts_household", title: "the Mvtests", fields: { members: [{ personId: a.paul }, { personId: a.tom, since: "1990-01-01", until: "2001-02-03" }] } })).id as string,
+    { paul, tom },
+  );
+  await page.goto(`/app/people/household/${id}`);
+  await workLocally(page);
+
+  // Tom left long ago: listed apart, with his days; Paul is a member.
+  const former = page.getByRole("group", { name: "Former members" });
+  await expect(former.getByRole("link", { name: "Tom Mvtest" })).toBeVisible();
+  await expect(former).toContainText("since 1990-01-01 until 2001-02-03");
+  const members = page.getByRole("region", { name: "Members" });
+  await expect(members.getByRole("link", { name: "Paul Mvtest" })).toBeVisible();
+
+  // Paul moves out: an until day (today) ends nothing yet; clearing Tom's until brings him back.
+  await former.getByRole("button", { name: "Dates for Tom Mvtest in the Mvtests" }).click();
+  const dialog = page.getByRole("dialog", { name: "Dates for Tom Mvtest" });
+  await dialog.getByRole("button", { name: /^Until/ }).click();
+  await page.getByRole("button", { name: "Clear" }).click();
+  await dialog.getByRole("button", { name: "Save" }).click();
+  await expect(former).toHaveCount(0);
+  await expect(members.getByRole("link", { name: "Tom Mvtest" })).toBeVisible();
+  await expect(members).toContainText("since 1990-01-01");
+  await expect(members).not.toContainText("until");
+});

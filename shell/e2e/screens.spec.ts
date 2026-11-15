@@ -531,6 +531,21 @@ async function longHouseholds(page: Page) {
   );
 }
 
+/**
+ * The seeded Household with a former member: the Households' first Person
+ * given an until day long past, so the page lists them apart, with their
+ * days (ADR 0117). Run after `longHouseholds`.
+ */
+async function formerMember(page: Page) {
+  await inCore(page, async (core) => {
+    for (const h of await core.documentsOf("contacts_household")) {
+      const [first, ...rest] = h.members as { personId: string }[];
+      await core.patchDocument(h.id, { members: [{ ...first!, since: "1990-01-01", until: "2001-02-03" }, ...rest] });
+    }
+  });
+  await expect(page.getByRole("group", { name: "Former members" }).getByTestId("member")).toHaveCount(1);
+}
+
 /** A Relationship as long as a person could type, so the People filter row holds a long toggle. */
 async function longRelationship(page: Page) {
   await workLocally(page);
@@ -1031,6 +1046,7 @@ const SCREENS: ScreenCase[] = [
   { name: "Person · Households", path: "/app/people/person/:id", type: "contacts_person", afterOpen: async (page) => { await longHouseholds(page); await expect(page.getByRole("link", { name: /^Another household/ })).toBeVisible(); } },
   { name: "Households", path: "/app/people/households", afterOpen: async (page) => { await longHouseholds(page); await expect(page.getByRole("link", { name: /^Another household/ })).toBeVisible(); } },
   { name: "Household", path: "/app/people/household/:id", type: "contacts_household", afterOpen: async (page) => { await workLocally(page); await expect(page.getByText("No members yet.")).toBeVisible(); } },
+  { name: "Household · former members", path: "/app/people/household/:id", type: "contacts_household", afterOpen: async (page) => { await longHouseholds(page); await formerMember(page); } },
   { name: "Household · members", path: "/app/people/household/:id", type: "contacts_household", afterOpen: async (page) => { await longHouseholds(page); await expect(page.getByTestId("member").first()).toBeVisible(); } },
   { name: "Thoughts", path: "/app/thoughts" },
   { name: "Thought", path: "/app/thoughts/:id", type: "thought" },

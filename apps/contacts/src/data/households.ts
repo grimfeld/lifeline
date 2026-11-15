@@ -62,6 +62,22 @@ export async function addMember(householdId: string, personId: string): Promise<
   await patchDocument(householdId, { members: [...members, { personId }] });
 }
 
+/**
+ * Set a membership's since and until days (ADR 0117), each a `YYYY-MM-DD` day
+ * or "" for none; the keys left out stay as they are. Someone who moves out
+ * gets an until day and stays listed. Throws when until comes before since.
+ */
+export async function setMembershipDays(householdId: string, personId: string, days: { since?: string; until?: string }): Promise<void> {
+  const { members } = await membershipsIn(householdId);
+  const current = members.find((m) => m.personId === personId);
+  if (!current) throw new Error("They are not in it");
+  const since = days.since === undefined ? current.since : days.since;
+  const until = days.until === undefined ? current.until : days.until;
+  if (since && until && until < since) throw new Error("Until comes before since");
+  const next: Membership = { personId, ...(since ? { since } : {}), ...(until ? { until } : {}) };
+  await patchDocument(householdId, { members: members.map((m) => (m.personId === personId ? membershipsOf([next])[0]! : m)) });
+}
+
 /** Make a Household of that name and the Person its first member: "Add to a Household…" on their page, with a new one. */
 export async function joinNewHousehold(personId: string, name: string): Promise<Household> {
   const household = await addHousehold({ name });

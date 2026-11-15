@@ -41,5 +41,5 @@ export async function describePerson(person: Document): Promise<Record<string, u
  */
 export async function describeHousehold(household: Document): Promise<Record<string, unknown>> {
   const people = (await allPeople()).filter(agentMaySee);
-  return { members: membersOf({ members: household.members }, people).map((m) => ({ id: m.personId, title: m.name })) };
+  return { members: membersOf({ members: household.members }, people).map((m) => ({ id: m.personId, title: m.name, ...(m.since ? { since: m.since } : {}), ...(m.until ? { until: m.until } : {}) })) };
 }

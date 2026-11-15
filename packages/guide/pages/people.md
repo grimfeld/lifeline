@@ -162,7 +162,10 @@ mother in another town is his Tie, not a member, and Mary keeps her own name and
 - **A Household's page** — its name, underlined with dashes (click it to rename it; every
   `[[link]]` to it follows), its **Members**, its **Aliases** and **About it**, its body. **Add
   member** finds a Person by name or alias; the cross beside a member takes them out, with Undo.
-  Each member's name opens their page.
+  Each member's name opens their page. The calendar button beside a member sets **Since** and
+  **Until**, the first and last day they lived there; either may stay empty. Someone who moves out
+  gets an Until day and, once it has passed, moves to **Former members**, listed apart with
+  their days, never removed.
 - **From a Person's page**, **Add to a Household…** finds a Household by name, or makes a new one
   from the name you type ("New household “Student flat”") with them in it.
 - **Adding a Person** whose Family name matches a member of a Household suggests joining it
@@ -179,6 +182,10 @@ mother in another town is his Tie, not a member, and Mary keeps her own name and
   Event stands on each member's **Timeline** ("via the Smiths") and counts toward their **Last
   seen** and **Last mentioned**, so toward **Drifting** too, as if you had named each of them. A
   Day or Event that names someone and their Household is one entry, as the direct link.
+- **A link counts for whoever lived there on its date.** The Day's date, or an Event's days, decide
+  which members it reaches (Since and Until included), so a past dinner keeps counting for someone
+  who has since left, and does not count for someone who arrived later. A page with no date of its
+  own, a note, reaches only members with neither Since nor Until.
 - Deleting a Person takes them out of every Household; the Households stay. Deleting a
   Household changes no Person.
 - The home stays each member's **Address**: a Household has none, and no Occasion or Contact
@@ -241,7 +248,8 @@ you can add someone you just met before you forget it.
   ("daughter: Léa"), leaving out anyone in the Private folder.
 - "What have I written about Anne?" — `search_documents`, `get_document`.
 - "Who lives at the Smiths'?" — `get_document` on a Household gives its name, aliases and its
-  members by name, leaving out anyone in the Private folder; nothing of a member's Addresses or
+  members by name, with the days each lived there when set (a past Until marks a former member), leaving
+  out anyone in the Private folder; nothing of a member's Addresses or
   Contact details.
 
 ### What Claude sees of a Person
