@@ -17,7 +17,7 @@ They are yours across every Workspace and every device.
   People field is: type a name or an alias and pick them from the suggestions, as many as you like;
   the cross on a name takes it off. Asked when it runs, the up-front form picks them the same way.
 - **Save** looks up each fixed link, and each name in a fixed list. One that fits no Document, or
-  several, is not saved: the editor says which, step by step, for you to mend. A Macro broken any
+  several, is not saved: the editor says which, under the field at fault, until you change it. A Macro broken any
   other way (below) is saved, and marked broken until it is mended.
 - **Skip if refused** on a step: when it is refused (today's mood is already set), the report says
   it was skipped and why, and the Macro carries on.

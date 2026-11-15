@@ -192,17 +192,24 @@ function MacroEditor({ macro, commands, onClose }: { macro?: MacroRecord; comman
   // A step result follows the step it names, as a step moves or one before it goes.
   const move = (i: number, by: -1 | 1) => setSteps((s) => moveStep(s, i, by));
   const update = (i: number, change: Partial<DraftStep>) => setSteps((s) => s.map((st, j) => (j === i ? { ...st, ...change } : st)));
-  const setArg = (i: number, key: string, arg: StepArg) => setSteps((s) => s.map((st, j) => (j === i ? { ...st, args: { ...st.args, [key]: arg } } : st)));
+  const setArg = (i: number, key: string, arg: StepArg) => {
+    setSteps((s) => s.map((st, j) => (j === i ? { ...st, args: { ...st.args, [key]: arg } } : st)));
+    // Editing the argument at fault answers its refusal.
+    setRefused((r) => omitKey(r, `${i}:${key}`));
+  };
 
   // A fixed link, or entry of a fixed list of links, that names no Document or several: saving refuses it, saying which.
   // A draft broken any other way is saved, and listed as broken.
-  const [refused, setRefused] = useState<string[]>([]);
+  // Each refusal is kept by its step and argument, and shown under that argument until it changes.
+  const [refused, setRefused] = useState<Record<string, string>>({});
 
   async function save() {
     const draft = { name: name.trim(), steps: steps.map(fromDraft) };
+    setRefused({});
     const problems = fixedLinkReasons(await checkMacro(draft, commands, memoLookup()));
     if (problems.length) {
-      setRefused(problems.map((r) => r.text));
+      // The text opens with "Step N: ", which the field's own place already says.
+      setRefused(Object.fromEntries(problems.map((r) => [`${r.step}:${r.key}`, r.text.replace(/^Step \d+: /, "")])));
       return;
     }
     await saveMacro({ id: macro?.id, ...draft });
@@ -253,7 +260,7 @@ function MacroEditor({ macro, commands, onClose }: { macro?: MacroRecord; comman
                 {!def && <p className="text-destructive text-sm">This Command no longer exists.</p>}
                 {kind === "headless" &&
                   def!.args!.map((arg) => (
-                    <ArgSource key={arg.key} arg={arg} source={s.args[arg.key]} earlier={earlier} onChange={(a) => setArg(i, arg.key, a)} />
+                    <ArgSource key={arg.key} arg={arg} source={s.args[arg.key]} earlier={earlier} error={refused[`${i}:${arg.key}`]} onChange={(a) => setArg(i, arg.key, a)} />
                   ))}
                 {kind === "headless" && <SkipToggle checked={s.skipIfRefused} onChange={(skipIfRefused) => update(i, { skipIfRefused })} />}
                 {kind === "dialog" && <p className="text-muted-foreground text-sm">Opens its own dialog at its turn.</p>}
@@ -274,17 +281,10 @@ function MacroEditor({ macro, commands, onClose }: { macro?: MacroRecord; comman
           leading={<Plus />}
           onValueChange={(command) => setSteps((s) => [...s, { command, args: {}, skipIfRefused: false }])}
         />
-        {refused.length > 0 && (
-          <div role="alert" className="text-destructive flex min-w-0 flex-col gap-1 text-sm">
-            <p>Not saved: a fixed link names no Document, or several.</p>
-            <ul className="flex min-w-0 flex-col gap-0.5 text-xs" aria-label="Why it was not saved">
-              {refused.map((r) => (
-                <li key={r} className="break-words">
-                  {r}
-                </li>
-              ))}
-            </ul>
-          </div>
+        {Object.keys(refused).length > 0 && (
+          <p role="alert" className="text-destructive text-sm">
+            Not saved: a fixed link names no Document, or several. Fix the fields marked below.
+          </p>
         )}
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
@@ -309,6 +309,12 @@ function SkipToggle({ checked, onChange }: { checked: boolean; onChange: (v: boo
   );
 }
 
+function omitKey(r: Record<string, string>, key: string): Record<string, string> {
+  if (!(key in r)) return r;
+  const { [key]: _gone, ...rest } = r;
+  return rest;
+}
+
 const FIXED = "fixed";
 const ASKED = "asked";
 
@@ -317,7 +323,7 @@ const ASKED = "asked";
  * it is fixed. Only a link, or a list of links (as its one entry), can take
  * what an earlier step made.
  */
-function ArgSource({ arg, source, earlier, onChange }: { arg: CommandArg; source?: StepArg; earlier: { index: number; title: string }[]; onChange: (a: StepArg) => void }) {
+function ArgSource({ arg, source, earlier, error, onChange }: { arg: CommandArg; source?: StepArg; earlier: { index: number; title: string }[]; error?: string; onChange: (a: StepArg) => void }) {
   const current = source ?? { from: "fixed", value: undefined };
   const choice = current.from === "step" ? `step:${current.step}` : current.from;
   const label = argLabel(arg);
@@ -344,7 +350,7 @@ function ArgSource({ arg, source, earlier, onChange }: { arg: CommandArg; source
         </SelectContent>
       </Select>
       {current.from === "fixed" ? (
-        <ArgInput arg={arg} value={current.value} onChange={(value) => onChange({ from: "fixed", value })} />
+        <ArgInput arg={arg} value={current.value} error={error} onChange={(value) => onChange({ from: "fixed", value })} />
       ) : (
         <p className="text-muted-foreground min-w-0 text-sm break-words">
           {label}: {current.from === "asked" ? "asked when the Macro runs" : `what step ${current.step + 1} made`}
