@@ -126,7 +126,7 @@ describe("linkIndexFor patches what a whole build would give", () => {
 });
 
 describe("linkIndexFor keeps who a Household link reaches (ADR 0117) across patches", () => {
-  const withHouseholds = [...types, T("household", { linkable: { members: (d) => ((d.members ?? []) as { personId: string }[]).map((m) => m.personId) } })];
+  const withHouseholds = [...types, T("household", { linkable: { members: (d) => ((d.members ?? []) as { personId: string }[]).map((m) => ({ id: m.personId })) } })];
   const home = (): Document[] => [
     ...vault(),
     doc("h", "household", "Home", "", { members: [{ personId: "p" }] }),

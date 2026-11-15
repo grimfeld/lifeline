@@ -180,8 +180,10 @@ export interface DocumentTypeDef {
    * mentioned as aliases are, read through `aliasesOf`, and are never written
    * into the aliases Field — correcting the Field corrects the name.
    * `members` (ADR 0117) says which Documents one of the type's Documents
-   * stands for on a day (a Household's members then): a link to it reaches
-   * them too (`LinkIndex.reaches`), never as a Backlink. Declared in code.
+   * stands for, each with the days it does (a Household's members, since and
+   * until): a link to it reaches them on those days (`LinkIndex.reaches`),
+   * never as a Backlink. Read once per Document, however many days its
+   * linking sources span. Declared in code.
    */
   linkable?:
     | boolean
@@ -190,9 +192,9 @@ export interface DocumentTypeDef {
         subtitle?: (doc: Document) => string | undefined;
         expand?: (name: string) => string[] | null;
         mentions?: boolean;
-        extraNames?: (doc: Document) => string[];
-        /** ids of the Documents this one stands for on that day */
-        members?: (doc: Document, day: DateStr) => string[];
+        extraNames?: (doc: NamedRow) => string[];
+        /** The Documents this one stands for, each with the days it does. */
+        members?: (doc: Document) => MemberSpan[];
       };
   /**
    * Text Fields whose wikilinks the link index reads as links, for a type with
@@ -263,9 +265,11 @@ export interface DocumentTypeDef {
   followers?: (doc: Document) => Promise<string[]>;
   /**
    * Run once a Document has moved to another Workspace, with the rest of that
-   * move already written (so Documents moved together see each other there):
-   * the owning App drops what now points across the boundary, as `onDelete`
-   * does on delete (a Household's members of another Workspace, ADR 0117).
+   * move already written, Attachments included (so Documents moved together
+   * see each other there): the owning App drops what now points across the
+   * boundary, as `onDelete` does on delete (a Household's members of another
+   * Workspace). Every moved Document's hook runs; the first that throws is
+   * reported after them, and the move stays written (ADR 0118).
    */
   onMove?: (doc: Document, workspace: string) => Promise<void>;
   /**
@@ -341,7 +345,26 @@ export function aliasesKey(def?: Pick<DocumentTypeDef, "linkable"> | null): stri
 }
 
 /** What a Document's aliases Field holds, and only that: the base of a write to it. */
-export function typedAliasesOf(doc: Document, def?: Pick<DocumentTypeDef, "linkable"> | null): string[] {
+/**
+ * One Document a Linkable stands for (ADR 0117), from `since` to `until`, both
+ * included; a missing bound means always.
+ */
+export interface MemberSpan {
+  id: string;
+  since?: DateStr;
+  until?: DateStr;
+}
+
+/** Whether a span covers a day. */
+export const spanCovers = (span: MemberSpan, day: DateStr): boolean => (!span.since || span.since <= day) && (!span.until || day <= span.until);
+
+/** The ids a Linkable stands for on a day, in the order its spans give them. */
+export const membersOnDay = (spans: readonly MemberSpan[], day: DateStr): string[] => spans.filter((s) => spanCovers(s, day)).map((s) => s.id);
+
+/** What naming a Document reads of it: its title and its flat fields. A Document is one; so is a row an App reads before it is stored. */
+export type NamedRow = Pick<Document, "title"> & { [field: string]: unknown };
+
+export function typedAliasesOf(doc: NamedRow, def?: Pick<DocumentTypeDef, "linkable"> | null): string[] {
   const v = doc[aliasesKey(def)];
   return Array.isArray(v) ? v.map(String).filter(Boolean) : typeof v === "string" && v ? [v] : [];
 }
@@ -353,7 +376,7 @@ export function typedAliasesOf(doc: Document, def?: Pick<DocumentTypeDef, "linka
  * Like `linkable.members`, `extraNames` is a trusted pure read: a throw is a
  * bug in the type and surfaces, it is not swallowed.
  */
-export function aliasesOf(doc: Document, def?: Pick<DocumentTypeDef, "linkable"> | null): string[] {
+export function aliasesOf(doc: NamedRow, def?: Pick<DocumentTypeDef, "linkable"> | null): string[] {
   const typed = typedAliasesOf(doc, def);
   const l = def?.linkable;
   const extra = typeof l === "object" ? l?.extraNames : undefined;

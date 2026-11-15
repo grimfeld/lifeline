@@ -1,6 +1,7 @@
 ---
 status: accepted
 superseded-by: ADR 0057 (in part — "off by default")
+amended-by: ADR 0118 (in part — a type may run an `onMove` hook once a move is written)
 ---
 
 > "Off by default" is superseded by ADR 0057: the first Workspace is the default and every one made after it is separated; it is not a choice (`separatedWhenCreated` and `createWorkspace` in `packages/core/src/workspaces.ts`). The rest stands.

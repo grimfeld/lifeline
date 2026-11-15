@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Button, Checkbox, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, toast } from "@lifeline/ui";
 import { applyTidy } from "../data/repo";
 import type { TidyRow } from "../domain/givenNames";
@@ -11,6 +11,7 @@ import { message } from "./writes";
  * from the People home while any candidate exists; nothing changes until Apply.
  */
 export function TidyNamesDialog({ open, onOpenChange, rows }: { open: boolean; onOpenChange: (open: boolean) => void; rows: readonly TidyRow[] }) {
+  const detailId = useId();
   const [skipped, setSkipped] = useState<ReadonlySet<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -60,11 +61,12 @@ export function TidyNamesDialog({ open, onOpenChange, rows }: { open: boolean; o
                       return next;
                     })
                   }
-                  aria-label={`Tidy ${r.title}: Given name ${r.givenName}, Family name ${r.familyName || "none"}, drops alias ${r.drop.join(", ")}`}
+                  aria-label={`Tidy ${r.title}`}
+                  aria-describedby={`${detailId}-${r.id}`}
                 />
                 <span className="grid min-w-0 gap-0.5 text-sm">
                   <span className="min-w-0 truncate font-medium">{r.title}</span>
-                  <span className="text-muted-foreground min-w-0 break-words">
+                  <span id={`${detailId}-${r.id}`} className="text-muted-foreground min-w-0 break-words">
                     Given name {r.givenName} · Family name {r.familyName || "none"} · drops alias {r.drop.join(", ")}
                   </span>
                 </span>

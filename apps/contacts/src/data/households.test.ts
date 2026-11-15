@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
-import { beforeEach, describe, expect, it } from "vitest";
-import { buildLinkIndex, documentsOf, documentsTable, getDocument, initApps, moveDocumentsToWorkspace, removeDocument } from "@lifeline/core";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { buildLinkIndex, db, documentsOf, documentsTable, getDocument, initApps, moveDocumentsToWorkspace, removeDocument } from "@lifeline/core";
 import { householdTypeDef, personTypeDef, tieTypeDef } from "../types";
 import { addPerson } from "./repo";
 import { addHousehold, addMember, joinNewHousehold, removeMember, restoreMember, setMembershipDays } from "./households";
@@ -118,6 +118,15 @@ describe("joining a new Household (ADR 0117)", () => {
     const paul = await addPerson({ name: "Paul" });
     const h = await joinNewHousehold(paul.id, "the Smiths");
     expect(await membersIn(h.id)).toEqual([paul.id]);
+  });
+
+  it("reports why the join failed even when taking the Household back fails too", async () => {
+    const add = vi.spyOn(db()._outbox, "bulkAdd").mockRejectedValue(new Error("disk full"));
+    try {
+      await expect(joinNewHousehold("no-such-person", "the Smiths")).rejects.toThrow("Only a Person of this Workspace");
+    } finally {
+      add.mockRestore();
+    }
   });
 });
 

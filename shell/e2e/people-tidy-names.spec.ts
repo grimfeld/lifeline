@@ -31,13 +31,15 @@ test("tidying fills the names, drops the duplicated alias, and the offer goes", 
   await expect(page.getByRole("button", { name: "Tidy given names…" })).toHaveCount(0);
 });
 
-test("each row's checkbox is named with what Apply will change", async ({ page }) => {
+test("each row's checkbox is named for its Person and described with what Apply will change", async ({ page }) => {
   await page.goto("/app/people");
   await workLocally(page);
   await make(page, "Anne Dupont", ["Anne", "Annie"]);
   await page.getByRole("button", { name: "Tidy given names…" }).click();
   const dialog = page.getByRole("dialog", { name: "Tidy given names" });
-  await expect(dialog.getByRole("checkbox", { name: /Anne Dupont.*Given name Anne.*Family name Dupont.*drops alias Anne/ })).toBeVisible();
+  const box = dialog.getByRole("checkbox", { name: "Tidy Anne Dupont", exact: true });
+  await expect(box).toBeVisible();
+  await expect(box).toHaveAccessibleDescription(/Given name Anne · Family name Dupont · drops alias Anne/);
 });
 
 test("a failed Apply is announced, and the dialog stays open", async ({ page }) => {

@@ -2,8 +2,8 @@ import { useMemo, useState } from "react";
 import { todayStr } from "@lifeline/core";
 import { Link, useNavigate } from "react-router";
 import { Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, EmptyState, Field, Input, Page, PageHeader, PhoneDock } from "@lifeline/ui";
-import { ArrowLeft, Home, Plus } from "lucide-react";
-import { PEOPLE_HREF, householdHref } from "../constants";
+import { Home, Plus } from "lucide-react";
+import { householdHref } from "../constants";
 import { byName, currentMemberNames } from "../domain/households";
 import { usePeople } from "../data/repo";
 import { addHousehold, useHouseholds } from "../data/households";
@@ -83,9 +83,6 @@ export function HouseholdsScreen() {
   );
   return (
     <Page>
-      <Link to={PEOPLE_HREF} className="text-muted-foreground inline-flex items-center gap-1 text-sm hover:underline">
-        <ArrowLeft className="size-4" /> People
-      </Link>
       <PageHeader title="Households">{rows.length > 0 ? <PhoneDock>{addButton}</PhoneDock> : null}</PageHeader>
       {rows.length === 0 ? (
         <EmptyState action={addButton}>The People who live together. Add one, choose its members, then link it from any page with [[its name]].</EmptyState>

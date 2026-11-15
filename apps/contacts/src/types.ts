@@ -3,8 +3,8 @@ import { AGENT_WALLED_KEYS, HOUSEHOLD, HOUSEHOLDS_FOLDER, PEOPLE_FOLDER, TIE, ty
 import { describeHousehold, describePerson } from "./describe";
 import { removeTiesOf, tieIdsOf } from "./data/ties";
 import { householdHref, personHref } from "./constants";
-import { dropMembersOutside, dropMembershipsOf, dropMembershipsOutside } from "./data/households";
-import { memberIdsOn } from "./domain/households";
+import { dropMembersOutside, dropMembershipsOf } from "./data/households";
+import { memberSpansOf } from "./domain/households";
 import { addressPinsOf } from "./domain/addresses";
 
 /**
@@ -23,7 +23,7 @@ export const personTypeDef: DocumentTypeDef = {
   linkable: {
     subtitle: (d) => ((d as Person).relationship?.trim() ? `Person · ${(d as Person).relationship.trim()}` : "Person"),
     // [[Anne]] reaches them by their Given name, read from the Field and never copied into Aliases (ADR 0117).
-    extraNames: (d) => [(d as Person).givenName ?? ""],
+    extraNames: (d) => [typeof d.givenName === "string" ? d.givenName : ""],
   },
   // Opens on its own page; its Peek's "Open" leads there (ADR 0110's pattern).
   href: (d) => personHref(d.id),
@@ -40,7 +40,7 @@ export const personTypeDef: DocumentTypeDef = {
   },
   followers: (doc) => tieIdsOf(doc.id),
   // Out of the Households they leave behind: members belong to the Household's Workspace (ADR 0117).
-  onMove: (doc, workspace) => dropMembershipsOutside(doc.id, workspace),
+  onMove: (doc, workspace) => dropMembershipsOf(doc.id, workspace),
   // Gone from every People field too (an Event's With, a Task's For…): the other Apps never import Contacts.
   unlinkOnDelete: true,
   // An agent reads their Ties and Reports (#404 story 92), and never their Addresses or Contact details (ADR 0114).
@@ -102,7 +102,7 @@ export const householdTypeDef: DocumentTypeDef = {
   body: "optional",
   folder: HOUSEHOLDS_FOLDER,
   // A link to it counts for whoever was a member on the source's day (ADR 0117): Core's `reaches`.
-  linkable: { subtitle: () => "Household", members: (doc, day) => memberIdsOn(doc.members, day) },
+  linkable: { subtitle: () => "Household", members: (doc) => memberSpansOf(doc.members) },
   href: (d) => householdHref(d.id),
   // Its own page's Reports, as a Person's (ADR 0112): what links to it by name, never through its members.
   reports: [{ kind: "lastSeen" }, { kind: "last" }],

@@ -1,4 +1,4 @@
-import { isDateStr, normalizeName } from "@lifeline/core";
+import { isDateStr, normalizeName, type MemberSpan } from "@lifeline/core";
 import { fold, otherNamesOf } from "./person";
 import type { Membership, Person } from "./types";
 
@@ -35,31 +35,11 @@ export function hasMember(household: { id: string; members?: unknown }, personId
 }
 
 /**
- * A stored members list, parsed once: Core asks `memberIdsOn` for every day a
- * linking Event spans, and a Document's stored list is never changed in place
- * (an edit writes a new one), so the parse is kept per list.
+ * Who a Household stands for (ADR 0117): each member with their since and
+ * until days, both included, a blank bound meaning always. What its link
+ * counts for, through Core's `linkable.members`, read once per Household.
  */
-const parsed = new WeakMap<object, Membership[]>();
-function parsedMemberships(raw: unknown): readonly Membership[] {
-  if (!Array.isArray(raw)) return [];
-  let out = parsed.get(raw);
-  if (!out) {
-    out = membershipsOf(raw);
-    parsed.set(raw, out);
-  }
-  return out;
-}
-
-/**
- * Who a Household stands for on a day (ADR 0117): the ids of whoever was a
- * member then, since and until both included, a blank bound meaning always.
- * What its link counts for, through Core's `linkable.members`.
- */
-export function memberIdsOn(raw: unknown, day: string): string[] {
-  return parsedMemberships(raw)
-    .filter((m) => (!m.since || m.since <= day) && (!m.until || day <= m.until))
-    .map((m) => m.personId);
-}
+export const memberSpansOf = (raw: unknown): MemberSpan[] => membershipsOf(raw).map(({ personId, ...days }) => ({ id: personId, ...days }));
 
 /** One member as the Household page lists them: the membership, and the Person's name. */
 export interface MemberRow extends Membership {

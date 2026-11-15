@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { PERSON_TYPE, singularOf, todayStr, useAllDocuments, useDocumentTypes, useDocuments } from "@lifeline/core";
+import { PERSON_TYPE, membersOnDay, singularOf, todayStr, useAllDocuments, useDocumentTypes, useDocuments } from "@lifeline/core";
 import { Button, Combobox, type ComboboxOption } from "@lifeline/ui";
 import { Search, X } from "lucide-react";
 import { afterKey, householdOptions, personOptions, withMembers, withPerson, type HouseholdChoice } from "./peopleChoice";
@@ -44,7 +44,7 @@ function WithHouseholds(props: PeopleFieldProps) {
     if (!byType.size) return NO_HOUSEHOLDS;
     return all.flatMap((doc): HouseholdChoice[] => {
       const h = byType.get(doc.type);
-      return h ? [{ doc, kind: singularOf(h.def), members: h.members(doc, day) }] : [];
+      return h ? [{ doc, kind: singularOf(h.def), members: membersOnDay(h.members(doc), day) }] : [];
     });
   }, [types, all]);
   return <PeopleFieldView placeholder="Add a person or household…" {...props} offered={households} />;
