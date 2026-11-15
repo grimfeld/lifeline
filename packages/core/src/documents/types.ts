@@ -190,7 +190,7 @@ export interface DocumentTypeDef {
         subtitle?: (doc: Document) => string | undefined;
         expand?: (name: string) => string[] | null;
         mentions?: boolean;
-        extraNames?: (doc: Document) => string[];
+        extraNames?: (doc: NamedRow) => string[];
         /** ids of the Documents this one stands for on that day */
         members?: (doc: Document, day: DateStr) => string[];
       };
@@ -343,7 +343,10 @@ export function aliasesKey(def?: Pick<DocumentTypeDef, "linkable"> | null): stri
 }
 
 /** What a Document's aliases Field holds, and only that: the base of a write to it. */
-export function typedAliasesOf(doc: Document, def?: Pick<DocumentTypeDef, "linkable"> | null): string[] {
+/** What naming a Document reads of it: its title and its flat fields. A Document is one; so is a row an App reads before it is stored. */
+export type NamedRow = Pick<Document, "title"> & { [field: string]: unknown };
+
+export function typedAliasesOf(doc: NamedRow, def?: Pick<DocumentTypeDef, "linkable"> | null): string[] {
   const v = doc[aliasesKey(def)];
   return Array.isArray(v) ? v.map(String).filter(Boolean) : typeof v === "string" && v ? [v] : [];
 }
@@ -355,7 +358,7 @@ export function typedAliasesOf(doc: Document, def?: Pick<DocumentTypeDef, "linka
  * Like `linkable.members`, `extraNames` is a trusted pure read: a throw is a
  * bug in the type and surfaces, it is not swallowed.
  */
-export function aliasesOf(doc: Document, def?: Pick<DocumentTypeDef, "linkable"> | null): string[] {
+export function aliasesOf(doc: NamedRow, def?: Pick<DocumentTypeDef, "linkable"> | null): string[] {
   const typed = typedAliasesOf(doc, def);
   const l = def?.linkable;
   const extra = typeof l === "object" ? l?.extraNames : undefined;

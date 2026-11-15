@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
-import { ATTACHMENTS, db } from "../data/db";
+import { ATTACHMENTS, db, type SyncedRecord } from "../data/db";
 import { put } from "../data/repo";
 import { initApps } from "../registry";
 import { documentsTable, moveDocumentsToWorkspace, putDocument } from "./store";
@@ -18,8 +18,8 @@ const types = [
 ];
 initApps([{ id: "t", title: "T", types, screens: [], cards: [], commands: [] }]);
 
-type AttachmentRow = { id: string; name: string; workspace?: string };
-const attachment = (id: string) => db().collection<AttachmentRow & { deleted: 0 | 1 }>(ATTACHMENTS).get(id);
+type AttachmentRow = SyncedRecord & { name: string; workspace?: string };
+const attachment = (id: string) => db().collection<AttachmentRow>(ATTACHMENTS).get(id);
 
 beforeEach(async () => {
   seen.length = 0;
@@ -35,7 +35,7 @@ describe("a type's move hook (ADR 0048)", () => {
   });
 
   it("cannot split a Document from its attachments: when it throws, the attachments have moved too", async () => {
-    await put<AttachmentRow & { deleted: 0 }>(ATTACHMENTS, { id: "att", name: "photo.png" });
+    await put<AttachmentRow>(ATTACHMENTS, { id: "att", name: "photo.png" });
     await putDocument({ id: "x", type: "cross", title: "X", body: "![[photo.png]]" });
     await expect(moveDocumentsToWorkspace(["x"], "w1")).rejects.toThrow("hook failed");
     expect((await documentsTable().get("x"))?.workspace).toBe("w1");

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { PERSON_TYPE, createDocument, documentsOfUngated, getDocument, normalizeTags, patchDocument, removeDocument, renameDocument, useDocuments, type Document } from "@lifeline/core";
+import { PERSON_TYPE, createDocument, documentsOfUngated, documentsTable, getDocument, normalizeTags, patchDocument, removeDocument, renameDocument, useDocuments, type Document } from "@lifeline/core";
 import { HOUSEHOLD, type Household, type Membership } from "../domain/types";
 import { hasMember, membershipsOf, normalizeMembership } from "../domain/households";
 import { cleanAliases } from "../domain/person";
@@ -81,7 +81,8 @@ export async function joinNewHousehold(personId: string, name: string): Promise<
     await addMember(household.id, personId);
   } catch (e) {
     // Never leave the Household behind empty: a retry would find its name taken.
-    await removeDocument(household.id);
+    // Should that fail too, the join's own failure is still the one reported.
+    await removeDocument(household.id).catch(() => {});
     throw e;
   }
   return { ...household, members: [{ personId }] };
@@ -105,31 +106,24 @@ export async function restoreMember(householdId: string, removed: Removed<Member
 }
 
 /**
- * What goes when a Person is deleted: their place in every Household, of any
- * Workspace. The Households stay, with their other members.
+ * Take a Person out of every Household, of any Workspace: what goes when they
+ * are deleted. Given a Workspace, only the Households outside it: what goes
+ * when they move there (ADR 0117: members belong to the Household's own
+ * Workspace), those in the new Workspace keeping them. The Households stay,
+ * with their other members.
  */
-export async function dropMembershipsOf(personId: string): Promise<void> {
+export async function dropMembershipsOf(personId: string, keepIn?: string): Promise<void> {
   for (const h of await documentsOfUngated<Household>([HOUSEHOLD])) {
-    if (!hasMember(h, personId)) continue;
-    await patchDocument(h.id, { members: membershipsOf(h.members).filter((m) => m.personId !== personId), workspace: h.workspace ?? "" });
-  }
-}
-
-/**
- * What goes when a Person moves to another Workspace: their place in every
- * Household outside it (ADR 0117: members belong to the Household's own
- * Workspace). Those in the new Workspace keep them.
- */
-export async function dropMembershipsOutside(personId: string, workspace: string): Promise<void> {
-  for (const h of await documentsOfUngated<Household>([HOUSEHOLD])) {
-    if ((h.workspace ?? "") === workspace || !hasMember(h, personId)) continue;
+    if ((keepIn !== undefined && (h.workspace ?? "") === keepIn) || !hasMember(h, personId)) continue;
     await patchDocument(h.id, { members: membershipsOf(h.members).filter((m) => m.personId !== personId), workspace: h.workspace ?? "" });
   }
 }
 
 /** What goes when a Household moves to another Workspace: its members who are not in it. */
 export async function dropMembersOutside(householdId: string, workspace: string): Promise<void> {
-  const household = (await documentsOfUngated<Household>([HOUSEHOLD])).find((h) => h.id === householdId);
+  // Read past the Workspace gate: a Household moved out of the current Workspace is no longer in view.
+  const row = await documentsTable().get(householdId);
+  const household = row && !row.deleted && row.type === HOUSEHOLD ? (row as Household) : undefined;
   if (!household) return;
   const there = new Set((await documentsOfUngated([PERSON_TYPE])).filter((p) => (p.workspace ?? "") === workspace).map((p) => p.id));
   const members = membershipsOf(household.members);
