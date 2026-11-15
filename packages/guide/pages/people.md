@@ -21,6 +21,12 @@ Workspace, A to Z under a letter each (a name that starts with no letter goes un
   next 30 days ("Birthday in 9 days · turns 61"), **drifting** with how many days when they are in
   Drifting (below), counted the way Drifting is switched (Not seen or Not mentioned), and their Tags.
 - **Search** matches a name or any alias, ignoring case and accents.
+- **Tidy given names…** — a notice above Upcoming, shown only while some Person has their given name
+  typed as an alias: their name starts with one of their own aliases ("Anne Dupont", alias "Anne") and they
+  have no **Given name**. It opens a review, one row per Person, with the proposed **Given name**, **Family
+  name** (the rest of the name) and the alias it drops. Untick anyone to leave them as they are;
+  **Apply** changes nothing until you press it. Only the duplicated alias goes (their other aliases stay),
+  and `[[Anne]]` still reaches them through the Given name. Once no one is left, the notice goes. It never runs by itself.
 - **Relationship** (a row of choices, **Everyone** first) and **Tag** narrow the list, and together
   they narrow it further. On a phone they are under **Filters**.
 - With no one yet, the home offers **Add person**.

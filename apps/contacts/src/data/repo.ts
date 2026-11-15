@@ -6,6 +6,7 @@ import { contactDetailsOf } from "../domain/contactDetails";
 import { putBack, takeOut } from "../domain/parts";
 import { normalizeOccasions, occasionProblem } from "../domain/occasions";
 import { composeTitle, findPerson } from "../domain/person";
+import { tidyPatch } from "../domain/givenNames";
 
 /** A Person as stored, with the App's keys filled in for a row written before they existed. */
 export function normalizePerson(doc: Person): Person {
@@ -162,3 +163,21 @@ export const updateAddresses = (id: string, change: (list: Address[]) => Address
 
 /** Change a Person's Contact details the same way: `change` is given the stored list. */
 export const updateContactDetails = (id: string, change: (list: ContactDetail[]) => ContactDetail[]) => updateParts(id, "contactDetails", change);
+
+/**
+ * Tidy the given-name aliases of the People `ids` (ADR 0117): fill their names and
+ * drop the duplicated alias. Each is worked out again from the stored row, so one
+ * that changed since the review (or was deleted) is skipped. Returns how many changed.
+ */
+export async function applyTidy(ids: readonly string[]): Promise<number> {
+  let done = 0;
+  for (const id of ids) {
+    const doc = await getDocument(id);
+    if (!doc || doc.deleted || doc.type !== PERSON_TYPE) continue;
+    const patch = tidyPatch(normalizePerson(doc as Person));
+    if (!patch) continue;
+    await patchDocument(id, patch);
+    done++;
+  }
+  return done;
+}
