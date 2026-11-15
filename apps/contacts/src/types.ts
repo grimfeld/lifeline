@@ -102,6 +102,8 @@ export const householdTypeDef: DocumentTypeDef = {
   // A link to it counts for whoever was a member on the source's day (ADR 0117): Core's `reaches`.
   linkable: { subtitle: () => "Household", members: (doc, day) => memberIdsOn(doc.members, day) },
   href: (d) => householdHref(d.id),
+  // Its own page's Reports, as a Person's (ADR 0112): what links to it by name, never through its members.
+  reports: [{ kind: "lastSeen" }, { kind: "last" }],
   order: 31,
   builtIn: true,
   // An agent reads its name, aliases and the names of its members (ADR 0117), as it reads a Person.

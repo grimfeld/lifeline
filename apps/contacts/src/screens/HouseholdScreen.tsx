@@ -10,6 +10,8 @@ import { liveHousehold, patchHousehold } from "../data/households";
 import { InlineText } from "../components/InlineText";
 import { Section } from "../components/Section";
 import { HouseholdAliases, HouseholdMembers } from "../components/HouseholdMembers";
+import { ReportsSection } from "./ReportsSection";
+import { TimelineSection } from "./TimelineSection";
 
 const back = (
   <Link to={HOUSEHOLDS_HREF} className="text-muted-foreground inline-flex items-center gap-1 text-sm hover:underline">
@@ -19,8 +21,8 @@ const back = (
 
 /**
  * A Household's page (ADR 0117): a hidden route, and its Peek's "Open". Its
- * name, changed where it stands, its members and aliases, and a body of its
- * own. Stacked on a phone.
+ * name, changed where it stands, its members and aliases; a body of its
+ * own, its Reports and its Timeline: what links to it. Stacked on a phone.
  */
 export function HouseholdScreen() {
   const { id } = useParams<{ id: string }>();
@@ -54,11 +56,15 @@ export function HouseholdScreen() {
           </Section>
           <HouseholdAliases household={household} />
         </div>
-        <Section title="About it">
-          <div className="min-h-28 min-w-0 rounded-lg border p-2">
-            <DocumentEditor key={household.id} doc={household} def={documentType(HOUSEHOLD)} index={index} bodyOnly bodyLabel="About it" save={saveBody} />
-          </div>
-        </Section>
+        <div className="grid min-w-0 content-start gap-6">
+          <Section title="About it">
+            <div className="min-h-28 min-w-0 rounded-lg border p-2">
+              <DocumentEditor key={household.id} doc={household} def={documentType(HOUSEHOLD)} index={index} bodyOnly bodyLabel="About it" save={saveBody} />
+            </div>
+          </Section>
+          <ReportsSection doc={household} />
+          <TimelineSection doc={household} />
+        </div>
       </div>
     </Page>
   );

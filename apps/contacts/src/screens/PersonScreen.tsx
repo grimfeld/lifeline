@@ -164,8 +164,8 @@ export function PersonScreen() {
                 <DocumentEditor key={person.id} doc={person} def={documentType(PERSON_TYPE)} index={index} bodyOnly bodyLabel="About them" save={saveBody} />
               </div>
             </Section>
-            <ReportsSection person={person} />
-            <TimelineSection person={person} />
+            <ReportsSection doc={person} />
+            <TimelineSection doc={person} />
           </div>
         </div>
       </Page>

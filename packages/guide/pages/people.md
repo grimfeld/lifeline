@@ -49,7 +49,7 @@ bring them back.
 At the top, their name, then what they are to you (their **Relationship**, underlined with dashes:
 click it and type to change it, Enter or leaving it saves, Escape puts it back), then their
 **Given name** and **Family name** (both optional, written the same way: "Anne" and "Dupont"), then their age (when their Birthday has a year) and their
-aliases, then **Households:** with each Household they belong to as a link, and **Add to a Household…**
+aliases, then **Households:** with each Household they belong to as a link, and **Add to a household…**
 (see Households, below). Under them, three buttons: **Call**, **Email** and **Profile** reach them by their first
 current phone number, email and handle; a former one is skipped. One they have none of is dimmed, and adds one of
 its kind: a dimmed **Email** opens the dialog on Email. Their next
@@ -156,17 +156,19 @@ A **Household** is the People who live together: Paul, Mary, Tom and Lily, "the 
 name, aliases, **members** you choose, and a page of your own words. It is not a family: Paul's
 mother in another town is his Tie, not a member, and Mary keeps her own name and is still one.
 
-- **Households**, beside **People** in the People Module (its sidebar, or the row of tabs at the top on a
-  phone), lists every Household in the current Workspace,
+- **Households**, beside **People** in the People Module (its sidebar, or its tabs at the bottom,
+  against the bar, on a phone), lists every Household in the current Workspace,
   A to Z, with its members' names. **Add household** takes a name and opens its page.
 - **A Household's page** — its name, underlined with dashes (click it to rename it; every
-  `[[link]]` to it follows), its **Members**, its **Aliases** and **About it**, its body. **Add
-  member** finds a Person by name or alias; the cross beside a member takes them out, with Undo.
+  `[[link]]` to it follows), its **Members**, its **Aliases** and **About it**, its body, then its
+  own **Reports** (**Last seen** and **Last mentioned**) and **Timeline**: what links to the
+  Household itself, by name, each opening in a Peek. **Add member** finds a Person by name or
+  alias; the cross beside a member takes them out, with Undo.
   Each member's name opens their page. The calendar button beside a member sets **Since** and
   **Until**, the first and last day they lived there; either may stay empty. Someone who moves out
   gets an Until day and, once it has passed, moves to **Former members**, listed apart with
   their days, never removed.
-- **From a Person's page**, **Add to a Household…** finds a Household by name, or makes a new one
+- **From a Person's page**, **Add to a household…** finds a Household by name, or makes a new one
   from the name you type ("New household “Student flat”") with them in it.
 - **Adding a Person** whose Family name matches a member of a Household suggests joining it
   (see **Add person…**, below); nothing joins unless you tap the suggestion.
