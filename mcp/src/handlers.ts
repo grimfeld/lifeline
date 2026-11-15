@@ -139,13 +139,17 @@ async function agentTimedItems(range: { start: string; end: string }): Promise<T
 
 /**
  * Where a Timed item happens, as an agent reads it (an Event's At, ADR 0119):
- * the Place's or Person's id and title, never a Person's Address (ADR 0114),
- * and nothing when that Document is gone or hidden from agents.
+ * the Place's or Person's id and title, with the Fields its type gives a
+ * search hit (a Place's Kind and address, `searchFields`); never a Person's
+ * Address (ADR 0114: a Person gives none, and the wall holds besides), and
+ * nothing when that Document is gone or hidden from agents.
  */
-async function agentAt(it: TimedItem): Promise<{ id: string; title: string } | undefined> {
+async function agentAt(it: TimedItem): Promise<{ id: string; title: string; fields?: Record<string, unknown> } | undefined> {
   if (!it.at) return undefined;
   const doc = await getDocument(it.at.docId);
-  return doc && !doc.deleted && isAgentVisible(doc) ? { id: doc.id, title: doc.title } : undefined;
+  if (!doc || doc.deleted || !isAgentVisible(doc)) return undefined;
+  const fields = searchFieldsOf(doc);
+  return fields ? { id: doc.id, title: doc.title, fields } : { id: doc.id, title: doc.title };
 }
 
 /** What the agenda calls a Timed item. */
@@ -233,8 +237,38 @@ function searchFieldsOf(stored: Document): Record<string, unknown> | undefined {
   return Object.keys(out).length ? out : undefined;
 }
 
-function full(stored: Document) {
-  const doc = agentView(stored);
+/**
+ * The Document less the links an agent may not follow: a link Field's id
+ * whose target is hidden from agents (a Person in the Private folder an Event
+ * is At or With) is left out, by the check `agenda` makes of an At. A target
+ * that is gone keeps its id: there is nothing behind it to hide.
+ */
+function withoutHiddenLinks(doc: Document, hidden: (id: string) => boolean): Document {
+  let out: Document | undefined;
+  for (const f of fieldsOfDocument(doc, documentTypeSync(doc.type))) {
+    const v = doc[f.key];
+    if (f.kind === "link" && typeof v === "string" && v && hidden(v)) (out ??= { ...doc })[f.key] = "";
+    if (f.kind === "links" && Array.isArray(v) && v.some((id) => typeof id === "string" && hidden(id))) (out ??= { ...doc })[f.key] = v.filter((id) => !(typeof id === "string" && hidden(id)));
+  }
+  return out ?? doc;
+}
+
+/** Which of a Document's link targets are hidden from agents, read from the store. */
+async function hiddenLinksOf(doc: Document): Promise<(id: string) => boolean> {
+  const ids = fieldsOfDocument(doc, documentTypeSync(doc.type)).flatMap((f) => {
+    const v = doc[f.key];
+    return f.kind === "link" && typeof v === "string" && v ? [v] : f.kind === "links" && Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+  });
+  const hidden = new Set<string>();
+  for (const id of new Set(ids)) {
+    const target = await getDocument(id);
+    if (target && !isAgentVisible(target)) hidden.add(id);
+  }
+  return (id) => hidden.has(id);
+}
+
+function full(stored: Document, unseen: (id: string) => boolean = () => false) {
+  const doc = withoutHiddenLinks(agentView(stored), unseen);
   const def = documentTypeSync(doc.type);
   const hidden = new Set(fieldsOfDocument(doc, def).filter((f) => f.hidden).map((f) => f.key));
   const roles = rolesOf(doc).map((r) => r.label);
@@ -253,8 +287,8 @@ function full(stored: Document) {
   };
 }
 
-function haystack(stored: Document): string {
-  const doc = agentView(stored);
+function haystack(stored: Document, hidden: (id: string) => boolean): string {
+  const doc = withoutHiddenLinks(agentView(stored), hidden);
   const parts = [doc.title, typeof doc.body === "string" ? doc.body : ""];
   for (const v of Object.values(typeFieldsOf(doc))) if (typeof v === "string") parts.push(v);
   return parts.join("\n").toLowerCase();
@@ -421,14 +455,17 @@ const handlers: Record<string, (a: Args) => Promise<unknown>> = {
     const folder = a.folder === undefined ? undefined : normalizeFolder(String(a.folder));
     const tag = a.tag === undefined ? undefined : String(a.tag).toLowerCase().replace(/^#/, "");
     const limit = Number(a.limit ?? 20);
-    const hits = (await allDocuments())
+    const all = await allDocuments();
+    const unseen = new Set(all.filter((d) => !isAgentVisible(d)).map((d) => d.id));
+    const hidden = (id: string) => unseen.has(id);
+    const hits = all
       .filter(isAgentVisible)
       .filter((d) => !a.type || d.type === a.type)
       .filter((d) => !tag || d.tags.includes(tag))
       .filter((d) => folder === undefined || d.folder === folder || d.folder.startsWith(`${folder}/`))
       .filter((d) => {
         if (!words.length) return true;
-        const h = haystack(d);
+        const h = haystack(d, hidden);
         return words.every((w) => h.includes(w));
       })
       .sort((x, y) => (y.updatedAt > x.updatedAt ? 1 : -1));
@@ -438,7 +475,8 @@ const handlers: Record<string, (a: Args) => Promise<unknown>> = {
   async get_document(a) {
     const doc = await describedDocument(a.id);
     const def = documentTypeSync(doc.type);
-    return def?.describe ? { ...full(doc), detail: await def.describe(agentView(doc)) } : full(doc);
+    const answer = full(doc, await hiddenLinksOf(doc));
+    return def?.describe ? { ...answer, detail: await def.describe(agentView(doc)) } : answer;
   },
 
   async people_upcoming(a) {
