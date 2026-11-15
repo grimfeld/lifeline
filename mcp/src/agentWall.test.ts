@@ -247,3 +247,16 @@ describe("the agent wall: what an agent writes of a Person (ADR 0114)", () => {
     expect(core.patchDocument).toHaveBeenCalledWith("p1", { giftIdeas: "oil paints", relationship: "my mum" });
   });
 });
+
+describe("the agent wall: link matching (#455)", () => {
+  it("is never bypassed by an alias field: no type's `linkable.aliasesField` is agent-walled", async () => {
+    const { manifests } = await import("./apps");
+    const defs = manifests.flatMap((m) => m.types);
+    expect(defs.length).toBeGreaterThan(0);
+    for (const def of defs) {
+      const l = def.linkable;
+      const key = typeof l === "object" && l?.aliasesField ? l.aliasesField : "aliases";
+      expect(def.agentWalled ?? [], `${def.id} walls its alias field “${key}”, which link matching reads`).not.toContain(key);
+    }
+  });
+});

@@ -1,6 +1,6 @@
 import { useId, useState } from "react";
 import { Checkbox, DatePicker, Field, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TimeField } from "@lifeline/ui";
-import { PERSON_TYPE, takesDocument, type CommandArg } from "@lifeline/core";
+import { PERSON_TYPE, type CommandArg } from "@lifeline/core";
 import { PeopleField } from "@lifeline/editor";
 
 const NONE = "\u0000none";
@@ -116,9 +116,11 @@ function CommaList({ value, onChange }: { value: unknown; onChange: (v: string[]
 }
 
 function kindHint(arg: CommandArg): string | undefined {
-  if (takesDocument(arg))
-    return arg.kind === "links" ? "Comma-separated, each a title, an alias or an id (a name with a comma in it goes by its id)" : "The title of the Document, an alias or its id";
   switch (arg.kind) {
+    case "link":
+      return "The title of the Document, an alias or its id";
+    case "links":
+      return "Comma-separated, each a title, an alias or an id (a name with a comma in it goes by its id)";
     case "list":
     case "multiselect":
       return arg.options ? `Comma-separated, among ${arg.options.map((o) => o.value).join(", ")}` : "Comma-separated";

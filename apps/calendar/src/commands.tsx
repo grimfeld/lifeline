@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { formatTime, initialText, peopleArg, peopleNamed, todayStr, type CommandDef, type CommandDialogProps } from "@lifeline/core";
+import { formatTime, initialText, peopleArg, peopleIn, peopleNamed, todayStr, type CommandDef, type CommandDialogProps } from "@lifeline/core";
 import { toast } from "@lifeline/ui";
 import { Ban, CalendarPlus, LayoutTemplate, Zap } from "lucide-react";
 import { EventDialog } from "./components/EventDialog";
@@ -69,7 +69,7 @@ export const calendarCommands: CommandDef[] = [
       const endDate = (a.endDate as string | undefined) ?? null;
       const refused = eventArgsError({ date: a.date as string, start, end, endDate });
       if (refused) throw new Error(refused);
-      const people = (a.with as string[] | undefined) ?? [];
+      const people = peopleIn(a, "with");
       const id = await addEvent({
         title: a.title as string,
         date: a.date as string,
