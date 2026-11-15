@@ -10,6 +10,10 @@ import { timelineOf } from "../../apps/contacts/src/domain/timeline";
 const types = new Map<string, DocumentTypeDef>();
 const docs = new Map<string, Document>();
 const commands: OwnedCommand[] = [];
+// The Workspaces the call may name, and the one it entered: a Document is read only when its own matches (core's inScope).
+let workspaces: { id: string; name: string }[] = [];
+let scope = "";
+const inScope = (d: Document) => (d.workspace ?? "") === scope;
 const core = vi.hoisted(() => ({ putDocument: vi.fn() }));
 
 vi.mock("@lifeline/core", async (importOriginal) => {
@@ -17,13 +21,15 @@ vi.mock("@lifeline/core", async (importOriginal) => {
   return {
     ...actual,
     ...core,
-    allWorkspaces: async () => [],
-    setCurrentWorkspace: () => undefined,
+    allWorkspaces: async () => workspaces,
+    setCurrentWorkspace: (id: string) => {
+      scope = id;
+    },
     documentTypeSync: (id: string) => types.get(id),
     allDocumentTypes: () => [...types.values()],
     getDocument: async (id: string) => docs.get(id),
-    allDocuments: async () => [...docs.values()],
-    documentsOf: async (type: string) => [...docs.values()].filter((d) => d.type === type),
+    allDocuments: async () => [...docs.values()].filter(inScope),
+    documentsOf: async (type: string) => [...docs.values()].filter((d) => d.type === type && inScope(d)),
     allMacros: async () => [],
     allCommands: () => commands,
     timedProviders: () => [],
@@ -35,8 +41,8 @@ vi.mock("@lifeline/core", async (importOriginal) => {
 vi.mock("../../packages/core/src/documents/store", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../packages/core/src/documents/store")>()),
   getDocument: async (id: string) => docs.get(id),
-  allDocuments: async () => [...docs.values()],
-  documentsOf: async (type: string) => [...docs.values()].filter((d) => d.type === type),
+  allDocuments: async () => [...docs.values()].filter(inScope),
+  documentsOf: async (type: string) => [...docs.values()].filter((d) => d.type === type && inScope(d)),
 }));
 
 // …and so is the type registry it reads a link argument's noun ("Person") and a Document's aliases from.
@@ -59,6 +65,8 @@ beforeEach(() => {
   types.clear();
   docs.clear();
   commands.length = 0;
+  workspaces = [];
+  scope = "";
   core.putDocument.mockReset().mockImplementation(async (input: Record<string, unknown>) => ({ id: "e1", folder: "", createdAt: "", updatedAt: "", deleted: 0, ...input }));
   types.set(PERSON_TYPE, personTypeDef);
   types.set(EVENT_TYPE, eventTypeDef);
@@ -90,6 +98,20 @@ describe("calendar_add_event with People", () => {
     const call = runTool("calendar_add_event", { title: "Dinner", date: "2026-11-14", with: ["Bob", "Marc", "Zoé Martin"] });
     await expect(call).rejects.toThrow("With: No Person called “Bob”; With: “Marc” is more than one Person: Marc Lefèvre (id p1), Marc (id p4). Pass the id of the one meant");
     expect(core.putDocument).not.toHaveBeenCalled();
+  });
+
+  it("looks a name up only in the call's Workspace, so a Marc elsewhere is not ambiguous", async () => {
+    workspaces = [
+      { id: "w-life", name: "Life" },
+      { id: "w-work", name: "Work" },
+    ];
+    docs.clear();
+    docs.set("life-marc", { ...person("life-marc", "Marc"), workspace: "w-life" } as Document);
+    docs.set("work-marc", { ...person("work-marc", "Marc"), workspace: "w-work" } as Document);
+    await runTool("calendar_add_event", { title: "Dinner", date: "2026-11-14", with: ["Marc"], workspace: "Work" });
+    expect(stored().with).toEqual(["work-marc"]);
+    await runTool("calendar_add_event", { title: "Dinner", date: "2026-11-14", with: ["Marc"], workspace: "w-life" });
+    expect(core.putDocument.mock.calls[1]![0]).toMatchObject({ with: ["life-marc"] });
   });
 
   it("puts the Event on each Person's Timeline via With", async () => {

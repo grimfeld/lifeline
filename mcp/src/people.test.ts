@@ -77,7 +77,7 @@ describe("people_occasion_add", () => {
   it("adds a yearly Occasion to the Person found by name", async () => {
     const out = await runTool("people_occasion_add", { person: "anne dupont", label: "Anniversary", day: "06-01" });
     expect(core.patchDocument).toHaveBeenCalledWith("p1", { occasions: expect.arrayContaining([expect.objectContaining({ label: "Anniversary", day: "06-01", yearly: true })]) });
-    expect(out).toMatchObject({ id: "p1", message: expect.stringContaining("Anne Dupont") });
+    expect(out).toMatchObject({ id: "p1", message: "Added Anniversary (06-01, yearly) to Anne Dupont" });
   });
   it("adds a once Occasion with its year, by alias", async () => {
     docs.delete("p2");
