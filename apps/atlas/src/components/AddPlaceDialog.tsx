@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { initialText, useOpenPeek, type CommandDialogProps, type Document } from "@lifeline/core";
 import { Button, ChoiceField, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, toast } from "@lifeline/ui";
 import { PlaceTaken, addPlace, kindOptions } from "../data/repo";
+import { HereButton } from "./Here";
 import { LocateButton, PlaceSearchField, WhereNote, type PlaceHit } from "./PlaceLookup";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -12,7 +13,8 @@ const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
  * matching real places, and one pick fills the name, the address and the
  * coordinates; a typed address can be Located, or is looked up on Add. The
  * palette's and the capture sheet's "Add place…". A name another Place has is
- * refused, and that Place is offered instead.
+ * refused, and that Place is offered instead. Here (#501) offers the places
+ * around the device, or Just here: the position as the coordinates of the name typed.
  */
 export function AddPlaceDialog({ open, onOpenChange, initial }: CommandDialogProps) {
   const [name, setName] = useState("");
@@ -83,6 +85,7 @@ export function AddPlaceDialog({ open, onOpenChange, initial }: CommandDialogPro
           }}
         >
           <PlaceSearchField label="Name" value={name} onChange={changeName} onPick={(hit) => pick(hit, "name")} placeholder="Chez Janou" autoFocus error={error} />
+          <HereButton onPick={(hit) => pick(hit, "name")} onJustHere={setAt} />
           {taken && (
             <Button type="button" variant="secondary" className="min-w-0 justify-start" onClick={() => openTaken(taken)}>
               <span className="min-w-0 truncate">Open {taken.title}</span>

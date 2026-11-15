@@ -9,7 +9,8 @@ What you keep here: Places, each with a name, the other names you call it (alias
 an **address**, Tags, and a page of your own words about it: what you ordered, what you thought, who told you
 about it. There is no rating: what you think stays in your own words.
 
-- **Add place** — a name is all it takes; pick a Kind and an address too if you like. Where: the
+- **Add place** — a name is all it takes; pick a Kind and an address too if you like, or press
+  **Here** for the places around you. Where: the
   Places screen, the Capture sheet, the palette (Ctrl+K).
 - **Go to Places** — opens the Places screen. Where: the palette.
 - **Places** — every Place in the current Workspace, A to Z. **Kind** narrows the list to one Kind;
@@ -36,7 +37,21 @@ looked up once when the Place is saved. One found nowhere is kept all the same, 
 the form says so: "Not on the map yet".
 
 The spot is found only then, when you pick or save, never when a map is drawn, so maps stay fast
-and work offline. A Place with no address, or one found nowhere, has no Pin.
+and work offline. A Place with no address (unless placed with **Just here**), or one found nowhere, has no Pin.
+
+### Here
+
+Standing in the place you want to add? Press **Here** in **Add place**. Lifeline reads where your
+device is, once, and lists the places around you, each with its address: pick the one you're in
+and it fills the name, the address and the spot on the map. For a spot no lookup knows (a
+viewpoint, a market stall), type its name and press **Just here**: where you stand becomes its
+spot on the map, with no address.
+
+Your position is read only when you press Here, never in the background. It is sent only to the
+lookup that finds the places around you, and never kept or logged: only the Place you add keeps
+its spot. The first time, the browser asks whether Lifeline may know where you are. If you refuse,
+or no position can be had, Here says so: type the name instead. Where the browser offers no
+location at all, there is no Here.
 
 ### A Place's page
 

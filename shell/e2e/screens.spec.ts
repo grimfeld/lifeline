@@ -537,6 +537,25 @@ async function longPlaces(page: Page) {
   await expect(page.getByText(/^A kind/).first()).toBeVisible();
 }
 
+/**
+ * Add place with Here's list open (#501): a granted, faked position, and Photon's
+ * reverse lookup answering with places as long as a name and address could be.
+ */
+async function openHere(page: Page) {
+  await page.context().grantPermissions(["geolocation"]);
+  await page.context().setGeolocation({ latitude: 43.29, longitude: 5.37 });
+  await page.route(/^https:\/\/(?!localhost)/, (route) => {
+    if (!route.request().url().startsWith("https://photon.komoot.io/reverse")) return route.abort();
+    const poi = (n: number) => ({ geometry: { coordinates: [5.37, 43.29] }, properties: { osm_key: "amenity", name: `${longText(`A place ${n}`)} ${LONG_WORD}`, street: `${longText("A street")} ${LONG_WORD}`, city: "Marseille", country: "France" } });
+    return route.fulfill({ json: { features: [poi(1), poi(2)] } });
+  });
+  await longPlaces(page);
+  await page.getByRole("button", { name: "Add place", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Add a place" });
+  await dialog.getByRole("button", { name: "Here", exact: true }).click();
+  await expect(dialog.getByRole("group", { name: "Places here" }).getByRole("button", { name: "Just here" })).toBeVisible();
+}
+
 /** World's map with the long Place on it and its Kind's long name in the Kind filter. */
 async function longWorld(page: Page) {
   await seedLongPlace(page);
@@ -1057,6 +1076,7 @@ const SCREENS: ScreenCase[] = [
       await expect(dialog.getByText(/^Not on the map yet/)).toBeVisible();
     },
   },
+  { name: "Places · Add place, Here's places", path: "/app/places", afterOpen: openHere },
   { name: "Thoughts", path: "/app/thoughts" },
   { name: "Thought", path: "/app/thoughts/:id", type: "thought" },
   { name: "Notes · Sources", path: "/app/notes" },

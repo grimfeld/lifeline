@@ -27,6 +27,15 @@ describe("vercel.json headers", () => {
     expect(headersFor(rules, "/")["Access-Control-Allow-Origin"]).toBeUndefined();
   });
 
+  it("allows the camera and the position to Lifeline's own origin only, and denies the rest (ADR 0109, Here)", () => {
+    const policy = Object.fromEntries(
+      headersFor(rules, "/")
+        ["Permissions-Policy"]!.split(",")
+        .map((d) => d.trim().split("=") as [string, string]),
+    );
+    expect(policy).toEqual({ camera: "(self)", geolocation: "(self)", microphone: "()", payment: "()", usb: "()" });
+  });
+
   it("lets a preview pointed at another PocketBase reach it instead of production's", () => {
     const csp = parse(headersFor(rules, "/", "http://127.0.0.1:8090")["Content-Security-Policy"]!);
     expect(csp["connect-src"]).toContain("http://127.0.0.1:8090");

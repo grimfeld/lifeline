@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { locateAddress, suggestAddresses } from "./geocode";
+import { locateAddress, placesNearby, suggestAddresses } from "./geocode";
 
 /** Photon's answer, as komoot's service gives it: GeoJSON features, [lon, lat]. */
 const photon = (features: { osm_key?: string; name?: string; housenumber?: string; street?: string; postcode?: string; city?: string; country?: string; at: [number, number] }[]) => ({
@@ -61,5 +61,43 @@ describe("looking an address up on save", () => {
     } finally {
       warn.mockRestore();
     }
+  });
+});
+
+describe("the places nearby (Photon, for Here)", () => {
+  it("asks Photon for what stands around the position, and offers only points of interest", async () => {
+    const asked: string[] = [];
+    vi.stubGlobal("fetch", async (url: string) => {
+      asked.push(url);
+      return Response.json(
+        photon([
+          { osm_key: "highway", name: "Rue Roger Verlomme", postcode: "75003", city: "Paris", country: "France", at: [48.8557, 2.3654] },
+          { osm_key: "amenity", name: "Chez Janou", housenumber: "2", street: "Rue Roger Verlomme", postcode: "75003", city: "Paris", country: "France", at: [48.8556, 2.3655] },
+        ]),
+      );
+    });
+    expect(await placesNearby({ lat: 48.85561, lon: 2.36549 })).toEqual([{ lat: 48.8556, lon: 2.3655, label: "2 Rue Roger Verlomme, 75003 Paris, France", name: "Chez Janou" }]);
+    expect(asked).toHaveLength(1);
+    const url = new URL(asked[0]!);
+    expect(url.origin + url.pathname).toBe("https://photon.komoot.io/reverse");
+    expect([url.searchParams.get("lat"), url.searchParams.get("lon")]).toEqual(["48.85561", "2.36549"]);
+  });
+
+  it("asks again for the same spot: a position is never remembered", async () => {
+    let calls = 0;
+    vi.stubGlobal("fetch", async () => {
+      calls++;
+      return Response.json(photon([]));
+    });
+    await placesNearby({ lat: 43.29, lon: 5.37 });
+    await placesNearby({ lat: 43.29, lon: 5.37 });
+    expect(calls).toBe(2);
+  });
+
+  it("fails with the status, and without the position, when Photon does", async () => {
+    vi.stubGlobal("fetch", async () => new Response("down", { status: 503 }));
+    const err = await placesNearby({ lat: 43.29123, lon: 5.37456 }).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect((err as Error).message).toBe("Nearby search failed (503)");
   });
 });
