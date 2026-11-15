@@ -77,7 +77,15 @@ export const hasHappened = (doc: Document | undefined, today: DateStr): boolean 
 /**
  * Whether a Place has been gone to: an Event that has happened links to it,
  * by its At or a wikilink in its notes (ADR 0119). What clears To try. A Day
- * that names it is a mention, never a visit.
+ * that names it is a mention, never a visit. With `since` (the day To try was
+ * marked), only an Event whose last day is on or after it counts, so a Place
+ * gone to before can be marked again; without, any that has happened does.
  */
-export const visitedBy = (index: LinkIndex, placeId: string, today: DateStr): boolean =>
-  index.backlinksTo(placeId).some((b) => hasHappened(index.byId.get(b.sourceId), today));
+export const visitedBy = (index: LinkIndex, placeId: string, today: DateStr, since?: DateStr): boolean =>
+  index.backlinksTo(placeId).some((b) => {
+    const event = index.byId.get(b.sourceId);
+    return hasHappened(event, today) && (!since || eventLastDay(event)! >= since);
+  });
+
+/** The day a Place was marked To try, when it was marked by a build that keeps it; none for an older mark. */
+export const toTrySinceOf = (doc: Document): DateStr | undefined => (typeof doc.toTrySince === "string" && /^\d{4}-\d{2}-\d{2}$/.test(doc.toTrySince) ? doc.toTrySince : undefined);

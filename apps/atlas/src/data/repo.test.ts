@@ -167,6 +167,14 @@ const TODAY = new Date(2026, 10, 15, 12);
 const event = (title: string, fields: Record<string, unknown>) => putDocument({ type: EVENT_TYPE, title, notes: "", at: "", endDate: null, ...fields });
 const toTry = async (id: string) => livePlace(await getDocument(id))?.toTry;
 
+/** Mark at noon on `day`, then come back to TODAY: the mark is older than the Events below. */
+async function markedOn<T>(day: string, mark: () => Promise<T>): Promise<T> {
+  vi.setSystemTime(new Date(`${day}T12:00:00`));
+  const out = await mark();
+  vi.setSystemTime(TODAY);
+  return out;
+}
+
 describe("To try (ADR 0119)", () => {
   beforeEach(() => vi.useFakeTimers({ toFake: ["Date"], now: TODAY }));
   afterEach(() => vi.useRealTimers());
@@ -183,14 +191,57 @@ describe("To try (ADR 0119)", () => {
     expect(await toTry(flore.id)).toBe(false);
   });
 
-  it("clears once an Event At the Place has happened", async () => {
-    const janou = await addPlace({ name: "Chez Janou", toTry: true });
+  it("remembers the day it was marked, by any writer, and forgets it when unmarked", async () => {
+    const janou = await markedOn("2026-11-02", () => addPlace({ name: "Chez Janou", toTry: true }));
+    expect((await getDocument(janou.id))?.toTrySince).toBe("2026-11-02");
+    const flore = await addPlace({ name: "Café de Flore" });
+    expect((await getDocument(flore.id))?.toTrySince).toBeFalsy();
+    await markedOn("2026-11-03", () => patchPlace(flore.id, { toTry: true }));
+    expect((await getDocument(flore.id))?.toTrySince).toBe("2026-11-03");
+    await patchPlace(flore.id, { toTry: false });
+    expect((await getDocument(flore.id))?.toTrySince).toBeFalsy();
+  });
+
+  it("clears once an Event At the Place has happened since it was marked", async () => {
+    const janou = await markedOn("2026-11-02", () => addPlace({ name: "Chez Janou", toTry: true }));
     await event("Dinner", { date: "2026-11-10", at: janou.id });
     expect(await toTry(janou.id)).toBe(false);
   });
 
+  it("clears for an Event on the very day it was marked, once that day has passed", async () => {
+    const janou = await markedOn("2026-11-10", () => addPlace({ name: "Chez Janou", toTry: true }));
+    await event("Dinner", { date: "2026-11-10", at: janou.id });
+    expect(await toTry(janou.id)).toBe(false);
+  });
+
+  it("is kept by an Event from before it was marked: a Place gone to can be marked To try again", async () => {
+    const janou = await addPlace({ name: "Chez Janou" });
+    await event("Dinner", { date: "2026-10-03", at: janou.id });
+    await markedOn("2026-11-02", () => patchPlace(janou.id, { toTry: true }));
+    await settleToTry(janou.id);
+    expect(await toTry(janou.id)).toBe(true);
+    await event("Lunch", { date: "2026-11-12", at: janou.id });
+    expect(await toTry(janou.id)).toBe(false);
+  });
+
+  it("is kept by an Event that ends on the day it was marked but began before", async () => {
+    const janou = await markedOn("2026-11-08", () => addPlace({ name: "Chez Janou", toTry: true }));
+    await event("Trip", { date: "2026-11-06", endDate: "2026-11-07", at: janou.id });
+    expect(await toTry(janou.id)).toBe(true);
+    await event("Weekend", { date: "2026-11-07", endDate: "2026-11-08", at: janou.id });
+    expect(await toTry(janou.id)).toBe(false);
+  });
+
+  it("marked before the day was kept, clears for any Event that has happened", async () => {
+    // A Place marked by an older build carries no day: any past Event clears it, as before.
+    const janou = await addPlace({ name: "Chez Janou" });
+    await patchDocument(janou.id, { toTry: true });
+    await event("Dinner", { date: "2026-01-10", at: janou.id });
+    expect(await toTry(janou.id)).toBe(false);
+  });
+
   it("stays while the Event At it is still to come, today's included", async () => {
-    const janou = await addPlace({ name: "Chez Janou", toTry: true });
+    const janou = await markedOn("2026-11-02", () => addPlace({ name: "Chez Janou", toTry: true }));
     await event("Dinner", { date: "2026-11-20", at: janou.id });
     await event("Lunch", { date: "2026-11-15", at: janou.id });
     // A weekend that ends today has not happened yet.
@@ -199,20 +250,20 @@ describe("To try (ADR 0119)", () => {
   });
 
   it("clears for an Event that links to it from its notes", async () => {
-    const janou = await addPlace({ name: "Chez Janou", aliases: ["Janou"], toTry: true });
+    const janou = await markedOn("2026-10-30", () => addPlace({ name: "Chez Janou", aliases: ["Janou"], toTry: true }));
     await event("Anne's birthday", { date: "2026-11-01", notes: "Then dessert at [[Janou]]." });
     expect(await toTry(janou.id)).toBe(false);
   });
 
   it("clears when an Event At it is moved into the past", async () => {
-    const janou = await addPlace({ name: "Chez Janou", toTry: true });
+    const janou = await markedOn("2026-11-02", () => addPlace({ name: "Chez Janou", toTry: true }));
     const dinner = await event("Dinner", { date: "2026-11-20", at: janou.id });
     await patchDocument(dinner.id, { date: "2026-11-12" });
     expect(await toTry(janou.id)).toBe(false);
   });
 
   it("is not cleared by a Day that only mentions the Place", async () => {
-    const janou = await addPlace({ name: "Chez Janou", toTry: true });
+    const janou = await markedOn("2026-11-02", () => addPlace({ name: "Chez Janou", toTry: true }));
     await createDocument({ type: "note", title: "Saturday", body: "Anne says [[Chez Janou]] is good." });
     expect(await toTry(janou.id)).toBe(true);
   });

@@ -51,6 +51,8 @@ export const placeTypeDef: DocumentTypeDef = {
     { key: "geo", label: "Coordinates", kind: "geo", guarded: true },
     // Plain marks, so a list, the map and a Base filter them as fields. To try is cleared by Atlas, never derived.
     { key: "toTry", label: "To try", kind: "boolean" },
+    // The day To try was marked: only an Event since then clears it. Atlas writes it with the mark; none on an older mark.
+    { key: "toTrySince", label: "To try since", kind: "date", guarded: true, hidden: true },
     { key: "closed", label: "Closed", kind: "boolean" },
   ],
 };

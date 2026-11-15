@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { PLACE_TYPE, allDocumentTypes, allDocuments, buildLinkIndex, createDocument, documentsOf, getDocument, locateAddress, normalizeTags, patchDocument, renameDocument, saveFieldOptions, todayStr, useDocuments, writeGeo, type Coords, type Document, type Located, type Lookup } from "@lifeline/core";
-import { hasHappened, kindFrom, normalizePlace, placeTitled, visitedBy } from "../domain/place";
+import { hasHappened, kindFrom, normalizePlace, placeTitled, toTrySinceOf, visitedBy } from "../domain/place";
 import { PLACES_FOLDER, type Place } from "../domain/types";
 
 /**
@@ -75,7 +75,7 @@ export async function addPlace(
     type: PLACE_TYPE,
     title: name,
     folder: PLACES_FOLDER,
-    fields: { aliases: cleanAliases(input.aliases), kind, tags: normalizeTags(input.tags ?? []), ...address, toTry: input.toTry === true, closed: false },
+    fields: { aliases: cleanAliases(input.aliases), kind, tags: normalizeTags(input.tags ?? []), ...address, ...toTryFields(input.toTry === true), closed: false },
   });
   return normalizePlace(doc);
 }
@@ -97,6 +97,13 @@ export async function setPlaceAddress(id: string, input: AddressInput, lookup: L
   return placed;
 }
 
+/**
+ * To try and the day it was marked (ADR 0119): only an Event that has
+ * happened since that day clears it, so a Place gone to before can be marked
+ * again. Unmarked, no day is kept.
+ */
+const toTryFields = (toTry: boolean): { toTry: boolean; toTrySince: string } => ({ toTry, toTrySince: toTry ? todayStr() : "" });
+
 export interface PlacePatch {
   title?: string;
   kind?: string;
@@ -117,7 +124,11 @@ export async function patchPlace(id: string, patch: PlacePatch): Promise<void> {
   if (rest.kind !== undefined) fields.kind = kindFrom(rest.kind);
   if (rest.aliases) fields.aliases = cleanAliases(rest.aliases);
   if (rest.tags) fields.tags = normalizeTags(rest.tags);
-  if (rest.toTry !== undefined) fields.toTry = rest.toTry;
+  if (rest.toTry !== undefined) {
+    const was = await getDocument(id);
+    // Marked again while marked keeps its day; marked anew starts from today.
+    if (!(rest.toTry && was?.toTry === true)) Object.assign(fields, toTryFields(rest.toTry));
+  }
   if (rest.closed !== undefined) fields.closed = rest.closed;
   if (title !== undefined) {
     if (!title.trim()) throw new Error("A Place needs a name");
@@ -135,7 +146,9 @@ export const saveKindOptions = (options: readonly { value?: string; label: strin
 
 /**
  * Clear To try on the Places that have been gone to since it was set: an
- * Event that has happened links to each, by At or in its notes (ADR 0119).
+ * Event that has happened, and whose last day is on or after the day it was
+ * marked, links to each, by At or in its notes (ADR 0119). A mark an older
+ * build made carries no day: any Event that has happened clears it.
  * Every To try Place, or the one given. Idempotent: a Place cleared, or never
  * marked, is not written again. Run when an Event is saved and when a Place is
  * opened, so a dinner that passed while nothing was saved still counts.
@@ -146,7 +159,7 @@ export async function settleToTry(placeId?: string): Promise<void> {
   const today = todayStr();
   // Built here, not through the UI's shared index, so a save never evicts the screen's.
   const index = buildLinkIndex(await allDocuments(), allDocumentTypes());
-  for (const p of marked) if (visitedBy(index, p.id, today)) await patchDocument(p.id, { toTry: false });
+  for (const p of marked) if (visitedBy(index, p.id, today, toTrySinceOf(p))) await patchDocument(p.id, toTryFields(false));
 }
 
 /** After an Event is saved (Core's `afterSaveOf`, ADR 0121): only one that has happened can clear a To try. */
