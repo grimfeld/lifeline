@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PERSON_TYPE } from "@lifeline/core";
 import type { Document, DocumentTypeDef, OwnedCommand, TimedProvider } from "@lifeline/core";
-import { contactsApp, TIE } from "@lifeline/app-contacts";
+import { contactsApp, HOUSEHOLD, TIE } from "@lifeline/app-contacts";
 
 // The People tools (ADR 0114): core's store is stood in for, as in handlers.test.ts.
 const types = new Map<string, DocumentTypeDef>();
@@ -34,6 +34,7 @@ const { runTool } = await import("./handlers");
 // Through the manifest only, as the server takes it (apps.ts).
 const personTypeDef = contactsApp.types.find((t) => t.id === PERSON_TYPE)!;
 const tieTypeDef = contactsApp.types.find((t) => t.id === TIE)!;
+const householdTypeDef = contactsApp.types.find((t) => t.id === HOUSEHOLD)!;
 const contactsTimed = contactsApp.timed!;
 
 const person = (id: string, title: string, extra: Record<string, unknown> = {}, folder = "People") =>
@@ -49,6 +50,7 @@ beforeEach(() => {
   core.createDocument.mockImplementation(async (input: { type: string; title: string; fields: Record<string, unknown> }) => ({ ...person("new", input.title), ...input.fields }));
   types.set(PERSON_TYPE, personTypeDef);
   types.set(TIE, tieTypeDef);
+  types.set(HOUSEHOLD, householdTypeDef);
   commands.push(...contactsApp.commands.map((c) => ({ ...c, appId: "contacts" })));
   docs.set("p1", person("p1", "Anne Dupont", { aliases: ["Mum"], occasions: [{ id: "o1", label: "Birthday", day: "1961-11-12", yearly: true }, { id: "o2", label: "Surgery", day: "2026-11-09", yearly: false }] }));
   docs.set("p2", person("p2", "Anna", { aliases: ["Mum"], occasions: [{ id: "o3", label: "Birthday", day: "03-20", yearly: true }] }));
@@ -143,5 +145,19 @@ describe("get_document of a Person: Ties", () => {
     const out = (await runTool("get_document", { id: "p1" })) as { detail: { ties: unknown[] } };
     expect(out.detail.ties).toEqual([]);
     expect(JSON.stringify(out)).not.toContain("Secret");
+  });
+});
+
+describe("get_document of a Household (ADR 0117)", () => {
+  const walled = { addresses: [{ id: "a1", label: "Home", text: "1 Rue Secrète", former: false }], contactDetails: [{ id: "c1", label: "Mobile", kind: "phone", value: "+33 6 12 34 56 78", former: false }] };
+  it("gives its name, aliases and members by name, and nothing walled of any member", async () => {
+    docs.set("p1", { ...docs.get("p1")!, ...walled } as Document);
+    docs.set("h1", { id: "h1", type: HOUSEHOLD, title: "the Duponts", aliases: ["Duponts"], members: [{ personId: "p1" }, { personId: "p3" }], folder: "People/Households", tags: [], createdAt: "", updatedAt: "", deleted: 0 } as unknown as Document);
+    const out = (await runTool("get_document", { id: "h1" })) as { title: string; fields: Record<string, unknown>; detail: { members: unknown[] } };
+    expect(out.title).toBe("the Duponts");
+    expect(out.fields).toEqual({ aliases: ["Duponts"] });
+    // The member in the Private folder is left out, as a Tie to them is.
+    expect(out.detail.members).toEqual([{ id: "p1", title: "Anne Dupont" }]);
+    expect(JSON.stringify(out)).not.toMatch(/Secrète|12 34|Secret/);
   });
 });

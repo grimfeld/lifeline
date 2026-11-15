@@ -1,7 +1,8 @@
 # People
 
 The people in your life: family, friends, colleagues, someone you met once, someone who has
-died. Each one is a **Person** you can link to from anywhere, with a page of their own.
+died. Each one is a **Person** you can link to from anywhere, with a page of their own. The People
+who live together make a **Household** ("the Smiths"), which you can link to as well.
 
 ## People
 
@@ -41,7 +42,8 @@ bring them back.
 
 At the top, their name, then what they are to you (their **Relationship**, underlined with dashes:
 click it and type to change it, Enter or leaving it saves, Escape puts it back), then their age (when their Birthday has a year) and their
-aliases. Under them, three buttons: **Call**, **Email** and **Profile** reach them by their first
+aliases, then **Households:** with each Household they belong to as a link, and **Add to a Household…**
+(see Households, below). Under them, three buttons: **Call**, **Email** and **Profile** reach them by their first
 current phone number, email and handle; a former one is skipped. One they have none of is dimmed, and adds one of
 its kind: a dimmed **Email** opens the dialog on Email. Their next
 Occasion within the year sits beside them.
@@ -139,6 +141,30 @@ Removing anything from a Person's page (an Occasion, an Address, a Contact detai
 happens at once, with **Undo** on the message that follows: it puts back just that one, even
 if you have added something since.
 
+### Households
+
+A **Household** is the People who live together: Paul, Mary, Tom and Lily, "the Smiths". It has a
+name, aliases, **members** you choose, and a page of your own words. It is not a family: Paul's
+mother in another town is his Tie, not a member, and Mary keeps her own name and is still one.
+
+- **Households**, beside **People** in the People Module (its sidebar, or the row of tabs at the top on a
+  phone), lists every Household in the current Workspace,
+  A to Z, with its members' names. **Add household** takes a name and opens its page.
+- **A Household's page** — its name, underlined with dashes (click it to rename it; every
+  `[[link]]` to it follows), its **Members**, its **Aliases** and **About it**, its body. **Add
+  member** finds a Person by name or alias; the cross beside a member takes them out, with Undo.
+  Each member's name opens their page.
+- **From a Person's page**, **Add to a Household…** finds a Household by name, or makes a new one
+  from the name you type ("New household “Student flat”") with them in it.
+- Someone may belong to several Households: a student's flat and their parents' home.
+- Only People of the Household's own Workspace can be its members.
+- `[[the Smiths]]` links to the Household like any page, and clicking it opens its **Peek**,
+  where you can change its aliases, members and Tags; **Open** goes to its page.
+- Deleting a Person takes them out of every Household; the Households stay. Deleting a
+  Household changes no Person.
+- The home stays each member's **Address**: a Household has none, and no Occasion or Contact
+  detail.
+
 ### Linking to a Person
 
 - Write `[[` and their name, or any of their aliases: `[[Mum]]` and `[[Anne Dupont]]` land on
@@ -183,6 +209,10 @@ you can add someone you just met before you forget it.
 - "Who is Léa to Anne?" — `get_document` on a Person also lists their Ties, read from their side
   ("daughter: Léa"), leaving out anyone in the Private folder.
 - "What have I written about Anne?" — `search_documents`, `get_document`.
+
+- "Who lives at the Smiths'?" — `get_document` on a Household gives its name, aliases and its
+  members by name, leaving out anyone in the Private folder; nothing of a member's Addresses or
+  Contact details.
 
 ### What Claude sees of a Person
 
