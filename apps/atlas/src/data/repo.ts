@@ -23,9 +23,6 @@ export function usePlaces(): Place[] {
   return useMemo(() => docs.map(normalizePlace), [docs]);
 }
 
-/** Every Place in the Workspace, read once. */
-export const allPlaces = async () => (await documentsOf(PLACE_TYPE)).map(normalizePlace);
-
 /** A live row as a Place, or none when it is missing, deleted, or no Place. */
 export const livePlace = (row: Document | undefined): Place | undefined => (row && !row.deleted && row.type === PLACE_TYPE ? normalizePlace(row) : undefined);
 

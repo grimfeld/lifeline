@@ -94,11 +94,13 @@ test("the Places screen lists Places A to Z and filters them by Kind, and Kinds 
   const list = page.getByRole("list", { name: "Places" });
   await expect(list.getByRole("link", { name: /^(Atelier Café|Bar du Port|Zinc Bar)/ })).toHaveText([/^Atelier Café/, /^Bar du Port/, /^Zinc Bar/]);
 
+  // On a phone the Kind is under Filters, whose sheet hides the page until it closes.
   const filters = page.getByRole("button", { name: /^Filters/ });
-  if (await filters.isVisible()) await filters.click();
+  const phone = await filters.isVisible();
+  if (phone) await filters.click();
   await page.getByRole("combobox", { name: "Kind" }).click();
   await page.getByRole("option", { name: "Bar", exact: true }).click();
-  if (await filters.isVisible()) await page.keyboard.press("Escape");
+  if (phone) await page.keyboard.press("Escape");
   await expect(list.getByRole("link", { name: /^(Atelier Café|Bar du Port|Zinc Bar)/ })).toHaveText([/^Bar du Port/, /^Zinc Bar/]);
 
   await page.getByRole("button", { name: "Kinds", exact: true }).click();
@@ -108,8 +110,11 @@ test("the Places screen lists Places A to Z and filters them by Kind, and Kinds 
   await kinds.getByLabel("Kind 11", { exact: true }).fill("Climbing gym");
   await kinds.getByRole("button", { name: "Save" }).click();
   await expect(kinds).toBeHidden();
-  // The renamed Kind keeps its Places.
-  await expect(page.getByRole("combobox", { name: "Kind" }).first()).toHaveText("Pub");
+  // The renamed Kind keeps its Places, still filtered by it; the new one is offered after the others.
+  await expect(list.getByRole("link", { name: /^(Atelier Café|Bar du Port|Zinc Bar)/ })).toHaveText([/^Bar du Port/, /^Zinc Bar/]);
+  await expect
+    .poll(() => inCore(page, async (core, type: string) => (core.documentType(type)?.fields.find((f: { key: string }) => f.key === "kind")?.options ?? []).map((o: { label: string }) => o.label) as string[], PLACE))
+    .toEqual(["Restaurant", "Café", "Pub", "Museum", "Gallery", "Shop", "Mall", "Park", "Venue", "Other", "Climbing gym"]);
 });
 
 test("[[Chez Janou]], [[place:Lidl Prado]] and an alias land on Places, whose page lists the Day as a backlink and its prose as an unlinked mention", async ({ page }) => {
@@ -117,10 +122,16 @@ test("[[Chez Janou]], [[place:Lidl Prado]] and an alias land on Places, whose pa
   await workLocally(page);
   const janou = await makePlace(page, "Chez Janou", { aliases: ["Janou"], kind: "restaurant" });
   await makePlace(page, "Lidl Prado", { kind: "shop" });
-  await inCore(page, async (core) => {
-    await core.createDocument({ type: "daily", title: "2001-03-04", body: "Lunch at [[Chez Janou]], then [[place:Lidl Prado]], and coffee at [[Janou]]." });
-    await core.createDocument({ type: "daily", title: "2001-03-05", body: "Chez Janou was full." });
-  });
+  await inCore(
+    page,
+    async (core, days: { title: string; body: string }[]) => {
+      for (const d of days) await core.createDocument({ type: "daily", ...d });
+    },
+    [
+      { title: "2001-03-04", body: "Lunch at [[Chez Janou]], then [[place:Lidl Prado]], and coffee at [[Janou]]." },
+      { title: "2001-03-05", body: "Chez Janou was full." },
+    ],
+  );
 
   await page.goto("/app/journal?d=2001-03-04");
   await workLocally(page);
