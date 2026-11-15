@@ -522,7 +522,7 @@ The name a Person shares with their family — "Dupont", "García López" — an
 _Avoid_: surname, last name (it need not come last), maiden name
 
 ### Household
-The People who live together — Paul, Mary, Tom and Lily, "the Smiths" — as a Linkable Document of its own in the People Module, with a title, aliases and **members** the user chooses, so that "dinner at `[[the Smiths]]`" names them. Not kin: Paul's mother in another town is Paul's Tie, not a member. Not a Family name match: Mary Martin, married to Paul, is a member; an unrelated Smith is not.
+The People who live together — Paul, Mary, Tom and Lily, "the Smiths" — as a Linkable Document of its own in the People Module, with a title, aliases and **members** the user chooses, so that "dinner at `[[the Smiths]]`" names them. Not kin: Paul's mother in another town is Paul's Tie, not a member. Not a Family name match: Mary Martin, married to Paul, is a member; an unrelated Smith is not. A Person may be a member of several (a student's flat and their parents' home, a child of separated parents). A membership may carry a **since** and an **until** day, blank meaning always; someone who moves out gets an until day and is never removed, as an Address is marked former. A link to a Household counts for whoever was a member on the linking Day's or Event's date: it stands on their Timelines ("via the Smiths") and counts toward their Seen and Mentioned. Picking a Household in an Event's **With** adds its current members as People, each removable (Lily was away): a People field holds People, never a Household. Holds a body, but no Address, Occasion or Contact detail — the home stays each member's Address. An agent reads its name and members, as it reads a Person.
 _Avoid_: family (kin, which Ties say), group, home (an Address)
 
 ### Drifting
@@ -554,7 +554,7 @@ A named day in a Person's life — Birthday, Met, Wedding, Surgery, Graduation �
 _Avoid_: important date, date (a Field kind), anniversary (only the yearly ones), milestone (a Project's), occurrence (a Chore's), reminder
 
 ### Timeline (Person page)
-The section of a Person's page that shows what links to them: their Occasions in the year ahead above a **Today** line, then everything that links in, grouped **by month**, newest first, each Document **once** and saying how it links ("via With", "mentioned"). Replaces the by-kind groups and the separate Backlinks list. Built from the links, never stored. A reading of one Person's links, not the Daylog (what happened on a day, where "timeline" stays under Avoid) and not the Projects Module's Timeline screen (Milestones along a Project's dates).
+The section of a Person's page that shows what links to them: their Occasions in the year ahead above a **Today** line, then everything that links in, grouped **by month**, newest first, each Document **once** and saying how it links ("via With", "mentioned", "via the Smiths" for a link to a Household they belonged to then). Replaces the by-kind groups and the separate Backlinks list. Built from the links, never stored. A reading of one Person's links, not the Daylog (what happened on a day, where "timeline" stays under Avoid) and not the Projects Module's Timeline screen (Milestones along a Project's dates).
 _Avoid_: history, activity feed, backlinks (one way a Document links in)
 
 ### Wikilink
