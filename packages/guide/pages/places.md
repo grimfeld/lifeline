@@ -68,7 +68,7 @@ that passed since is caught then. Untick it yourself whenever you like.
 
 Tick **Closed** when a Place shuts for good. It leaves the map and the All and To try lists, and
 shows under **Closed**; its page says so. It keeps everything else: its links, backlinks, notes and
-the Events held there. Untick **Closed** to reopen it.
+the Events held there. Untick **Closed** to reopen it. The Events At it leave the map with it.
 
 ### A Place's page
 
@@ -91,6 +91,7 @@ A Place with an address found stands on [World](world.md)'s map and on the [Map]
 in Atlas's colour, apart from People's homes. A closed Place has no pin. On World's map, **To try**
 shows only the Places you want to try, and goes with the Kind: To try and Café are the cafés you
 haven't been to yet. People's homes stay on the map either way.
+Each Event **At** the Place stands at its pin too, in the Calendar's colour, with its title and day.
 
 ### Visited and its Reports
 

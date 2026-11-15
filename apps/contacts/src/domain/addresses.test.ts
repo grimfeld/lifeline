@@ -10,7 +10,7 @@ describe("a Person's Addresses on the map", () => {
   it("is a Pin for each current Address with coordinates, titled Person · label", () => {
     const pins = addressPinsOf(person([A("Home", { lat: 1, lon: 2 }), A("Work", { lat: 3, lon: 4 })]));
     expect(pins).toEqual([
-      { id: "Home", name: "Marc · Home", lat: 1, lon: 2 },
+      { id: "Home", name: "Marc · Home", lat: 1, lon: 2, main: true },
       { id: "Work", name: "Marc · Work", lat: 3, lon: 4 },
     ]);
   });
@@ -18,6 +18,20 @@ describe("a Person's Addresses on the map", () => {
   it("leaves out a former Address, and one the lookup did not find", () => {
     const pins = addressPinsOf(person([A("Old", { lat: 1, lon: 2, former: true }), A("Lost"), A("Half", { lat: 1 }), A("Here", { lat: 5, lon: 6 })]));
     expect(pins.map((p) => p.id)).toEqual(["Here"]);
+  });
+
+  describe("where an Event At them stands (#505): the main Pin", () => {
+    const main = (addresses: Address[]) => addressPinsOf(person(addresses)).filter((p) => p.main).map((p) => p.id);
+    it("is the current Address labelled Home, wherever it sits, in any case", () => {
+      expect(main([A("Work", { lat: 3, lon: 4 }), A("w2", { label: " home ", lat: 1, lon: 2 })])).toEqual(["w2"]);
+    });
+    it("is the first current Address when none is labelled Home, a former Home left aside", () => {
+      expect(main([A("Old", { label: "Home", lat: 9, lon: 9, former: true }), A("Flat", { lat: 1, lon: 2 }), A("Work", { lat: 3, lon: 4 })])).toEqual(["Flat"]);
+    });
+    it("is none when the chosen Address has no coordinates, nor when there is no current Address", () => {
+      expect(main([A("Home"), A("Work", { lat: 3, lon: 4 })])).toEqual([]);
+      expect(main([A("Old", { lat: 1, lon: 2, former: true })])).toEqual([]);
+    });
   });
 
   it("is none for a Person with no Addresses, or a row that holds something else", () => {

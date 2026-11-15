@@ -592,7 +592,7 @@ An unresolved wikilink name drawn on a Graph: a hole in the vault. Clicking it c
 _Avoid_: phantom, placeholder, unresolved node (fine in prose)
 
 ### Locatable
-Core Contract: a Document type whose Documents sit at a geographic point, so any map Surface can draw them. Declarable by data (a user-defined type with a geo field). Coordinates are the owning App's data (resolved when the entity is edited, never looked up at render time); an entity with an address but no coordinates is not Locatable yet.
+Core Contract: a Document type whose Documents sit at a geographic point, so any map Surface can draw them. Declarable by data (a user-defined type with a geo field). Coordinates are the owning App's data (resolved when the entity is edited, never looked up at render time); an entity with an address but no coordinates is not Locatable yet. A type may instead stand **at the Document it links to** (ADR 0122): an Event is drawn at its At's place, a Place's, or the Person's main Address (Home, else the first), never with coordinates of its own.
 _Avoid_: mappable, geolocated, placed (Placement is a calendar concept)
 
 ### Pin

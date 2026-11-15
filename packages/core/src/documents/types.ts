@@ -201,9 +201,20 @@ export interface DocumentTypeDef {
    * Locatable, several places to a Document: a Pin for each place the reader
    * returns (a Person's Addresses). `id` is unique within the Document and
    * `name` replaces its title on the Pin. Declared in code only, by the
-   * owning App; `locatable` is left unset on such a type.
+   * owning App; `locatable` is left unset on such a type. `main` marks the
+   * one place a Document stands for when another stands at it (`locatableVia`,
+   * ADR 0122): none marked, and nothing stands there.
    */
-  locatablePins?: (doc: Document) => { id: string; name: string; lat: number; lon: number }[];
+  locatablePins?: (doc: Document) => { id: string; name: string; lat: number; lon: number; main?: boolean }[];
+  /**
+   * Locatable at another Document (ADR 0122): the Link Field naming the
+   * Document this one stands at (an Event's `at`). Its Pin is that
+   * Document's place, or its `main` one, under this Document's own title,
+   * and there is none when that Document has none. So an App puts its
+   * Documents on the map without reading where the linked one is. Declared
+   * in code only; `locatable` and `locatablePins` are left unset.
+   */
+  locatableVia?: string;
   /**
    * Reading mode offers a stopwatch. For types whose Documents are *performed*
    * from the page rather than consulted — a Writing given aloud (CONTEXT.md's

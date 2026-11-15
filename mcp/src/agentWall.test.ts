@@ -195,6 +195,15 @@ describe("the agent wall: a Person's Pins (#418)", () => {
     }
     for (const t of ["search_documents", "list_types"]) expect(JSON.stringify(await runTool(t, {}))).not.toMatch(/"lat"|"lon"/);
   });
+
+  it("stands an Event At them at that Address (#505), yet no tool answer locates the Event", async () => {
+    const pins = pinsOf([docs.get("e1")!, docs.get("p1")!], [withGiftIdeas, eventTypeDef], ["event"], []);
+    expect(pins.map((p) => [p.key, p.lat, p.lon])).toEqual([["event/e1", 48.871234, 2.381234]]);
+    for (const { name, args } of PERSON_TOOLS) {
+      const answer = JSON.stringify(await runTool(name, args));
+      for (const word of ["event/e1", "48.87", "2.38"]) expect(answer, `${name} located the Event: “${word}”`).not.toContain(word);
+    }
+  });
 });
 
 describe("the agent wall: what an agent writes of a Person (ADR 0114)", () => {

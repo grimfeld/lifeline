@@ -58,3 +58,42 @@ describe("pins of Locatable Documents", () => {
     });
   });
 });
+
+describe("pins of Documents that stand at another (locatableVia, #505)", () => {
+  const types = [
+    T("place", { locatable: (d) => (d.closed ? null : (d.spot as { lat: number; lon: number }) ?? null) }),
+    T("who", { locatablePins: (d) => (d.places as { id: string; name: string; lat: number; lon: number; main?: boolean }[]) ?? [] }),
+    T("event", { label: "Events", locatableVia: "at", linkable: { subtitle: (d) => `on ${d.date as string}` } }),
+  ];
+  const janou = doc("janou", "place", { title: "Chez Janou", spot: { lat: 43.3, lon: 5.4 } });
+  const shut = doc("shut", "place", { title: "Shut", spot: { lat: 1, lon: 1 }, closed: true });
+  const nowhere = doc("nowhere", "place", { title: "Nowhere" });
+  const marc = doc("marc", "who", {
+    places: [
+      { id: "w", name: "Marc · Work", lat: 48.9, lon: 2.4 },
+      { id: "h", name: "Marc · Home", lat: 48.8, lon: 2.3, main: true },
+    ],
+  });
+  const anne = doc("anne", "who", { places: [{ id: "w", name: "Anne · Work", lat: 45, lon: 4 }] });
+  const event = (id: string, at: string) => doc(id, "event", { title: `Dinner ${id}`, date: "2026-11-10", at });
+  const eventPins = (...events: Document[]) => pinsOf([janou, shut, nowhere, marc, anne, ...events], types, ["event"], []);
+
+  it("stands an Event at the located Place it is At, under its own title and day", () => {
+    const [p, ...rest] = eventPins(event("e1", "janou"));
+    expect(rest).toEqual([]);
+    expect([p!.key, p!.itemId, p!.type, p!.name, p!.subtitle, p!.lat, p!.lon]).toEqual(["event/e1", "e1", "event", "Dinner e1", "Event · on 2026-11-10", 43.3, 5.4]);
+  });
+
+  it("leaves off an Event At a closed or unlocated Place, at nothing, or at a Document that is gone", () => {
+    expect(eventPins(event("e1", "shut"), event("e2", "nowhere"), event("e3", ""), event("e4", "deleted-id"))).toEqual([]);
+  });
+
+  it("stands an Event At a Document of several places at its main one, and leaves it off when none is main", () => {
+    expect(eventPins(event("e1", "marc"), event("e2", "anne")).map((p) => [p.key, p.lat, p.lon])).toEqual([["event/e1", 48.8, 2.3]]);
+  });
+
+  it("finds the place it stands at even when the map shows only Events", () => {
+    expect(pinsOf([janou, event("e1", "janou")], types, ["event"], []).map((p) => p.key)).toEqual(["event/e1"]);
+    expect(pinsOf([janou, event("e1", "janou")], types, undefined, []).map((p) => p.key)).toEqual(["place/janou", "event/e1"]);
+  });
+});

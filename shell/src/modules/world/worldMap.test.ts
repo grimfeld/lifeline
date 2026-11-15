@@ -29,4 +29,10 @@ describe("the World map's Pins (ADR 0119)", () => {
     expect(worldPins([janou, marcHome, flore, lebrun], places, { toTry: true }).map((p) => p.itemId)).toEqual(["janou", "marc", "lebrun"]);
     expect(worldPins([janou, marcHome, flore, lebrun], places, { toTry: true, kind: "cafe" }).map((p) => p.itemId)).toEqual(["marc", "lebrun"]);
   });
+
+  it("keeps an Event At a Place or a Person (#505) through Kind and To try, and hides it with the Calendar's chip", () => {
+    const dinner = pin("calendar", "event", "dinner");
+    expect(worldPins([janou, dinner, flore], places, { kind: "cafe", toTry: true }).map((p) => p.itemId)).toEqual(["dinner"]);
+    expect(worldPins([janou, dinner], places, { hidden: ["calendar"] }).map((p) => p.itemId)).toEqual(["janou"]);
+  });
 });

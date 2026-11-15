@@ -1,22 +1,24 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { PLACE_TYPE, appById, documentType, useDocumentTypes, useDocuments, useLocatablePins } from "@lifeline/core";
+import { EVENT_TYPE, PLACE_TYPE, appById, documentType, openPin, useDocumentTypes, useDocuments, useLocatablePins } from "@lifeline/core";
 import { cn, MapView, PageHeader, PhoneDock, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
 import { Map as MapIcon, MapPin, Sparkles, Users } from "lucide-react";
 import { handModule } from "../handModule";
 import { worldPins } from "./worldMap";
 
-/** The Apps whose Pins the World map shows, and what each chip calls them. Stable, so the Pins hook keeps its memo. */
-const WORLD_APPS = ["atlas", "contacts"];
+/** The Apps (and the Event type, #505) whose Pins the World map shows, and what each chip calls them. Stable, so the Pins hook keeps its memo. */
+const WORLD_APPS = ["atlas", "contacts", EVENT_TYPE];
 const CHIPS = [
   { appId: "atlas", label: "Places" },
   { appId: "contacts", label: "People" },
+  { appId: "calendar", label: "Events" },
 ];
 const ANY = "__any__";
 
 /**
  * World's home (ADR 0119): one map of every Place and every current Address,
- * told apart by Atlas's and Contacts' colours. A chip turns one App's Pins
+ * told apart by Atlas's and Contacts' colours, and of every Event At one of
+ * them (ADR 0122), in the Calendar's. A chip turns one App's Pins
  * off; the Kind and To try narrow the Places, together. The Pins are what Core reads from stored
  * coordinates: drawing the map looks nothing up (ADR 0011).
  */
@@ -93,7 +95,7 @@ function WorldMap() {
         <p className="text-muted-foreground border-b px-4 py-2 text-sm">Nothing on the map yet: give a Place its address, or a Person an Address.</p>
       )}
       <div className="min-h-0 flex-1 p-2">
-        <MapView pins={pins} onOpen={(p) => p.href && navigate(p.href)} />
+        <MapView pins={pins} onOpen={(p) => openPin(p, navigate)} />
       </div>
     </div>
   );
