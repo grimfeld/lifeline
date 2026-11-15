@@ -29,8 +29,10 @@ function leadingAlias(title: string, aliases: readonly string[]): { alias: strin
     const want = normalizeName(alias);
     if (!want) continue;
     for (let n = 1; n < words.length; n++) {
-      if (words.slice(0, n).join(" ").length > alias.trim().length) break;
-      if (normalizeName(words.slice(0, n).join(" ")) !== want) continue;
+      const lead = normalizeName(words.slice(0, n).join(" "));
+      // Compared folded, as the match is: a title typed with decomposed accents is longer raw than its alias.
+      if (lead.length > want.length) break;
+      if (lead !== want) continue;
       if (!best || alias.trim().length > best.alias.length) best = { alias: alias.trim(), rest: words.slice(n).join(" ") };
       break;
     }

@@ -11,6 +11,10 @@ describe("tidy-up of given-name aliases", () => {
     expect(tidyRowOf(P("Élodie  Martin", ["elodie"]))?.familyName).toBe("Martin");
     expect(tidyRowOf(P("Annette Dupont", ["Ann"]))).toBeNull();
   });
+  it("matches a title typed with decomposed accents against an alias typed composed", () => {
+    const title = "Élodie Martin".normalize("NFD");
+    expect(tidyRowOf(P(title, ["Élodie".normalize("NFC")]))).toMatchObject({ givenName: "Élodie", familyName: "Martin" });
+  });
   it("takes the longest alias and drops every copy of it", () => {
     const r = tidyRowOf(P("Anne Marie Dupont", ["Anne", "anne marie", "Anne Marie"]));
     expect(r).toMatchObject({ givenName: "anne marie", familyName: "Dupont", drop: ["anne marie", "Anne Marie"] });
