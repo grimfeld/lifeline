@@ -18,7 +18,7 @@ beforeAll(async () => {
 describe("update_document on a Place's title", () => {
   it("refuses a title another Place has in another folder, naming that Place and its id", async () => {
     await expect(runTool("update_document", { id: other, title: "chez janou" })).rejects.toThrow(`“chez janou” is already a Place: Chez Janou (id ${janou})`);
-    expect((await getDocument(other)).title).toBe("Le Fermé");
+    expect((await getDocument(other))?.title).toBe("Le Fermé");
   });
 
   it("moves a Place to another folder, its title still its own", async () => {

@@ -131,3 +131,38 @@ test("a closed Place leaves the map and the lists, shows under Closed with its b
   await workLocally(page);
   await expect(page.getByRole("button", { name: /^Places 2$/ })).toBeVisible();
 });
+
+test("a Place gone to before is marked To try again, and opening its page keeps the mark", async ({ page }) => {
+  await page.goto("/app/places");
+  await workLocally(page);
+  await onlyOurs(page);
+  const janou = await makePlace(page, "Chez Janou", { kind: "restaurant", geo: [48.8556, 2.3655] });
+  await eventAt(page, janou, -30);
+
+  await page.goto(`/app/places/place/${janou}`);
+  await workLocally(page);
+  const toTry = page.getByRole("region", { name: "Details" }).getByRole("checkbox", { name: "To try" });
+  await toTry.click();
+  await expect(toTry).toBeChecked();
+  await page.reload();
+  await workLocally(page);
+  await expect(page.getByRole("region", { name: "Details" }).getByRole("checkbox", { name: "To try" })).toBeChecked();
+});
+
+test("the Places screen sorts by last visit, the Places never visited last", async ({ page, isMobile }) => {
+  await page.goto("/app/places");
+  await workLocally(page);
+  await onlyOurs(page);
+  const janou = await makePlace(page, "Chez Janou", { kind: "restaurant" });
+  const flore = await makePlace(page, "Café de Flore", { kind: "cafe" });
+  await makePlace(page, "Café Kitsuné", { kind: "cafe" });
+  await eventAt(page, flore, -10);
+  await eventAt(page, janou, -2);
+
+  await expect(listed(page)).toHaveText([/^Café de Flore/, /^Café Kitsuné/, /^Chez Janou/]);
+  if (isMobile) await page.getByRole("button", { name: /^Filters/ }).click();
+  await page.getByRole("combobox", { name: "Sort" }).click();
+  await page.getByRole("option", { name: "Last visit", exact: true }).click();
+  if (isMobile) await page.keyboard.press("Escape");
+  await expect(listed(page)).toHaveText([/^Chez Janou/, /^Café de Flore/, /^Café Kitsuné/]);
+});

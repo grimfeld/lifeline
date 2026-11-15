@@ -146,7 +146,7 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, l
         const { title: _taken, ...rest } = patch;
         pending.current = { ...rest, ...pending.current };
         setTitle(docRef.current.title);
-        toast.error(err.message, { action: { label: `Open ${err.existing.title}`, onClick: () => openPeek(err.existing.id) } });
+        toast.error(`Couldn’t rename it: ${err.message}`, { action: { label: `Open ${err.existing.title}`, onClick: () => openPeek(err.existing.id) } });
         if (Object.keys(pending.current).length) timer.current = window.setTimeout(flush, 500);
         return;
       }
