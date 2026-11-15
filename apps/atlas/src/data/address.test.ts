@@ -36,6 +36,15 @@ describe("a Place's address (ADR 0119)", () => {
     expect(asked).toEqual([]);
   });
 
+  it("with no address, keeps the spot it was given (Just here, #501) and stands on the map", async () => {
+    const { lookup, asked } = lookupFinding(null);
+    const p = await addPlace({ name: "The viewpoint", at: { lat: 43.29123, lon: 5.37456 } }, lookup);
+    const doc = await stored(p.id);
+    expect(doc).toMatchObject({ address: "", geo: [43.29123, 5.37456] });
+    expect(pinsOfPlaces([doc]).map((pin) => [pin.name, pin.lat, pin.lon])).toEqual([["The viewpoint", 43.29123, 5.37456]]);
+    expect(asked).toEqual([]);
+  });
+
   it("typed by hand, is looked up once on save", async () => {
     const { lookup, asked } = lookupFinding(PRADO);
     const p = await addPlace({ name: "Lidl Prado", address: " 150 Avenue du Prado, Marseille " }, lookup);

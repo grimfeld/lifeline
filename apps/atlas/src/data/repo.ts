@@ -51,7 +51,8 @@ export type Placed = Located["kind"] | "cleared";
  */
 async function resolveAddress(input: AddressInput, lookup: Lookup): Promise<{ fields: { address: string; geo: [number, number] | null }; placed: Placed }> {
   const text = input.text.trim();
-  if (!text) return { fields: { address: "", geo: null }, placed: "cleared" };
+  // A spot with no address (Just here, #501) keeps its coordinates; no text and no spot is off the map.
+  if (!text) return input.at ? { fields: { address: "", geo: writeGeo(input.at) }, placed: "found" } : { fields: { address: "", geo: null }, placed: "cleared" };
   const located: Located = input.at ? { kind: "found", at: input.at } : await lookup(text);
   return { fields: { address: text, geo: writeGeo(located.kind === "found" ? located.at : null) }, placed: located.kind };
 }

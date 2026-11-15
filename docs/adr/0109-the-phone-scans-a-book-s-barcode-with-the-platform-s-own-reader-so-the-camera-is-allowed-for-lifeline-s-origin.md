@@ -1,6 +1,7 @@
 ---
 status: accepted
 amends: ADR 0097 (in part — the Permissions-Policy allows the camera to Lifeline's own origin)
+amended-by: ADR 0120 (in part — geolocation is allowed to Lifeline's own origin too)
 ---
 
 # The phone scans a book's barcode with the platform's own reader, so the camera is allowed for Lifeline's origin
