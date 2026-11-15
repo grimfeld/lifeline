@@ -43,19 +43,35 @@ beforeEach(() => {
   core.createDocument.mockReset().mockImplementation(async (input: { type: string; title: string; fields: Record<string, unknown> }) => ({ ...place("new", input.title), ...input.fields }));
   types.set(PLACE_TYPE, placeTypeDef);
   commands.push(...atlasApp.commands.map((c) => ({ ...c, appId: "atlas" })));
-  docs.set("p1", place("p1", "Chez Janou", { aliases: ["Janou"], kind: "restaurant", tags: ["provençal"], body: "The pastis bar upstairs." }));
+  docs.set("p1", place("p1", "Chez Janou", { aliases: ["Janou"], kind: "restaurant", tags: ["provençal"], body: "The pastis bar upstairs.", address: "2 Rue Roger Verlomme, 75003 Paris", geo: [48.8556, 2.3655] }));
 });
 
 describe("places_add", () => {
   it("adds a Place by its name alone, into Places", async () => {
     const out = await runTool("places_add", { name: "Lidl Prado" });
-    expect(core.createDocument).toHaveBeenCalledWith(expect.objectContaining({ type: PLACE_TYPE, title: "Lidl Prado", folder: "Places", fields: { aliases: [], kind: "", tags: [] } }));
+    expect(core.createDocument).toHaveBeenCalledWith(expect.objectContaining({ type: PLACE_TYPE, title: "Lidl Prado", folder: "Places", fields: { aliases: [], kind: "", tags: [], address: "", geo: null } }));
     expect(out).toEqual({ id: "new", message: "Added Lidl Prado to Places" });
   });
 
   it("keeps a Kind, by its name, with aliases and Tags", async () => {
     await runTool("places_add", { name: "Musée d'Orsay", kind: "Museum", aliases: ["the Orsay"], tags: ["art"] });
-    expect(core.createDocument).toHaveBeenCalledWith(expect.objectContaining({ fields: { aliases: ["the Orsay"], kind: "museum", tags: ["art"] } }));
+    expect(core.createDocument).toHaveBeenCalledWith(expect.objectContaining({ fields: { aliases: ["the Orsay"], kind: "museum", tags: ["art"], address: "", geo: null } }));
+  });
+
+  it("looks a postal address up once, and the Place stands on the map", async () => {
+    const asked: string[] = [];
+    vi.stubGlobal("fetch", async (url: string) => {
+      asked.push(new URL(url).searchParams.get("q") ?? "");
+      return Response.json([{ lat: "43.2722", lon: "5.3889", display_name: "150 Avenue du Prado, Marseille" }]);
+    });
+    try {
+      const out = await runTool("places_add", { name: "Lidl Prado", address: "150 Avenue du Prado, Marseille" });
+      expect(asked).toEqual(["150 Avenue du Prado, Marseille"]);
+      expect(core.createDocument).toHaveBeenCalledWith(expect.objectContaining({ fields: expect.objectContaining({ address: "150 Avenue du Prado, Marseille", geo: [43.2722, 5.3889] }) }));
+      expect(out).toEqual({ id: "new", message: "Added Lidl Prado to Places, on the map" });
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("refuses a title a Place has, naming its id, and writes nothing", async () => {
@@ -76,8 +92,19 @@ describe("Places are open to agents", () => {
     }
   });
 
-  it("are read whole by get_document: Kind, aliases, Tags and body", async () => {
+  it("are read whole by get_document: Kind, aliases, Tags, body and address", async () => {
     const out = (await runTool("get_document", { id: "p1" })) as { title: string; body: string; tags: string[]; fields: Record<string, unknown> };
-    expect(out).toMatchObject({ title: "Chez Janou", body: "The pastis bar upstairs.", tags: ["provençal"], fields: { aliases: ["Janou"], kind: "restaurant" } });
+    expect(out).toMatchObject({
+      title: "Chez Janou",
+      body: "The pastis bar upstairs.",
+      tags: ["provençal"],
+      fields: { aliases: ["Janou"], kind: "restaurant", address: "2 Rue Roger Verlomme, 75003 Paris", geo: [48.8556, 2.3655] },
+    });
+  });
+
+  it("are found by their address, and search gives it", async () => {
+    const out = (await runTool("search_documents", { query: "Verlomme" })) as { documents: Record<string, unknown>[] };
+    expect(out.documents).toEqual([expect.objectContaining({ id: "p1" })]);
+    expect(JSON.stringify(out.documents[0])).toContain("2 Rue Roger Verlomme, 75003 Paris");
   });
 });

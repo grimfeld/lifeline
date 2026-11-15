@@ -1,12 +1,13 @@
 import { useCallback, useMemo, useState } from "react";
-import { Link, useParams } from "react-router";
-import { PLACE_TYPE, documentFigures, documentType, patchDocument, reportsIn, seenSummary, sourceOf, todayStr, useDocument, useLinkIndex, type Document, type LinkIndex } from "@lifeline/core";
+import { Link, useNavigate, useParams } from "react-router";
+import { PLACE_TYPE, appById, documentFigures, documentType, patchDocument, reportsIn, seenSummary, sourceOf, todayStr, useDocument, useLinkIndex, type Document, type LinkIndex } from "@lifeline/core";
 import { BacklinksSection, DocumentEditor, DocumentReports, UnlinkedMentionsSection, useOpenLinkRef } from "@lifeline/editor";
-import { Field, Input, Page, PageHeader, useCommitDraft } from "@lifeline/ui";
+import { Field, Input, MiniMap, Page, PageHeader, useCommitDraft } from "@lifeline/ui";
 import { ArrowLeft } from "lucide-react";
 import { PLACES_HREF, placeHref } from "../constants";
 import { PlaceTaken, livePlace, patchPlace } from "../data/repo";
 import { PlaceFields } from "../components/PlaceFields";
+import { placeCoordsOf } from "../domain/place";
 import { PlaceTimeline } from "./PlaceTimeline";
 
 const back = (
@@ -79,11 +80,23 @@ function ReportsSection({ place, index }: { place: Document; index: LinkIndex })
   );
 }
 
+/** The Place's spot, read from its stored coordinates (never looked up here, ADR 0011); nothing while it has none. */
+function PlaceMap({ place, onExpand }: { place: Document; onExpand: () => void }) {
+  const at = placeCoordsOf(place);
+  if (!at) return null;
+  return (
+    <section aria-label="On the map" className="min-w-0">
+      <MiniMap lat={at.lat} lon={at.lon} color={appById("atlas")?.color} onExpand={onExpand} />
+    </section>
+  );
+}
+
 /**
  * A Place's page (ADR 0119): a hidden route, and the Peek's "Open". Its name,
- * when it was last visited, Kind, aliases and Tags, and its Reports; what it
- * is, in the body; its timeline; and what links to it, with the prose that
- * names it unlinked. Two columns on the desk, stacked on a phone.
+ * when it was last visited, Kind, address and its spot on a map, aliases and
+ * Tags, and its Reports; what it is, in the body; its timeline; and what links
+ * to it, with the prose that names it unlinked. Two columns on the desk,
+ * stacked on a phone.
  */
 export function PlaceScreen() {
   const { id } = useParams<{ id: string }>();
@@ -91,6 +104,7 @@ export function PlaceScreen() {
   const place = useMemo(() => livePlace(row), [row]);
   const index = useLinkIndex();
   const open = useOpenLinkRef(index);
+  const navigate = useNavigate();
   // Only the body and its Tags are written from the editor, so a Field changed beside it is never sent back as it was.
   const saveBody = useCallback((next: Document) => patchDocument(next.id, { body: next.body, tags: next.tags }), []);
 
@@ -115,6 +129,7 @@ export function PlaceScreen() {
         <section className="grid min-w-0 content-start gap-3" aria-label="Details">
           <NameField key={place.id} place={place} />
           <PlaceFields place={place} />
+          <PlaceMap place={place} onExpand={() => navigate(`/map?focus=${PLACE_TYPE}/${place.id}`)} />
           <ReportsSection place={place} index={index} />
         </section>
         <div className="grid min-w-0 content-start gap-6">

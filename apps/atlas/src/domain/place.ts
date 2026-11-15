@@ -1,4 +1,4 @@
-import { PLACE_TYPE, documentType, foldName, normalizeName, type Document, type FieldOption } from "@lifeline/core";
+import { PLACE_TYPE, documentType, foldName, normalizeName, readGeo, type Document, type FieldOption } from "@lifeline/core";
 import { KINDS, type Place } from "./types";
 
 /** The Kind options as they stand: the App's, under the user's names, then the user's own. */
@@ -31,9 +31,25 @@ export function placeTitled(places: readonly Document[], title: string, self?: s
   return places.find((p) => p.id !== self && !p.deleted && normalizeName(p.title) === t);
 }
 
+/**
+ * Where a Place stands on the map: its stored coordinates, or none. The
+ * type's Locatable reader, so a map reads what was found on save and never
+ * looks anything up itself (ADR 0011).
+ */
+export function placeCoordsOf(doc: Document): { lat: number; lon: number } | null {
+  return readGeo(doc.geo);
+}
+
 /** A Place as stored, with the App's keys filled in for a row a Base or an older build wrote. */
 export function normalizePlace(doc: Document): Place {
-  return { ...doc, aliases: Array.isArray(doc.aliases) ? doc.aliases.map(String) : [], kind: typeof doc.kind === "string" ? doc.kind : "" } as Place;
+  const at = placeCoordsOf(doc);
+  return {
+    ...doc,
+    aliases: Array.isArray(doc.aliases) ? doc.aliases.map(String) : [],
+    kind: typeof doc.kind === "string" ? doc.kind : "",
+    address: typeof doc.address === "string" ? doc.address : "",
+    geo: at ? [at.lat, at.lon] : null,
+  } as Place;
 }
 
 /** The Places screen's list: of one Kind when one is picked, A to Z by name. */
