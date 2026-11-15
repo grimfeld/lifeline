@@ -39,8 +39,8 @@ describe("a Person's timeline", () => {
     ]);
   });
   it("puts what has no day in a month of its own, null, last", () => {
-    const undated = { sourceId: "u", type: "note", title: "Undated", day: null };
-    const dated = { sourceId: "d", type: "note", title: "Dated", day: "2026-11-02" };
+    const undated = { sourceId: "u", type: "note", title: "Undated", day: null, ownDay: false };
+    const dated = { sourceId: "d", type: "note", title: "Dated", day: "2026-11-02", ownDay: true };
     expect(timelineSides([dated, undated], [], "2026-11-14").past.map((m) => m.month)).toEqual(["2026-11", null]);
   });
   it("is empty for someone nothing links to", () => {
@@ -49,8 +49,9 @@ describe("a Person's timeline", () => {
 });
 
 describe("the two sides of the Today line", () => {
+  afterEach(() => vi.unstubAllEnvs());
   const today = "2026-11-14";
-  const entry = (sourceId: string, day: string | null): TimelineEntry => ({ sourceId, type: "event", title: sourceId, day, field: "with" });
+  const entry = (sourceId: string, day: string | null): TimelineEntry => ({ sourceId, type: "event", title: sourceId, day, ownDay: day !== null, field: "with" });
   const occasion = (label: string, date: string, inDays: number): UpcomingOccasion => ({ personId: "anne", occasionId: label, name: "Anne", label, date, inDays, age: null });
   const names = (months: ReturnType<typeof timelineSides>["ahead"]) =>
     months.map((m) => [m.month, m.stops.map((s) => (s.kind === "occasion" ? s.occasion.label : s.entry.sourceId))]);
@@ -84,6 +85,19 @@ describe("the two sides of the Today line", () => {
   });
   it("shows a Document however far ahead it is", () => {
     expect(names(timelineSides([entry("far", "2030-01-01")], [], today).ahead)).toEqual([["2030-01", ["far"]]]);
+  });
+  it("keeps a note last changed today below the line: its day is not its own", () => {
+    vi.stubEnv("TZ", "UTC");
+    const note = { ...base, id: "n", type: "note", title: "Gift ideas", body: "for [[Anne]]", updatedAt: "2026-11-14T10:00:00Z" } as unknown as Document;
+    const sides = timelineSides(timelineOf(buildLinkIndex([anne, note], types), "anne"), [], today);
+    expect(sides.ahead).toEqual([]);
+    const first = sides.past[0]?.stops[0];
+    expect(first?.kind === "entry" && first.entry.sourceId).toBe("n");
+    expect(first?.kind === "entry" && first.inDays).toBeUndefined();
+  });
+  it("keeps an Event dated today above the line, saying today", () => {
+    const [stop] = timelineSides([entry("tonight", "2026-11-14")], [], today).ahead[0]!.stops;
+    expect(stop?.kind === "entry" && stop.inDays).toBe(0);
   });
 });
 
