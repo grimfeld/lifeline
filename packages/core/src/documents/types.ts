@@ -88,6 +88,13 @@ export interface FieldDef {
   kind: FieldKind;
   /** select / multiselect. */
   options?: FieldOption[];
+  /**
+   * A built-in Choice whose options the user may rename and add to (a Place's
+   * Kind): its App's options are where it starts. The user's labels and extra
+   * options are kept on the type's override record, under this key; an
+   * option is never removed, so no value a Document holds is orphaned.
+   */
+  userOptions?: boolean;
   /** link: restrict to one Document type or a family of them (undefined = any linkable type). */
   linkType?: string | string[];
   /** link: restrict to Documents playing a Role (ADR 0069) — its home type's and every wearer. Wins over `linkType`. */

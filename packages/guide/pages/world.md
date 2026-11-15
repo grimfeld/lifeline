@@ -8,8 +8,10 @@ redo.
 
 - **Contacts** — the people you know, or knew, each with a page of their own. It is covered on
   [People](people.md): Everyone, Upcoming, Drifting, Occasions, Ties and Addresses are all unchanged.
+- **Atlas** — the places you go (restaurants, cafés, museums, shops), each a **Place** with a page
+  of its own. It is covered on [Places](places.md).
 
-Places and the map that shows both arrive with the Atlas App; this page grows with them.
+The map that shows both arrives later; this page grows with it.
 
 ## Where it shows
 

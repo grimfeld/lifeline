@@ -512,6 +512,26 @@ async function longAddresses(page: Page) {
   await expect(page.getByTestId("address")).toHaveCount(3);
 }
 
+/**
+ * The Places screen and a Place page at their longest (ADR 0119): a Kind renamed
+ * as long as a person could type, a Place carrying it with long aliases and Tags,
+ * and a Day linking to it with an unlinked mention beside.
+ */
+async function longPlaces(page: Page) {
+  await workLocally(page);
+  await inCore(
+    page,
+    async (core, a: { long: string; word: string }) => {
+      const [doc] = await core.documentsOf("atlas_place");
+      await core.saveFieldOptions("atlas_place", "kind", [{ value: "restaurant", label: `${a.long} ${a.word}` }]);
+      await core.patchDocument(doc!.id, { kind: "restaurant", aliases: [`${a.long} ${a.word}`, a.word], tags: [`${a.word}-tag`] });
+      await core.createDocument({ type: "daily", title: "2001-03-04", body: `Lunch at [[${doc!.title}]]. ${doc!.title} again ${a.long}.` });
+    },
+    { long: longText("A kind"), word: LONG_WORD },
+  );
+  await expect(page.getByText(/^A kind/).first()).toBeVisible();
+}
+
 /** A Relationship as long as a person could type, so the People filter row holds a long toggle. */
 async function longRelationship(page: Page) {
   await workLocally(page);
@@ -1009,6 +1029,10 @@ const SCREENS: ScreenCase[] = [
   { name: "People", path: "/app/people", afterOpen: longRelationship },
   { name: "Person", path: "/app/people/person/:id", type: "contacts_person", afterOpen: async (page) => { await longAddresses(page); await longContactDetails(page); } },
   { name: "Person · Edit", path: "/app/people/person/:id", type: "contacts_person", afterOpen: async (page) => { await longAddresses(page); await longContactDetails(page); await page.getByRole("button", { name: "Edit", exact: true }).click(); } },
+  { name: "Places", path: "/app/places", afterOpen: longPlaces },
+  { name: "Place", path: "/app/places/place/:id", type: "atlas_place", afterOpen: longPlaces },
+  { name: "Places · Kinds", path: "/app/places", afterOpen: async (page) => { await longPlaces(page); await page.getByRole("button", { name: "Kinds", exact: true }).click(); await expect(page.getByRole("dialog", { name: "Kinds" })).toBeVisible(); } },
+  { name: "Places · Add place", path: "/app/places", afterOpen: async (page) => { await longPlaces(page); await page.getByRole("button", { name: "Add place", exact: true }).click(); await expect(page.getByRole("dialog", { name: "Add a place" })).toBeVisible(); } },
   { name: "Thoughts", path: "/app/thoughts" },
   { name: "Thought", path: "/app/thoughts/:id", type: "thought" },
   { name: "Notes · Sources", path: "/app/notes" },

@@ -5,7 +5,9 @@ import { db, DOCUMENT_TYPES, type SyncedRecord } from "../data/db";
 import { put, remove } from "../data/repo";
 import { newId } from "../ids";
 import { ownKeyRefusal } from "./typeRules";
-import type { BodyPolicy, DocumentTypeDef, FieldDef, ReportSetting } from "./types";
+import { optionValueFrom } from "./fieldDrafts";
+import { foldName } from "../markdown";
+import type { BodyPolicy, DocumentTypeDef, FieldDef, FieldOption, ReportSetting } from "./types";
 
 /**
  * A user-defined Document type (ADR 0019): a row of Core's `document_types`
@@ -79,6 +81,23 @@ function toDef(r: DocumentTypeRecord): DocumentTypeDef {
   };
 }
 
+/**
+ * A `userOptions` Choice's options: the App's, each under the user's label
+ * when they renamed it, then the ones the user added, in their order. An App
+ * option the user's list leaves out keeps its place and label: none is lost.
+ */
+export function userChoiceOptions(app: readonly FieldOption[], user: readonly FieldOption[] | undefined): FieldOption[] {
+  const mine = new Map((user ?? []).filter((o) => o && typeof o.value === "string" && typeof o.label === "string" && o.label.trim()).map((o) => [o.value, o.label.trim()]));
+  const known = new Set(app.map((o) => o.value));
+  return [...app.map((o) => (mine.has(o.value) ? { ...o, label: mine.get(o.value)! } : o)), ...[...mine].filter(([v]) => !known.has(v)).map(([value, label]) => ({ value, label }))];
+}
+
+/** A built-in's own Fields with the user's options on each `userOptions` Choice, from the override record. */
+function ownFields(b: DocumentTypeDef, r: DocumentTypeRecord): FieldDef[] {
+  const saved = new Map((Array.isArray(r.fields) ? r.fields : []).map((f) => [f.key, f]));
+  return b.fields.map((f) => (f.userOptions && saved.has(f.key) ? { ...f, options: userChoiceOptions(f.options ?? [], saved.get(f.key)!.options) } : f));
+}
+
 function merge(user: DocumentTypeRecord[]): DocumentTypeDef[] {
   const byId = new Map(user.map((r) => [r.typeId, r]));
   const merged = builtins.map((b) => {
@@ -87,7 +106,7 @@ function merge(user: DocumentTypeRecord[]): DocumentTypeDef[] {
     const d = toDef(r);
     // The built-in's own Fields stay its App's (CONTEXT.md "Field"); the user's sit beside them, a key the App already declares kept as the App's.
     const own = new Set(b.fields.map((f) => f.key));
-    const fields = [...b.fields, ...d.fields.filter((f) => !own.has(f.key))];
+    const fields = [...ownFields(b, r), ...d.fields.filter((f) => !own.has(f.key))];
     return { ...b, label: d.label, singular: undefined, icon: d.icon ?? b.icon, iconName: d.iconName, folder: d.folder, fields, reports: d.reports ?? b.reports, builtIn: true, overridden: true };
   });
   const ids = new Set(builtins.map((t) => t.id));
@@ -172,6 +191,35 @@ export async function saveDocumentType(input: Omit<DocumentTypeRecord, "id" | "u
   const rec: DocumentTypeRecord = { ...rest, id: id ?? newId(), updatedAt: "", deleted: 0 };
   await put<DocumentTypeRecord>(DOCUMENT_TYPES, rec);
   return rec;
+}
+
+/**
+ * Rename and add options on a built-in's `userOptions` Choice (a Place's Kind):
+ * `options` is the list as the user wants it, an option with no value a new
+ * one. Kept on the type's override record, made from the built-in when it has
+ * none. Throws in words for an empty name or two options with one name.
+ */
+export async function saveFieldOptions(typeId: string, key: string, options: readonly { value?: string; label: string }[]): Promise<void> {
+  const b = builtinType(typeId);
+  const field = b?.fields.find((f) => f.key === key);
+  if (!b || !field?.userOptions) throw new Error(`${b?.label ?? typeId}: ${key} takes no options of yours`);
+  const seen = new Set<string>();
+  const values: string[] = (field.options ?? []).map((o) => o.value);
+  const next: FieldOption[] = [];
+  for (const o of options) {
+    const label = o.label.trim();
+    if (!label) throw new Error(`A ${field.label} needs a name`);
+    if (seen.has(foldName(label))) throw new Error(`“${label}” is already a ${field.label}`);
+    seen.add(foldName(label));
+    const value = o.value ?? optionValueFrom(label, values);
+    values.push(value);
+    next.push({ value, label });
+  }
+  const rows = await db().collection<DocumentTypeRecord>(DOCUMENT_TYPES).where("deleted").equals(0).toArray();
+  const r = rows.find((x) => x.typeId === typeId);
+  const entry: FieldDef = { key, label: field.label, kind: field.kind, options: next };
+  const fields = [...(r?.fields ?? []).filter((f) => f.key !== key), entry];
+  await put<DocumentTypeRecord>(DOCUMENT_TYPES, r ? { ...r, fields } : { id: newId(), typeId, label: b.label, icon: b.iconName ?? "", folder: b.folder ?? "", fields, order: 0, updatedAt: "", deleted: 0 });
 }
 
 export async function deleteDocumentType(id: string): Promise<void> {

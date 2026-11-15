@@ -32,6 +32,7 @@ export * from "./media";
 export * from "./templates";
 export * from "./folders";
 export { PERSON_TYPE } from "./people";
+export { PLACE_TYPE } from "./places";
 export * from "./documents/types";
 export * from "./documents/registry";
 export * from "./documents/typeRules";

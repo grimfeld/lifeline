@@ -37,6 +37,8 @@ const ENTRIES: Entry[] = [
   { slug: "world", title: "World", kind: "module", module: "people" },
   // Contacts' own page: the Module's id is people, so People is a Core concept here, not a second Module page.
   { slug: "people", title: "People", kind: "core", apps: ["contacts"] },
+  // Atlas's own page, beside People's in World.
+  { slug: "places", title: "Places", kind: "core", apps: ["atlas"] },
   { slug: "notes", title: "Notes", kind: "module", module: "notes", apps: ["commonplace", "sources"] },
   { slug: "research", title: "Research", kind: "module", module: "research", apps: ["writer"] },
   { slug: "manuscript", title: "Manuscript", kind: "module", module: "manuscript", apps: ["manuscript"] },
