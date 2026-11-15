@@ -542,7 +542,7 @@ async function formerMember(page: Page) {
       const [first, ...rest] = h.members as { personId: string }[];
       await core.patchDocument(h.id, { members: [{ ...first!, since: "1990-01-01", until: "2001-02-03" }, ...rest] });
     }
-  });
+  }, undefined);
   await expect(page.getByRole("group", { name: "Former members" }).getByTestId("member")).toHaveCount(1);
 }
 

@@ -7,13 +7,13 @@ import { workLocally } from "./support/journal";
 test("a Day and an Event naming a Household of two stand on a member's Timeline, via the Household, and keep him off Drifting", async ({ page }) => {
   await page.goto("/app/people");
   await workLocally(page);
-  const { paul, household, today } = await inCore(
+  const { paul, today } = await inCore(
     page,
     async (core) => {
       // A Relationship puts him on Drifting until he is seen.
       const paul = (await core.createDocument({ type: "contacts_person", title: "Paul Viatest", fields: { relationship: "old friend" } })).id as string;
       const mary = (await core.createDocument({ type: "contacts_person", title: "Mary Viatest" })).id as string;
-      const household = (await core.createDocument({ type: "contacts_household", title: "the Viatests", fields: { aliases: [], members: [{ personId: paul }, { personId: mary }] } })).id as string;
+      await core.createDocument({ type: "contacts_household", title: "the Viatests", fields: { aliases: [], members: [{ personId: paul }, { personId: mary }] } });
       const today = core.todayStr();
       // The seed may have written today's Day already: add to it, or start it.
       const day = (await core.documentsOf("daily")).find((d) => d.title === today);
@@ -21,7 +21,7 @@ test("a Day and an Event naming a Household of two stand on a member's Timeline,
       if (day) await core.patchDocument(day.id, { body: `${day.body ?? ""}\n\n${line}` });
       else await core.createDocument({ type: "daily", title: today, body: line });
       await core.createDocument({ type: "event", title: "Lunch with the Viatests", fields: { date: today, notes: "at [[the Viatests]]" } });
-      return { paul, household, today };
+      return { paul, today };
     },
     undefined,
   );
