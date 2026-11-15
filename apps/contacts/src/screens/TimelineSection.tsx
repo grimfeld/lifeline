@@ -2,10 +2,10 @@ import { useMemo, type ReactNode } from "react";
 import { documentType, formatHuman, linkFieldLabel, singularOf, todayStr, useLinkIndex, useOpenPeek } from "@lifeline/core";
 import { cn } from "@lifeline/ui";
 import type { Person } from "../domain/types";
-import { upcomingOccasions, whenOf, type UpcomingOccasion } from "../domain/occasions";
+import { upcomingOccasions, whenOf } from "../domain/occasions";
 import { dotJoin } from "../domain/dots";
 import { monthLabel } from "../components/format";
-import { timelineOf, timelineSides, type TimelineMonth, type TimelineStop } from "../domain/timeline";
+import { timelineOf, timelineSides, type AheadStop, type TimelineMonth, type TimelineStop } from "../domain/timeline";
 import { Section } from "../components/Section";
 
 /** One stop on the line: a dot on the rail, its text beside it. */
@@ -19,8 +19,9 @@ function Stop({ strong, children }: { strong?: boolean; children: ReactNode }) {
   );
 }
 
-/** An Occasion ahead: its label, the age it brings, and how soon it is. */
-function OccasionStop({ occasion: u }: { occasion: UpcomingOccasion }) {
+/** An Occasion ahead: its label, the age it brings, and how soon it is (the stop's, as a Document's is). */
+function OccasionStop({ stop }: { stop: Extract<AheadStop, { kind: "occasion" }> }) {
+  const u = stop.occasion;
   return (
     <Stop strong>
       <p className="min-w-0 text-sm break-words">
@@ -28,7 +29,7 @@ function OccasionStop({ occasion: u }: { occasion: UpcomingOccasion }) {
         {u.age !== null && <span className="text-muted-foreground"> · turns {u.age}</span>}
       </p>
       <p className="text-muted-foreground text-xs">
-        {formatHuman(u.date)} · {whenOf(u.inDays)}
+        {formatHuman(stop.day)} · {whenOf(stop.inDays)}
       </p>
     </Stop>
   );
@@ -60,7 +61,7 @@ export function TimelineSection({ person }: { person: Person }) {
   const { ahead, past } = useMemo(() => timelineSides(entries, upcomingOccasions([person], today, 364), today), [entries, person, today]);
 
   const render = (s: TimelineStop) => {
-    if (s.kind === "occasion") return <OccasionStop key={`${s.occasion.occasionId}@${s.occasion.date}`} occasion={s.occasion} />;
+    if (s.kind === "occasion") return <OccasionStop key={`${s.occasion.occasionId}@${s.occasion.date}`} stop={s} />;
     const e = s.entry;
     const source = index.byId.get(e.sourceId);
     const def = documentType(e.type);

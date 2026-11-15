@@ -1,4 +1,4 @@
-import { DAY_TYPE, diffDays, todayStr, type DateStr, type LinkIndex } from "@lifeline/core";
+import { DAY_TYPE, diffDays, lastDayCovered, todayStr, type DateStr, type LinkIndex } from "@lifeline/core";
 import type { UpcomingOccasion } from "./occasions";
 
 /** One thing on a Person's timeline (#422): a Document that links to them, on its own day. */
@@ -26,10 +26,20 @@ function localDay(v: unknown): DateStr | undefined {
   return Number.isNaN(t.getTime()) ? undefined : todayStr(t);
 }
 
-function dayOf(d: { type: string; title: string } & Record<string, unknown>): { day: DateStr | null; ownDay: boolean; endDay?: DateStr } {
+/** Where an entry sits on the line: its day, whether that day is its own, and the last day it covers. */
+type EntryDays = Pick<TimelineEntry, "day" | "ownDay" | "endDay">;
+
+/** The last day a Document dated `own` covers, from its End day; one ending at 00:00 only reaches midnight (ADR 0090). */
+function lastDayOf(d: Record<string, unknown>, own: DateStr): DateStr | undefined {
+  const end = localDay(d.endDate);
+  if (!end || end <= own) return undefined;
+  return d.end === "00:00" ? lastDayCovered({ date: own, endDate: end, end: "00:00" }) : end;
+}
+
+function dayOf(d: { type: string; title: string } & Record<string, unknown>): EntryDays {
   const own = localDay(d.type === DAY_TYPE ? d.title : d.date);
   if (own) {
-    const end = d.type === DAY_TYPE ? undefined : localDay(d.endDate);
+    const end = d.type === DAY_TYPE ? undefined : lastDayOf(d, own);
     return { day: own, ownDay: true, ...(end && end > own ? { endDay: end } : {}) };
   }
   for (const v of [d.updatedAt, d.createdAt]) {

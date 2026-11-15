@@ -105,6 +105,18 @@ describe("the two sides of the Today line", () => {
     expect(stop?.kind === "entry" && stop.day).toBe("2026-11-13");
     expect(stop?.kind === "entry" && stop.inDays).toBeNull();
   });
+  it("puts an Event that ran to midnight last night below the line", () => {
+    // 22:00 on the 13th to 00:00 on the 14th only reaches midnight: on the 14th it is over.
+    const party = { ...base, id: "party", type: "event", title: "Party", date: "2026-11-13", start: "22:00", endDate: "2026-11-14", end: "00:00", with: ["anne"] } as unknown as Document;
+    const sides = timelineSides(timelineOf(buildLinkIndex([anne, party], types), "anne"), [], today);
+    expect(sides.ahead).toEqual([]);
+    expect(names(sides.past)).toEqual([["2026-11", ["party"]]]);
+  });
+  it("keeps an Event that runs to midnight tonight above the line", () => {
+    const party = { ...base, id: "party", type: "event", title: "Party", date: "2026-11-14", start: "22:00", endDate: "2026-11-15", end: "00:00", with: ["anne"] } as unknown as Document;
+    const sides = timelineSides(timelineOf(buildLinkIndex([anne, party], types), "anne"), [], today);
+    expect(names(sides.ahead)).toEqual([["2026-11", ["party"]]]);
+  });
   it("keeps an Event ending today above the line, below one starting today", () => {
     const ending = { ...entry("ending", "2026-11-10"), endDay: "2026-11-14" };
     expect(names(timelineSides([entry("tonight", "2026-11-14"), ending], [], today).ahead)).toEqual([["2026-11", ["tonight", "ending"]]]);
