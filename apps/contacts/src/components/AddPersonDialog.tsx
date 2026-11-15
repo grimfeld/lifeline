@@ -16,11 +16,10 @@ import { message } from "./writes";
  * here (`onSaved`).
  */
 export function AddPersonDialog({ open, onOpenChange, handoff, initial, onSaved }: { open: boolean; onOpenChange: (open: boolean) => void; handoff?: Handoff; initial?: Record<string, unknown>; onSaved?: (id: string) => void }) {
-  const [name, setName] = useState("");
   const [givenName, setGivenName] = useState("");
   const [familyName, setFamilyName] = useState("");
-  // Once the title is typed it is the user's, and the names stop composing it (ADR 0117).
-  const [typed, setTyped] = useState(false);
+  // Only a typed title is held; without one the shown title is composed from the names, as addPerson does (ADR 0117).
+  const [typed, setTyped] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const openPeek = useOpenPeek();
@@ -29,12 +28,13 @@ export function AddPersonDialog({ open, onOpenChange, handoff, initial, onSaved 
   // The Households a Family name suggests; one joins only when tapped, and when the Person is added (ADR 0117).
   const suggested = useMemo(() => (open ? householdsForFamilyName(familyName, households, people) : []), [open, familyName, households, people]);
   const [joining, setJoining] = useState<string[]>([]);
+  const prefilled = initialName(handoff, initial).trim() !== "";
+  const name = typed ?? composeTitle(givenName, familyName);
 
   useEffect(() => {
     if (!open) return;
     const initialTitle = initialName(handoff, initial);
-    setName(initialTitle);
-    setTyped(initialTitle.trim() !== "");
+    setTyped(initialTitle.trim() !== "" ? initialTitle : null);
     setGivenName("");
     setFamilyName("");
     setJoining([]);
@@ -44,7 +44,6 @@ export function AddPersonDialog({ open, onOpenChange, handoff, initial, onSaved 
   function setNames(given: string, family: string) {
     setGivenName(given);
     setFamilyName(family);
-    if (!typed) setName(composeTitle(given, family));
     setError("");
   }
 
@@ -52,7 +51,7 @@ export function AddPersonDialog({ open, onOpenChange, handoff, initial, onSaved 
     if (!name.trim()) return setError("A Person needs a name.");
     setBusy(true);
     try {
-      const p = await addPerson({ name, givenName, familyName });
+      const p = await addPerson({ name: typed ?? "", givenName, familyName });
       toast.success(`Added ${p.title}`);
       // The Person is added whatever happens to a membership; a failed one is said, not silent.
       for (const h of suggested.filter((h) => joining.includes(h.id))) {
@@ -86,9 +85,9 @@ export function AddPersonDialog({ open, onOpenChange, handoff, initial, onSaved 
             void save();
           }}
         >
-          <div className="grid gap-3 grid-cols-2">
+          <div className="grid gap-3 md:grid-cols-2">
             <Field label="Given name">
-              <Input value={givenName} onChange={(e) => setNames(e.target.value, familyName)} placeholder="Anne" autoComplete="off" autoFocus />
+              <Input value={givenName} onChange={(e) => setNames(e.target.value, familyName)} placeholder="Anne" autoComplete="off" autoFocus={!prefilled} />
             </Field>
             <Field label="Family name">
               <Input value={familyName} onChange={(e) => setNames(givenName, e.target.value)} placeholder="Dupont" autoComplete="off" />
@@ -98,12 +97,12 @@ export function AddPersonDialog({ open, onOpenChange, handoff, initial, onSaved 
             <Input
               value={name}
               onChange={(e) => {
-                setName(e.target.value);
-                setTyped(e.target.value.trim() !== "");
+                setTyped(e.target.value.trim() !== "" ? e.target.value : null);
                 setError("");
               }}
               placeholder="Anne Dupont"
               autoComplete="off"
+              autoFocus={prefilled}
             />
           </Field>
           {suggested.length > 0 && (
@@ -120,7 +119,7 @@ export function AddPersonDialog({ open, onOpenChange, handoff, initial, onSaved 
                     className="h-auto min-w-0 max-w-full whitespace-normal break-words py-1 text-left"
                     onClick={() => setJoining(on ? joining.filter((id) => id !== h.id) : [...joining, h.id])}
                   >
-                    {on ? `Joining ${h.title}` : `Join ${h.title}?`}
+                    {`Join ${h.title}`}
                   </Button>
                 );
               })}

@@ -2,6 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { encodeHandoff } from "@lifeline/handoff";
 import { CORE_URL, LONG_WORD, longText } from "./support/seed";
 import { inCore } from "./support/core";
+import { openPalette } from "./support/palette";
 import { expectNoBrokenLayout, layoutProblems } from "./support/layout";
 import { selectText } from "./support/selection";
 import { datePickerLabelled, dayFromToday, openCalendar, showPhoneFilters } from "./support/date-picker";
@@ -1041,6 +1042,21 @@ const SCREENS: ScreenCase[] = [
   { name: "Museum", path: "/app/museum" },
   { name: "Exhibition", path: "/app/museum/e/:id", type: "exhibition" },
   { name: "People", path: "/app/people", afterOpen: longRelationship },
+  {
+    // Add a person with the longest names a person could type: the two name inputs stack on a phone.
+    name: "People · Add person",
+    path: "/app/people",
+    afterOpen: async (page) => {
+      await workLocally(page);
+      await openPalette(page);
+      await page.keyboard.type("Add person");
+      await page.getByRole("option", { name: /Add person/ }).first().click();
+      const dialog = page.getByRole("dialog", { name: "Add a person" });
+      await dialog.getByLabel("Given name").fill(longText("Given"));
+      await dialog.getByLabel("Family name").fill(longText("Family"));
+      await expect(dialog.getByLabel("Name", { exact: true })).not.toHaveValue("");
+    },
+  },
   {
     // The tidy-up notice and its dialog over a Person whose long title starts with a long alias.
     name: "People · Tidy given names",

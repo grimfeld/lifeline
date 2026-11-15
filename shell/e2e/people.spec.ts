@@ -92,6 +92,40 @@ test("Add person composes the title from the Given and Family name until a title
   await expect.poll(() => personNamed(page, "Mum")).toMatchObject({ givenName: "Annie", familyName: "Martin" });
 });
 
+test("Add person focuses Name when a name is already filled in, and Given name when it opens empty", async ({ page }) => {
+  await page.goto("/app/people");
+  await workLocally(page);
+  await openPalette(page);
+  await page.keyboard.type("Add person");
+  await page.getByRole("option", { name: /Add person/ }).first().click();
+  const empty = page.getByRole("dialog", { name: "Add a person" });
+  await expect(empty.getByLabel("Given name")).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(empty).toBeHidden();
+
+  await openDay(page, "2001-02-05", "Met Léa Martin at the market.");
+  await selectText(page.locator(".cm-content"), "Léa Martin");
+  await page.getByRole("button", { name: "Selection menu" }).click();
+  await page.getByRole("dialog", { name: "Selection menu" }).getByRole("group", { name: "People" }).getByRole("option", { name: "Person", exact: true }).click();
+  const filled = page.getByRole("dialog", { name: "Add a person" });
+  await expect(filled.getByLabel("Name", { exact: true })).toHaveValue("Léa Martin");
+  await expect(filled.getByLabel("Name", { exact: true })).toBeFocused();
+});
+
+test("Add person: clearing the typed title lets the names compose it again", async ({ page }) => {
+  await page.goto("/app/people");
+  await workLocally(page);
+  await openPalette(page);
+  await page.keyboard.type("Add person");
+  await page.getByRole("option", { name: /Add person/ }).first().click();
+  const dialog = page.getByRole("dialog", { name: "Add a person" });
+  const name = dialog.getByLabel("Name", { exact: true });
+  await name.fill("Mum");
+  await name.fill("");
+  await dialog.getByLabel("Given name").fill("Anne");
+  await expect(name).toHaveValue("Anne");
+});
+
 test("[[Mum]] and [[Anne Dupont]] land on one Person, whose page lists the Day's links as backlinks and whose body is written there", async ({ page }) => {
   await page.goto("/app/people");
   await workLocally(page);

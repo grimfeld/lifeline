@@ -223,7 +223,7 @@ mother in another town is his Tie, not a member, and Mary keeps her own name and
   you type a name, it fills in as "Anne Dupont" while you type the two, and a name you typed
   ("Mum") is kept as typed. Both names are kept on the Person, beside the name, and can be left
   empty. When the **Family name** is one a member of a Household of this Workspace has ("Smith",
-  and the Smiths have a Smith in them), the dialog asks **Join the Smiths?**: tap it and the new
+  and the Smiths have a Smith in them), the dialog offers a **Join the Smiths** button: tap it (it stays pressed) and the new
   Person joins when you press **Add**; leave it, and they join nothing. It is only ever a
   suggestion, and an unrelated Smith simply isn't tapped. Where: the Capture sheet, the palette
   (Ctrl+K).
