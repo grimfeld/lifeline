@@ -1,6 +1,6 @@
 import { useMemo } from "react";
-import { PLACE_TYPE, allDocumentTypes, allDocuments, buildLinkIndex, createDocument, documentsOf, getDocument, locateAddress, normalizeTags, patchDocument, renameDocument, saveFieldOptions, todayStr, useDocuments, writeGeo, type Document, type FieldOption, type Located, type Lookup } from "@lifeline/core";
-import { hasHappened, kindFrom, kindOptionsOf, normalizePlace, placeTitled, visitedBy } from "../domain/place";
+import { PLACE_TYPE, allDocumentTypes, allDocuments, buildLinkIndex, createDocument, documentsOf, getDocument, locateAddress, normalizeTags, patchDocument, renameDocument, saveFieldOptions, todayStr, useDocuments, writeGeo, type Coords, type Document, type Located, type Lookup } from "@lifeline/core";
+import { hasHappened, kindFrom, normalizePlace, placeTitled, visitedBy } from "../domain/place";
 import { PLACES_FOLDER, type Place } from "../domain/types";
 
 /**
@@ -34,8 +34,6 @@ async function assertFree(title: string, self?: string): Promise<void> {
   if (taken) throw new PlaceTaken(title, taken);
 }
 
-type Coords = { lat: number; lon: number };
-
 /** An address as the form gives it: the text, and the coordinates when a typeahead hit or a Locate candidate was picked. */
 export interface AddressInput {
   text: string;
@@ -43,13 +41,13 @@ export interface AddressInput {
 }
 
 /** Where a Place's address stands after a save: on the map, off it (nothing found, or the lookup failed), or none given. */
-export type Placed = Located["kind"] | "cleared";
+export type AddressSaved = Located["kind"] | "cleared";
 
 /**
  * The address's stored keys, and where it stands: picked coordinates as they
  * are; typed text looked up once, here, on save (ADR 0011); none for no text.
  */
-async function resolveAddress(input: AddressInput, lookup: Lookup): Promise<{ fields: { address: string; geo: [number, number] | null }; placed: Placed }> {
+async function resolveAddress(input: AddressInput, lookup: Lookup): Promise<{ fields: { address: string; geo: [number, number] | null }; placed: AddressSaved }> {
   const text = input.text.trim();
   // A spot with no address (Just here, #501) keeps its coordinates; no text and no spot is off the map.
   if (!text) return input.at ? { fields: { address: "", geo: writeGeo(input.at) }, placed: "found" } : { fields: { address: "", geo: null }, placed: "cleared" };
@@ -88,7 +86,7 @@ export async function addPlace(
  * they are; new typed text is looked up again, and leaves the map when found
  * nowhere rather than keep the old spot. No text clears both.
  */
-export async function setPlaceAddress(id: string, input: AddressInput, lookup: Lookup = locateAddress): Promise<Placed> {
+export async function setPlaceAddress(id: string, input: AddressInput, lookup: Lookup = locateAddress): Promise<AddressSaved> {
   const doc = await getDocument(id);
   if (!doc) throw new Error("No such Place");
   const was = normalizePlace(doc);
@@ -131,9 +129,6 @@ export async function patchPlace(id: string, patch: PlacePatch): Promise<void> {
   }
   if (Object.keys(fields).length) await patchDocument(id, fields);
 }
-
-/** The Kind options as they stand (ADR 0119). */
-export const kindOptions = (): FieldOption[] => kindOptionsOf();
 
 /** Rename and add Kinds: the list as the user wants it, a new one with no value. None is ever lost. */
 export const saveKindOptions = (options: readonly { value?: string; label: string }[]) => saveFieldOptions(PLACE_TYPE, "kind", options);

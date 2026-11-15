@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { geocode, suggestAddresses, type GeocodeHit } from "@lifeline/core";
+import { geocode, suggestAddresses, type Coords, type GeocodeHit } from "@lifeline/core";
 import { Button, Combobox, Field, type ComboboxOption } from "@lifeline/ui";
 import { Loader2, LocateFixed, MapPin, Search } from "lucide-react";
 
@@ -7,7 +7,7 @@ import { Loader2, LocateFixed, MapPin, Search } from "lucide-react";
 export interface PlaceHit {
   name?: string;
   address: string;
-  at: { lat: number; lon: number };
+  at: Coords;
 }
 
 interface HitOption extends ComboboxOption {
@@ -70,7 +70,7 @@ export function PlaceSearchField({
  * click only — the fallback when the typeahead has no match. One hit is
  * taken; several are offered to choose from; none says so.
  */
-export function LocateButton({ address, onFound }: { address: string; onFound: (at: { lat: number; lon: number }) => void }) {
+export function LocateButton({ address, onFound }: { address: string; onFound: (at: Coords) => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [candidates, setCandidates] = useState<GeocodeHit[]>([]);
@@ -122,7 +122,7 @@ export function LocateButton({ address, onFound }: { address: string; onFound: (
 }
 
 /** Where the address stands: on the map, or not yet, and how it will get there. */
-export function WhereNote({ address, at }: { address: string; at: { lat: number; lon: number } | null | undefined }) {
+export function WhereNote({ address, at }: { address: string; at: Coords | null | undefined }) {
   if (at) {
     return (
       <p className="text-muted-foreground flex min-w-0 items-center gap-1 text-xs">

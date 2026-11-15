@@ -2,7 +2,7 @@ import { useMemo, useState, type AriaAttributes } from "react";
 import { PERSON_TYPE, PLACE_TYPE, useDocument, useDocumentTypes, useDocuments } from "@lifeline/core";
 import { Button, Combobox, toast } from "@lifeline/ui";
 import { MapPin, X } from "lucide-react";
-import { atOptions, kindLine } from "./atChoice";
+import { atOptions, typeLine } from "./atChoice";
 
 /**
  * An Event's At (ADR 0119): one Place, or one Person meaning their home.
@@ -42,7 +42,7 @@ export function AtField({
           <span className="bg-muted inline-flex max-w-full min-w-0 items-center gap-1 rounded-md pl-1.5 text-xs">
             <MapPin className="text-muted-foreground size-3 shrink-0" />
             <span className="min-w-0 truncate">{chosen?.title ?? "…"}</span>
-            {chosen && <span className="text-muted-foreground shrink-0">{kindLine(chosen, defOf(chosen.type))}</span>}
+            {chosen && <span className="text-muted-foreground shrink-0">{typeLine(chosen, defOf(chosen.type))}</span>}
             <Button size="icon-xs" variant="ghost" className="text-muted-foreground" aria-label="Clear At" onClick={() => onChange("")}>
               <X />
             </Button>

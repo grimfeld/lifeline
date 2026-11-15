@@ -127,7 +127,6 @@ export type TitleRule = "name" | "date" | "derived";
  */
 /** The Report kinds a type may choose (ADR 0076): ranking kinds rank a type's Documents, the others describe one Document. */
 export type ReportKind = "top" | "quiet" | "last" | "count" | "heatmap" | "topSeen" | "quietSeen" | "lastSeen" | "seenCount" | "seenHeatmap";
-/** One chosen Report on a type, in the type's order, with its parameters. */
 /** A type's own words for the Seen family (ADR 0119): `{ verb: "visited", one: "visit", many: "visits" }`. */
 export interface SeenAs {
   verb: string;
@@ -135,6 +134,7 @@ export interface SeenAs {
   many: string;
 }
 
+/** One chosen Report on a type, in the type's order, with its parameters. */
 export interface ReportSetting {
   kind: ReportKind;
   /** How many Documents a ranking Report lists. */

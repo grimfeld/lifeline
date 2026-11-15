@@ -5,9 +5,9 @@ import { Badge, Button, EmptyState, Page, PageHeader, PhoneDock, PhoneFilters, S
 import { MapPinPlus, Tags } from "lucide-react";
 import { AddPlaceDialog } from "../components/AddPlaceDialog";
 import { KindsDialog } from "../components/KindsDialog";
-import { kindLabel, placesList, type PlacesShown } from "../domain/place";
+import { kindLabel, kindOptions, placesList, type PlacesShown } from "../domain/place";
 import { type Place } from "../domain/types";
-import { kindOptions, usePlaces } from "../data/repo";
+import { usePlaces } from "../data/repo";
 import { placeHref } from "../constants";
 
 const ANY = "__any__";

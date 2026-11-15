@@ -62,7 +62,11 @@ export async function geocode(query: string, limit = 5): Promise<GeocodeHit[]> {
 
 // ---- one lookup on save: Contacts' Addresses and Atlas's Places alike ----
 
-type Coords = { lat: number; lon: number };
+/** A spot on the map, in degrees: what a lookup finds, a Place keeps and a Pin stands at. */
+export interface Coords {
+  lat: number;
+  lon: number;
+}
 
 /**
  * What a lookup came to: a place, no place for these words, or no answer at

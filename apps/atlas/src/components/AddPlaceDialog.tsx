@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { initialText, useOpenPeek, type CommandDialogProps, type Document } from "@lifeline/core";
+import { initialText, useOpenPeek, type CommandDialogProps, type Coords, type Document } from "@lifeline/core";
 import { Button, ChoiceField, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, toast } from "@lifeline/ui";
-import { PlaceTaken, addPlace, kindOptions } from "../data/repo";
+import { PlaceTaken, addPlace } from "../data/repo";
+import { kindOptions } from "../domain/place";
 import { HereButton } from "./Here";
 import { LocateButton, PlaceSearchField, WhereNote, type PlaceHit } from "./PlaceLookup";
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
+import { message } from "./message";
 
 /**
  * Add a Place (ADR 0119, #487 stories 1–4): a name, a Kind and an address if
@@ -20,7 +20,7 @@ export function AddPlaceDialog({ open, onOpenChange, initial }: CommandDialogPro
   const [name, setName] = useState("");
   const [kind, setKind] = useState("");
   const [address, setAddress] = useState("");
-  const [at, setAt] = useState<{ lat: number; lon: number }>();
+  const [at, setAt] = useState<Coords>();
   const [error, setError] = useState("");
   const [taken, setTaken] = useState<Document>();
   const [busy, setBusy] = useState(false);

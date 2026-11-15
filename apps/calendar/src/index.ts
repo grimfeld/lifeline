@@ -1,4 +1,4 @@
-import { formatHuman, PERSON_TYPE, PLACE_TYPE, type AppManifest, type DocumentTypeDef } from "@lifeline/core";
+import { EVENT_AT_FIELD, formatHuman, PERSON_TYPE, PLACE_TYPE, type AppManifest, type DocumentTypeDef } from "@lifeline/core";
 import { lazyChunk } from "@lifeline/ui";
 import { Ban, CalendarClock, LayoutTemplate } from "lucide-react";
 import { EventDialog } from "./components/EventDialog";
@@ -45,14 +45,14 @@ const eventType: DocumentTypeDef = {
     // A People field (CONTEXT.md): linked through Core's Person type, so the Calendar never imports Contacts.
     { key: "with", label: "With", kind: "links", linkType: PERSON_TYPE },
     // At (ADR 0119): one Place, or one Person meaning their home — through Core's types, so the Calendar imports neither Atlas nor Contacts.
-    { key: "at", label: "At", kind: "link", linkType: [PLACE_TYPE, PERSON_TYPE] },
+    { key: EVENT_AT_FIELD, label: "At", kind: "link", linkType: [PLACE_TYPE, PERSON_TYPE] },
   ],
   indexes: ["date"],
   // "Dinner with [[Marc]]" in its Notes links Marc (ADR 0112): the Event counts as Seen.
   linkingText: ["notes"],
   linkable: { subtitle: (d) => formatHuman((d as Event).date) },
   // On the map where it is At (ADR 0122): Core stands it at the Place's or the Person's main Pin, so the Calendar reads no address.
-  locatableVia: "at",
+  locatableVia: EVENT_AT_FIELD,
   href: () => EVENTS_HREF,
   order: 30,
   // Edited where it is peeked (ADR 0085): its day and times through the App's own controls.

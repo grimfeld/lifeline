@@ -8,7 +8,7 @@ import type { ComboboxOption } from "@lifeline/ui";
  */
 
 /** What a Document is, in a word or two: its type's subtitle ("Place · Restaurant", "Person · brother"), else its type's singular. */
-export function kindLine(doc: Document, def: DocumentTypeDef | undefined): string {
+export function typeLine(doc: Document, def: DocumentTypeDef | undefined): string {
   const l = def?.linkable;
   const sub = typeof l === "object" ? l.subtitle?.(doc) : undefined;
   return sub || (def ? singularOf(def) : doc.type);
@@ -21,6 +21,6 @@ export function atOptions(candidates: readonly Document[], chosen: string, defOf
     .map((d) => {
       const def = defOf(d.type);
       const aliases = aliasesOf(d, def);
-      return { value: d.id, label: d.title, keywords: aliases, description: [kindLine(d, def), aliases.length ? `also ${aliases.join(", ")}` : ""].filter(Boolean).join(" · ") };
+      return { value: d.id, label: d.title, keywords: aliases, description: [typeLine(d, def), aliases.length ? `also ${aliases.join(", ")}` : ""].filter(Boolean).join(" · ") };
     });
 }

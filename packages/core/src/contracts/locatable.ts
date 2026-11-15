@@ -7,6 +7,7 @@ import { documentTypeSync, useDocumentTypes } from "../documents/registry";
 import { openPeek } from "../documents/peek";
 import { displayTitle, geoOf, singularOf, type Document, type DocumentTypeDef } from "../documents/types";
 import { docHref } from "../documents/href";
+import type { Coords } from "../geocode";
 
 /**
  * The Locatable Contract (ADR 0011, now data-declarable per ADR 0019): a
@@ -74,7 +75,7 @@ export function pinsOf(
 }
 
 /** The one place a Document stands for: its place, or its several places' `main` one; null for none, or for a type that stands at another. */
-function mainSpotOf(d: Document, def: DocumentTypeDef | undefined): { lat: number; lon: number } | null {
+function mainSpotOf(d: Document, def: DocumentTypeDef | undefined): Coords | null {
   if (!def || def.internal || def.locatableVia) return null;
   if (def.locatablePins) {
     const p = def.locatablePins(d).find((x) => x.main);

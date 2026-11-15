@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Field, Input, toast } from "@lifeline/ui";
 import { Plus } from "lucide-react";
-import { kindOptions, saveKindOptions } from "../data/repo";
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
+import { kindOptions } from "../domain/place";
+import { saveKindOptions } from "../data/repo";
+import { message } from "./message";
 
 /** One Kind in the form: a stored one keeps its value through a rename; a new one has none yet. */
 interface Row {

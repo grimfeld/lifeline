@@ -2,8 +2,8 @@ import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DOCUMENT_TYPES, EVENT_TYPE, PLACE_TYPE, createDocument, db, documentType, documentsTable, getDocument, initApps, patchDocument, putDocument, type DocumentTypeDef } from "@lifeline/core";
 import { placeTypeDef } from "../types";
-import { placeCoordsOf, placesList } from "../domain/place";
-import { PlaceTaken, addPlace, kindOptions, livePlace, patchPlace, saveKindOptions, settleToTry } from "./repo";
+import { kindOptions, placeCoordsOf, placesList } from "../domain/place";
+import { PlaceTaken, addPlace, livePlace, patchPlace, saveKindOptions, settleToTry } from "./repo";
 
 // A stand-in for Calendar's Event (Atlas never imports it, ADR 0100): an At, and notes whose wikilinks count.
 const eventType: DocumentTypeDef = {

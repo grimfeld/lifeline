@@ -1,10 +1,9 @@
 import { useState } from "react";
-import { placesNearby } from "@lifeline/core";
+import { placesNearby, type Coords } from "@lifeline/core";
 import { Button } from "@lifeline/ui";
 import { Loader2, LocateFixed, MapPin, Navigation } from "lucide-react";
 import type { PlaceHit } from "./PlaceLookup";
 
-type Coords = { lat: number; lon: number };
 
 /** Whether this browser can give a position at all: without it, Here is not offered (#501). */
 export const canLocateHere = () => typeof navigator !== "undefined" && !!navigator.geolocation;
