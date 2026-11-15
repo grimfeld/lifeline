@@ -1,10 +1,10 @@
 import "fake-indexeddb/auto";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { documentsTable, getDocument, initApps } from "@lifeline/core";
+import { beforeEach, describe, expect, it } from "vitest";
+import { documentsTable, getDocument, initApps, type Located, type Lookup } from "@lifeline/core";
 import { personTypeDef } from "../types";
 import type { Address } from "../domain/types";
 import { addPerson } from "./repo";
-import { locate, relocateAddress, saveAddress, type Located, type Lookup } from "./addresses";
+import { relocateAddress, saveAddress } from "./addresses";
 
 initApps([{ id: "contacts", title: "Contacts", module: "people", types: [personTypeDef], screens: [], cards: [], commands: [] }]);
 
@@ -24,35 +24,6 @@ function lookupFinding(at: { lat: number; lon: number } | null | "failed") {
   return { lookup, asked };
 }
 const addressesOf = async (id: string) => ((await getDocument(id)) as { addresses?: Address[] }).addresses ?? [];
-
-describe("looking a place up", () => {
-  it("takes the first hit's coordinates", async () => {
-    const asked: [string, number][] = [];
-    const find = async (q: string, limit: number) => {
-      asked.push([q, limit]);
-      return [{ ...PARIS, label: "Paris" }, { lat: 1, lon: 2, label: "Elsewhere" }];
-    };
-    expect(await locate("Paris", find)).toEqual({ kind: "found", at: PARIS });
-    expect(asked).toEqual([["Paris", 1]]);
-  });
-  it("finds nothing when there is no hit", async () => {
-    expect(await locate("Nowhere", async () => [])).toEqual({ kind: "none" });
-  });
-  it("fails, apart from finding nothing, when the lookup fails, and logs the reason without the text", async () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    try {
-      expect(
-        await locate("12 Rue Secret, Paris", async () => {
-          throw new Error("Geocoding failed (429)");
-        }),
-      ).toEqual({ kind: "failed", reason: "Geocoding failed (429)" });
-      expect(warn).toHaveBeenCalledWith("[contacts] address lookup failed", { reason: "Geocoding failed (429)" });
-      expect(JSON.stringify(warn.mock.calls)).not.toContain("Secret");
-    } finally {
-      warn.mockRestore();
-    }
-  });
-});
 
 describe("saving an Address", () => {
   it("adds one with the place found for its text", async () => {

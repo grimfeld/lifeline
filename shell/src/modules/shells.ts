@@ -5,6 +5,7 @@ import { houseShell } from "./house/HouseModule";
 import { cultureShell } from "./culture/CultureModule";
 import { projectsShell } from "./projects/ProjectsModule";
 import { journalShell } from "./journal/JournalModule";
+import { worldShell } from "./world/WorldModule";
 
 /**
  * A hand-written Module (ADR 0057): its own chrome, and pages of its own. The
@@ -35,4 +36,5 @@ export const MODULE_SHELLS: Record<string, ModuleShell> = {
   culture: cultureShell,
   tasks: projectsShell,
   journal: journalShell,
+  people: worldShell,
 };

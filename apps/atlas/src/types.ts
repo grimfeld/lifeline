@@ -1,6 +1,6 @@
 import { PLACE_TYPE, type DocumentTypeDef } from "@lifeline/core";
 import { KINDS, PLACES_FOLDER } from "./domain/types";
-import { placeSubtitle } from "./domain/place";
+import { placeCoordsOf, placeSubtitle } from "./domain/place";
 import { placeHref } from "./constants";
 import { PlaceTaken, addPlace } from "./data/repo";
 
@@ -22,6 +22,10 @@ export const placeTypeDef: DocumentTypeDef = {
   linkable: { subtitle: (d) => placeSubtitle(d) },
   // Opens on its own page; its Peek's "Open" leads there (ADR 0110's pattern).
   href: (d) => placeHref(d.id),
+  // A Pin once its address has coordinates: read, never looked up, when a map is drawn (ADR 0011).
+  locatable: placeCoordsOf,
+  // An agent's search shows what and where each Place is (ADR 0119: Places have no wall).
+  searchFields: ["kind", "address"],
   order: 31,
   builtIn: true,
   // "Create …" in an Event's At (ADR 0119): a Place by name, or the one that already has it.
@@ -36,5 +40,8 @@ export const placeTypeDef: DocumentTypeDef = {
   fields: [
     { key: "aliases", label: "Aliases", kind: "list" },
     { key: "kind", label: "Kind", kind: "select", options: KINDS.map((k) => ({ ...k })), userOptions: true, column: true },
+    // Written through the App, so the coordinates always follow the text; agents read both (no wall).
+    { key: "address", label: "Address", kind: "text", guarded: true, column: true },
+    { key: "geo", label: "Coordinates", kind: "geo", guarded: true },
   ],
 };
