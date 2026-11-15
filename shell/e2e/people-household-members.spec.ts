@@ -75,7 +75,9 @@ test("Add person suggests joining a Household of the same Family name, and joins
   let dialog = await openDialog();
   await dialog.getByLabel("Given name").fill("Una");
   await dialog.getByLabel("Family name").fill("zzsmith");
-  await expect(dialog.getByRole("button", { name: "Join the Zzsmiths?" })).toBeVisible();
+  const join = dialog.getByRole("button", { name: "Join the Zzsmiths" });
+  await expect(join).toBeVisible();
+  await expect(join).toHaveAttribute("aria-pressed", "false");
   await dialog.getByRole("button", { name: "Add", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "Una zzsmith" })).toBeVisible();
   expect(await members("the Zzsmiths")).toBe(1);
@@ -87,7 +89,8 @@ test("Add person suggests joining a Household of the same Family name, and joins
   await expect(dialog.getByRole("button", { name: /Join/ })).toHaveCount(0);
   await dialog.getByLabel("Given name").fill("Ugo");
   await dialog.getByLabel("Family name").fill("Zzsmith");
-  await dialog.getByRole("button", { name: "Join the Zzsmiths?" }).click();
+  await dialog.getByRole("button", { name: "Join the Zzsmiths" }).click();
+  await expect(dialog.getByRole("button", { name: "Join the Zzsmiths" })).toHaveAttribute("aria-pressed", "true");
   await dialog.getByRole("button", { name: "Add", exact: true }).click();
   await expect.poll(() => members("the Zzsmiths")).toBe(2);
 });
