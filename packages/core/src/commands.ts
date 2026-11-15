@@ -75,6 +75,9 @@ function linkTypes(arg: CommandArg): string[] | undefined {
 /** Whether an argument takes a Document: a link, or a list of links (an earlier step's Document as its one entry). */
 export const takesDocument = (arg: Pick<CommandArg, "kind">): boolean => arg.kind === "link" || arg.kind === "links";
 
+/** The most names or ids a list-of-links value may hold: one runaway call must not make thousands of passes over every Document. */
+export const MAX_LINK_VALUES = 50;
+
 /**
  * A list-of-links value read: a list, entry by entry, or a single text as one
  * entry (a name may hold a comma: “Lefèvre, Marc”); entries trimmed, blanks dropped.
@@ -82,7 +85,9 @@ export const takesDocument = (arg: Pick<CommandArg, "kind">): boolean => arg.kin
 export function linkValues(arg: CommandArg, v: unknown): string[] {
   const list = typeof v === "string" ? [v] : v;
   if (!Array.isArray(list) || list.some((x) => typeof x !== "string")) throw new Error(`${arg.label}: expected a list of names or ids`);
-  return list.map((x: string) => x.trim()).filter(Boolean);
+  const values = list.map((x: string) => x.trim()).filter(Boolean);
+  if (values.length > MAX_LINK_VALUES) throw new Error(`${arg.label}: at most ${MAX_LINK_VALUES} names or ids`);
+  return values;
 }
 
 /** What a link argument is matched against: a Document's id, type, title, Roles and aliases (in `aliases`, or the field its type names). */
@@ -105,7 +110,7 @@ export interface LinkChoice {
  * candidate). `arg` is the argument's label; `noun` what it names: its type's
  * singular, else its label.
  */
-export type LinkProblem = { kind: "unknown"; arg: string; noun: string; value: string } | { kind: "ambiguous"; arg: string; noun: string; value: string; candidates: LinkChoice[] };
+export type LinkProblem = { arg: string; noun: string; value: string } & ({ kind: "unknown" } | { kind: "ambiguous"; candidates: LinkChoice[] });
 
 /** A link value resolved: the one Document's id, or why there is none. */
 export type LinkMatch = { id: string } | { problem: LinkProblem };
@@ -131,16 +136,44 @@ function linkNoun(arg: CommandArg): string {
  * Never a guess: none, or several, is a problem the caller can act on.
  */
 export function matchLink(arg: CommandArg, value: string, docs: readonly LinkableDocument[]): LinkMatch {
+  return linkMatcher(arg, docs)(value);
+}
+
+/** A document in `docs` the argument may name, by id: the one rule by which an id wins over any name. */
+function byIdIn(docs: readonly LinkableDocument[], value: string): LinkableDocument | undefined {
+  return docs.find((d) => d.id === value);
+}
+
+/**
+ * `matchLink` for many values against the same Documents: the candidates' names
+ * are normalised once, and each value is a lookup.
+ */
+function linkMatcher(arg: CommandArg, docs: readonly LinkableDocument[]): (value: string) => LinkMatch {
   const ofType = linkCandidates(arg, docs);
-  const byId = ofType.find((d) => d.id === value);
-  if (byId) return { id: byId.id };
-  const shown = value.trim();
-  const wanted = normalizeName(value);
-  const hits = wanted ? ofType.filter((d) => namesOf(d).some((n) => normalizeName(n) === wanted)) : [];
-  if (hits.length === 1) return { id: hits[0]!.id };
-  const said = { arg: arg.label, noun: linkNoun(arg), value: shown };
-  if (hits.length === 0) return { problem: { kind: "unknown", ...said } };
-  return { problem: { kind: "ambiguous", ...said, candidates: hits.map((d) => ({ id: d.id, title: d.title })) } };
+  let index: Map<string, LinkableDocument[]> | undefined;
+  const named = (): Map<string, LinkableDocument[]> => {
+    if (index) return index;
+    index = new Map();
+    for (const d of ofType) {
+      for (const n of new Set(namesOf(d).map(normalizeName))) {
+        const list = index.get(n);
+        if (list) list.push(d);
+        else index.set(n, [d]);
+      }
+    }
+    return index;
+  };
+  const noun = linkNoun(arg);
+  return (value) => {
+    const byId = byIdIn(ofType, value);
+    if (byId) return { id: byId.id };
+    const wanted = normalizeName(value);
+    const hits = (wanted && named().get(wanted)) || [];
+    if (hits.length === 1) return { id: hits[0]!.id };
+    const said = { arg: arg.label, noun, value: value.trim() };
+    if (hits.length === 0) return { problem: { kind: "unknown", ...said } };
+    return { problem: { kind: "ambiguous", ...said, candidates: hits.map((d) => ({ id: d.id, title: d.title })) } };
+  };
 }
 
 /** A link problem in words, after the argument it is in, with what to pass instead when it is ambiguous. */
@@ -160,8 +193,9 @@ export function pickLinked(arg: CommandArg, value: string, docs: readonly Linkab
 export function matchLinks(arg: CommandArg, values: readonly string[], docs: readonly LinkableDocument[]): { ids: string[]; problems: LinkProblem[] } {
   const ids: string[] = [];
   const problems: LinkProblem[] = [];
+  const match = linkMatcher(arg, docs);
   for (const value of values) {
-    const m = matchLink(arg, value, docs);
+    const m = match(value);
     if ("problem" in m) problems.push(m.problem);
     else if (!ids.includes(m.id)) ids.push(m.id);
   }
@@ -173,6 +207,12 @@ export function pickLinks(arg: CommandArg, values: readonly string[], docs: read
   const { ids, problems } = matchLinks(arg, values, docs);
   if (problems.length) throw new Error(problems.map(linkProblemText).join("; "));
   return ids;
+}
+
+/** Whether every value is the id of a Document the argument may name, read on its own without reading every Document it may name. */
+async function areIds(arg: CommandArg, values: readonly string[]): Promise<boolean> {
+  const found = await Promise.all(values.map((id) => getDocument(id)));
+  return found.every((d) => d && linkCandidates(arg, [d]).length > 0);
 }
 
 /** The Documents a link argument may name, read from the store (the current Workspace): of its Role, else its type(s), else all. */
@@ -226,17 +266,13 @@ async function readArg(arg: CommandArg, v: unknown): Promise<unknown> {
       return asStrings(arg, v);
     case "link": {
       const value = String(v);
-      // An id is read on its own, without reading every Document the argument may name.
-      const doc = await getDocument(value);
-      if (doc && linkCandidates(arg, [doc]).length) return value;
+      if (await areIds(arg, [value])) return value;
       return pickLinked(arg, value, await linkableDocuments(arg));
     }
     case "links": {
       const values = linkValues(arg, v);
       if (!values.length) return undefined;
-      // Ids alone are read on their own, without reading every Document the argument may name.
-      const found = await Promise.all(values.map((id) => getDocument(id)));
-      if (found.every((d) => d && linkCandidates(arg, [d]).length)) return [...new Set(values)];
+      if (await areIds(arg, values)) return [...new Set(values)];
       return pickLinks(arg, values, await linkableDocuments(arg));
     }
     case "json": {

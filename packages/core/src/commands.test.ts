@@ -207,6 +207,12 @@ describe("list-of-links arguments: each entry by the same rule, every problem at
     expect(linkValues(WITH, [" Marco ", "", "Zoé"])).toEqual(["Marco", "Zoé"]);
     expect(() => linkValues(WITH, 3)).toThrow("With: expected a list of names or ids");
   });
+
+  it("refuses more than 50 entries, accepts 50", () => {
+    const many = (n: number) => Array.from({ length: n }, (_, i) => `Person ${i}`);
+    expect(linkValues(WITH, many(50))).toHaveLength(50);
+    expect(() => linkValues(WITH, many(51))).toThrow("With: at most 50 names or ids");
+  });
 });
 
 describe("reading a dialog's initial values", () => {
