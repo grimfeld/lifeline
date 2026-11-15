@@ -30,4 +30,9 @@ describe("tidy-up of given-name aliases", () => {
     expect(tidyCandidates([{ ...p, ...patch }])).toEqual([]);
     expect(tidyPatch({ ...p, ...patch })).toBeNull();
   });
+
+  it("counts only a proper leading part of the title, never the whole of it", () => {
+    expect(tidyRowOf(P("Anne Dupont", ["Anne", "anne dupont"]))).toMatchObject({ givenName: "Anne", familyName: "Dupont" });
+    expect(tidyRowOf(P("Mum", ["mum"]))).toBeNull();
+  });
 });
