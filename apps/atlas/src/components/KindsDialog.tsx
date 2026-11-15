@@ -45,7 +45,7 @@ export function KindsDialog({ open, onOpenChange }: { open: boolean; onOpenChang
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Kinds</DialogTitle>
-          <DialogDescription>Rename a Kind, or add your own. A Kind is never removed, so no Place loses its own.</DialogDescription>
+          <DialogDescription>Rename a Kind, or add your own. A Kind is never removed, so no place loses its own.</DialogDescription>
         </DialogHeader>
         <form
           className="grid min-w-0 gap-3"

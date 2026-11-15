@@ -55,10 +55,10 @@ const listed = (page: Page) => page.getByRole("list", { name: "Places" }).getByR
 async function showList(page: Page, phone: boolean, name: "All" | "To try" | "Closed") {
   if (phone) {
     await page.getByRole("button", { name: /^Filters/ }).click();
-    await page.getByRole("combobox", { name: "Which Places" }).click();
+    await page.getByRole("combobox", { name: "Which places" }).click();
     await page.getByRole("option", { name, exact: true }).click();
     await page.keyboard.press("Escape");
-    await expect(page.getByRole("combobox", { name: "Which Places" })).toBeHidden();
+    await expect(page.getByRole("combobox", { name: "Which places" })).toBeHidden();
   } else {
     await page.getByRole("radio", { name, exact: true }).click();
   }

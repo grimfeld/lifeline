@@ -14,9 +14,9 @@ const ANY = "__any__";
 
 /** The three lists, and what each says when the Kind leaves none. */
 const LISTS: { value: PlacesShown; label: string; none: string }[] = [
-  { value: "open", label: "All", none: "No Place of that Kind." },
-  { value: "toTry", label: "To try", none: "No Place to try here: mark one To try on its page." },
-  { value: "closed", label: "Closed", none: "No closed Place here." },
+  { value: "open", label: "All", none: "No place of that Kind." },
+  { value: "toTry", label: "To try", none: "No place to try here: mark one To try on its page." },
+  { value: "closed", label: "Closed", none: "No closed place here." },
 ];
 
 /** The two orders (#487 story 58): by name, or by when I last went. */
@@ -89,7 +89,7 @@ export function PlacesScreen() {
         <>
           <PhoneDock>
             <PhoneFilters active={+(kind !== "") + +(show !== "open") + +(sort !== "name")}>
-              <ToggleGroup value={show} onValueChange={(v) => setShow(v as PlacesShown)} aria-label="Which Places">
+              <ToggleGroup value={show} onValueChange={(v) => setShow(v as PlacesShown)} aria-label="Which places">
                 {LISTS.map((l) => (
                   <ToggleGroupItem key={l.value} value={l.value} aria-label={l.label}>
                     {l.label}
@@ -124,7 +124,7 @@ export function PlacesScreen() {
             </PhoneFilters>
           </PhoneDock>
           {shown.length === 0 ? (
-            <p className="text-muted-foreground text-sm">{kind ? "No Place of that Kind." : none}</p>
+            <p className="text-muted-foreground text-sm">{kind ? "No place of that Kind." : none}</p>
           ) : (
             <ul className="grid min-w-0" aria-label="Places">
               {shown.map((p) => (
