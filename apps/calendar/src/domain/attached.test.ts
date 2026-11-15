@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { TimedSpan } from "@lifeline/core";
-import { followedSpan } from "./attached";
+import { formatTime, type TimedSpan } from "@lifeline/core";
+import { describeBeside, followedSpan } from "./attached";
 
 const span = (date: string, start: string, endDate: string, end: string): TimedSpan => ({ date, start, endDate, end });
 
@@ -105,5 +105,19 @@ describe("followedSpan", () => {
     },
   ])("$case", ({ old, now, band, side, want }) => {
     expect(followedSpan(old, now, band, side)).toEqual(want);
+  });
+});
+
+describe("describeBeside", () => {
+  it("gives a band on its Event's day its times only", () => {
+    expect(describeBeside(span("2026-08-24", "08:30", "2026-08-24", "09:00"), "2026-08-24")).toBe(`${formatTime("08:30")} – ${formatTime("09:00")}`);
+  });
+
+  it("names the day of a band that starts the day before its Event", () => {
+    expect(describeBeside(span("2026-08-23", "23:30", "2026-08-24", "00:15"), "2026-08-24")).toBe(`Sun ${formatTime("23:30")} – Mon ${formatTime("00:15")}`);
+  });
+
+  it("names the end day of an after band that runs past midnight", () => {
+    expect(describeBeside(span("2026-08-24", "23:45", "2026-08-25", "00:15"), "2026-08-24")).toBe(`${formatTime("23:45")} – Tue ${formatTime("00:15")}`);
   });
 });

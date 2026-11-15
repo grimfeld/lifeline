@@ -83,6 +83,12 @@ export interface TimeBlocker extends Document {
 /** An attached blocker stands before its Event (held to its start) or after it (held to its end). */
 export type BlockerSide = "before" | "after";
 
+/** Where an attached blocker is attached: its Event, and the edge of it the band is held to. */
+export interface Attachment {
+  eventId: string;
+  side: BlockerSide;
+}
+
 /**
  * A named shape for a one-off Time blocker the user drops again and again —
  * "Travel 30", "Prep 15" (ADR 0029): title, length, colour, no day, no rule.

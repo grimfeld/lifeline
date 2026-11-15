@@ -1,13 +1,13 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
-import { documentsTable, initApps, moveDocumentsToWorkspace, removeDocument } from "@lifeline/core";
+import { defaultColumns, documentToText, documentsTable, documentTypeSync, initApps, moveDocumentsToWorkspace, removeDocument } from "@lifeline/core";
 import { calendarApp } from "./index";
 import { calendarTimed } from "./timed";
 import { addEvent, allEvents, setEventWhen, updateEvent } from "./data/repo";
 import { addTimeBlocker, allTimeBlockers, rescheduleTimeBlocker } from "./data/blockers";
 import { addBlockerTemplate } from "./data/blockerTemplates";
 import { attachBlocker, attachedBlockersOf, detachBlocker, liveAttachment } from "./data/attached";
-import type { BlockerSide } from "./domain/types";
+import { TIME_BLOCKER_TYPE, type BlockerSide } from "./domain/types";
 
 initApps([calendarApp]);
 
@@ -232,6 +232,38 @@ describe("an attached blocker's life ends or changes with its Event (#519)", () 
     expect(b).toBeTruthy();
     expect(await liveAttachment(b)).toBeNull();
   });
+
+  it("never shows its link in a Base or the Vault's text, so a gone Event is never named there", async () => {
+    const ev = await dentist();
+    const id = await attach(ev, "before");
+    await documentsTable().update(ev, { deleted: 1 });
+    const b = (await allTimeBlockers()).find((x) => x.id === id)!;
+    const def = documentTypeSync(TIME_BLOCKER_TYPE);
+    expect(defaultColumns(def)).not.toContain("attachedTo");
+    expect(documentToText(b, def)).not.toMatch(/attachedTo|side|before/);
+  });
+});
+
+describe("a new Event made with blockers attached (its dialog's Before…/After…)", () => {
+  it("is written with them, each flush against its side", async () => {
+    const t = await travel();
+    const ev = await addEvent({ title: "Dentist", date: "2026-08-24", start: "09:00", end: "10:00", attach: [{ templateId: t, side: "before" }, { templateId: t, side: "after" }] });
+    const bands = await attachedBlockersOf(ev);
+    expect(bands.map((b) => [b.side, b.start, b.end]).sort()).toEqual([["after", "10:00", "10:30"], ["before", "08:30", "09:00"]]);
+  });
+
+  it("takes none when it is all day", async () => {
+    const ev = await addEvent({ title: "Fair", date: "2026-08-24", attach: [{ templateId: await travel(), side: "before" }] });
+    expect(await event(ev)).toBeTruthy();
+    expect(await allTimeBlockers()).toEqual([]);
+  });
+
+  it("an edited Event takes the ones picked in its dialog against its new time", async () => {
+    const ev = await dentist();
+    const row = (await allEvents()).find((e) => e.id === ev)!;
+    await updateEvent({ ...row, start: "13:00", end: "14:00" }, [{ templateId: await travel(), side: "before" }]);
+    expect((await attachedBlockersOf(ev)).map((b) => [b.start, b.end])).toEqual([["12:30", "13:00"]]);
+  });
 });
 
 describe("detachBlocker", () => {
@@ -255,6 +287,15 @@ describe("detachBlocker", () => {
     expect((await allTimeBlockers())[0]).toMatchObject({ attachedTo: ev, side: "after" });
     await calendarTimed.reschedule!(ev, { date: "2026-08-24", start: "14:00", endDate: "2026-08-24", end: "15:00" });
     expect(await band(b)).toMatchObject({ start: "15:00", end: "15:30" });
+  });
+
+  it("leaves the band plain when its Event is gone by the time of the undo", async () => {
+    const ev = await dentist();
+    const b = await attach(ev, "before");
+    const undo = await detachBlocker(b);
+    await removeDocument(ev);
+    await undo();
+    expect((await allTimeBlockers()).find((x) => x.id === b)).toMatchObject({ attachedTo: null, side: null });
   });
 
   it("refuses a blocker that is gone", async () => {

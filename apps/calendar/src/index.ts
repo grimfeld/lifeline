@@ -3,13 +3,15 @@ import { lazyChunk } from "@lifeline/ui";
 import { Ban, CalendarClock, LayoutTemplate } from "lucide-react";
 import { EventDialog } from "./components/EventDialog";
 import { EventPeek } from "./components/EventPeek";
-import { BlockerPeek } from "./components/BlockerPeek";
+import { BlockerAttachment } from "./components/BlockerAttachment";
 import { UpcomingEventsCard } from "./cards/UpcomingEventsCard";
 import { NextEventsCard, nextEventsSettings, nextEventsTitle } from "./cards/NextEventsCard";
 import { CountdownCard, countdownSettings, useCountdownTitle } from "./cards/CountdownCard";
 import { calendarCommands, useTemplateCommands } from "./commands";
 import { calendarTimed, APP_ID } from "./timed";
 import { calendarDaylog } from "./daylog";
+import { attachedBlockersOf, removeAttachedBlockers } from "./data/attached";
+import { BLOCKER_SIDES, SIDE_LABELS } from "./domain/attached";
 import { describeBlocker } from "./domain/blockers";
 import { describeTemplate, durationOf, formatDuration } from "./domain/templates";
 import {
@@ -26,8 +28,6 @@ import {
   type EventTemplate,
   type TimeBlocker,
 } from "./domain/types";
-
-import { attachedBlockerIds, removeAttachedBlockers } from "./data/attached";
 
 // Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
 const EventsScreen = lazyChunk(() => import("./screens/EventsScreen").then((m) => ({ default: m.EventsScreen })));
@@ -58,7 +58,7 @@ const eventType: DocumentTypeDef = {
   peekEdit: EventPeek,
   // Its attached blockers live and die with it, and move with it between Workspaces (ADR 0045, ADR 0060; #519).
   onDelete: (d) => removeAttachedBlockers(d.id),
-  followers: (d) => attachedBlockerIds(d.id),
+  followers: async (d) => (await attachedBlockersOf(d.id)).map((b) => b.id),
   builtIn: true,
 };
 
@@ -96,23 +96,15 @@ const timeBlockerType: DocumentTypeDef = {
     { key: "end", label: "End", kind: "text", guarded: true, column: true },
     { key: "active", label: "On", kind: "boolean", column: true },
     { key: "color", label: "Colour", kind: "text" },
-    // An attached blocker (CONTEXT.md, #497): the Event it follows and the edge it is held to. Set by attaching only.
-    { key: "attachedTo", label: "Attached to", kind: "link", linkType: EVENT_TYPE, guarded: true },
-    {
-      key: "side",
-      label: "Side",
-      kind: "select",
-      guarded: true,
-      options: [
-        { value: "before", label: "Before" },
-        { value: "after", label: "After" },
-      ],
-    },
+    // An attached blocker (CONTEXT.md, #497): the Event it follows and the edge it is held to. Set by attaching only, and
+    // hidden from Bases and the Vault: a link to a gone Event reads as detached, which only the Calendar can tell (#519).
+    { key: "attachedTo", label: "Attached to", kind: "link", linkType: EVENT_TYPE, guarded: true, hidden: true },
+    { key: "side", label: "Side", kind: "select", guarded: true, hidden: true, options: BLOCKER_SIDES.map((side) => ({ value: side, label: SIDE_LABELS[side] })) },
   ],
   indexes: ["date"],
   linkable: { subtitle: (d) => describeBlocker(d as TimeBlocker) },
-  // Its fields listed, and for an attached one the Event it follows and Detach (#497).
-  peekEdit: BlockerPeek,
+  // Core's Peek, with the Event an attached one follows and Detach above it (#497).
+  peekAside: BlockerAttachment,
   href: () => BLOCKERS_HREF,
   order: 32,
   builtIn: true,

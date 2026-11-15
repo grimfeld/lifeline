@@ -71,7 +71,7 @@ function EventPeekPart({ doc }: { doc: Document }) {
         />
       </Field>
       {/* Only a timed Event takes attached blockers (#497). */}
-      {event.start && <AttachedBlockers eventId={event.id} />}
+      {event.start && <AttachedBlockers eventId={event.id} eventDay={event.date} />}
       {event.start && <AttachBlocker eventId={event.id} eventTitle={event.title} />}
     </div>
   );

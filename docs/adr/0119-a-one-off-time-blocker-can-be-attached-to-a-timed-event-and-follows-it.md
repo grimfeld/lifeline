@@ -22,5 +22,7 @@ ADR 0029 left a one-off blocker tied to nothing: when the dentist moved, the tra
 
 - `time_blocker` gains `attachedTo` and `side`; a weekly blocker never carries them, and one with a link but no valid side reads plain (`attachmentOf`).
 - Core gains `putDocuments`, an all-or-none write of several Documents.
+- The two Fields are hidden as well as guarded: Bases and the Vault's text never show them, since only the Calendar can tell that a link to a gone Event reads as detached. The band's Peek is Core's read-only one, with the App's line ("Before **Dentist**", **Detach**) above it through Core's new `peekAside` (ADR 0085: the App draws only what it owns; Core still lists the Fields), so a plain blocker's Peek is unchanged.
+- The Event dialog collects Before…/After… picks while the Event is created or edited and writes them with it, in the same `putDocuments`.
 - The rest of #497 builds on this: the blocker's Peek naming its Event with **Detach**, attaching from the Event dialog (#518); deleting the Event deleting its blockers (`onDelete`), making it all day detaching them, Workspace moves taking them (`followers`), and a link to a gone Event reading as detached (#519).
 - Deferred to #496: Event templates that come with attached blockers ("Dentist" always brings travel), and Claude creating or attaching them. Claude's moves already carry them.

@@ -1,8 +1,9 @@
 import { useMemo } from "react";
-import { documentsOf, getDocument, normalizeTags, patchDocument, putDocument, removeDocument, useDocuments, type DateStr, type TimedWhen, type TimeStr, type Weekday } from "@lifeline/core";
+import { documentsOf, getDocument, normalizeTags, patchDocument, putDocument, removeDocument, useDocuments, type DateStr, type DocumentInput, type TimedWhen, type TimeStr, type Weekday } from "@lifeline/core";
 import { blockerSpan, compareBlockers, rescheduledBlocker } from "../domain/blockers";
 import { midnightNextDay } from "../domain/span";
-import { TIME_BLOCKER_TYPE, type BlockerSide, type TimeBlocker } from "../domain/types";
+import { attachmentOf } from "../domain/attached";
+import { TIME_BLOCKER_TYPE, type Attachment, type TimeBlocker } from "../domain/types";
 
 /** PocketBase returns absent text fields as ""; re-establish null/defaults on read. */
 function normalize(b: TimeBlocker): TimeBlocker {
@@ -11,6 +12,7 @@ function normalize(b: TimeBlocker): TimeBlocker {
   // A one-off stored ending at "24:00" ends at 00:00 the next day (ADR 0090).
   const until = date ? midnightNextDay({ date, endDate: b.endDate || null, start, end: b.end || "17:00" }) : { endDate: b.endDate || null, end: b.end || "17:00" };
   const end = until.end;
+  const at = attachmentOf({ date, attachedTo: b.attachedTo, side: b.side });
   return {
     ...b,
     date,
@@ -22,9 +24,9 @@ function normalize(b: TimeBlocker): TimeBlocker {
     color: b.color || null,
     active: b.active !== false,
     tags: b.tags ?? [],
-    // Attached (CONTEXT.md "Attached blocker") only as a one-off with a link and a side; anything else reads plain.
-    attachedTo: (date && b.attachedTo) || null,
-    side: date && b.attachedTo && (b.side === "before" || b.side === "after") ? b.side : null,
+    // Attached (CONTEXT.md "Attached blocker") as `attachmentOf` reads it; anything else reads plain.
+    attachedTo: at?.eventId ?? null,
+    side: at?.side ?? null,
   };
 }
 
@@ -44,7 +46,8 @@ export async function allTimeBlockers(): Promise<TimeBlocker[]> {
   return (await documentsOf<TimeBlocker>(TIME_BLOCKER_TYPE)).map(normalize);
 }
 
-export async function addTimeBlocker(input: {
+/** What a new Time blocker is made from. */
+export interface TimeBlockerInput {
   title: string;
   /** Set for a one-off blocker (ADR 0029); the weekdays are then ignored. */
   date?: DateStr | null;
@@ -56,12 +59,19 @@ export async function addTimeBlocker(input: {
   color?: string | null;
   active?: boolean;
   tags?: string[];
-  /** A one-off attached to an Event (`attachBlocker` only): the Event's id and the side it stands on. */
-  attachedTo?: string | null;
-  side?: BlockerSide | null;
-}): Promise<string> {
+  /** A one-off attached to an Event (attaching only, CONTEXT.md "Attached blocker"). */
+  attachment?: Attachment | null;
+}
+
+export async function addTimeBlocker(input: TimeBlockerInput): Promise<string> {
+  return (await putDocument<TimeBlocker>(timeBlockerRow(input))).id;
+}
+
+/** The row `addTimeBlocker` writes, for a caller that writes it in one batch with others (an Event and the blockers attached to it). */
+export function timeBlockerRow(input: TimeBlockerInput): DocumentInput<TimeBlocker> {
   const when = input.date ? midnightNextDay({ date: input.date, endDate: input.endDate ?? null, start: input.start, end: input.end }) : { endDate: null, end: input.end };
-  const row = await putDocument<TimeBlocker>({
+  const at = attachmentOf({ date: input.date ?? null, attachedTo: input.attachment?.eventId, side: input.attachment?.side });
+  return {
     type: TIME_BLOCKER_TYPE,
     title: input.title,
     date: input.date ?? null,
@@ -72,9 +82,8 @@ export async function addTimeBlocker(input: {
     color: input.color ?? null,
     active: input.active !== false,
     tags: normalizeTags(input.tags ?? []),
-    ...(input.date && input.attachedTo && input.side && { attachedTo: input.attachedTo, side: input.side }),
-  });
-  return row.id;
+    ...(at && { attachedTo: at.eventId, side: at.side }),
+  };
 }
 
 export async function updateTimeBlocker(b: TimeBlocker): Promise<void> {

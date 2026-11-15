@@ -1,31 +1,18 @@
 import { useMemo } from "react";
-import { addDays, diffDays, documentsOf, getDocument, normalizeTags, patchDocument, putDocument, putDocuments, removeDocument, useDocuments, type DateStr, type DocumentInput, type TimedWhen } from "@lifeline/core";
+import { addDays, diffDays, documentsOf, getDocument, newId, normalizeTags, patchDocument, putDocument, putDocuments, removeDocument, useDocuments, type DateStr, type DocumentInput, type TimedWhen } from "@lifeline/core";
 import { EVENT_TYPE, type Event } from "../domain/types";
 import type { EventWhen } from "../domain/eventForm";
-import { rescheduled, spanOf } from "../domain/events";
+import { normalizeEvent, rescheduled, spanOf } from "../domain/events";
 import { midnightNextDay } from "../domain/span";
-import { blockersFollowing, detachedFrom } from "./attached";
-
-/** PocketBase returns absent text fields as ""; re-establish null on read, and an old "24:00" end as 00:00 the next day (ADR 0090). */
-function normalize(e: Event): Event {
-  return midnightNextDay({
-    ...e,
-    notes: e.notes ?? "",
-    endDate: e.endDate || null,
-    start: e.start || null,
-    end: e.end || null,
-    tags: e.tags ?? [],
-    with: Array.isArray(e.with) ? e.with.map(String).filter(Boolean) : [],
-  });
-}
+import { attachedBlockerRows, blockersDetachedFrom, blockersFollowing, type AttachPick } from "./attached";
 
 export function useEvents(): Event[] {
   const rows = useDocuments<Event>(EVENT_TYPE);
-  return useMemo(() => rows.map(normalize), [rows]);
+  return useMemo(() => rows.map(normalizeEvent), [rows]);
 }
 
 export async function allEvents(): Promise<Event[]> {
-  return (await documentsOf<Event>(EVENT_TYPE)).map(normalize);
+  return (await documentsOf<Event>(EVENT_TYPE)).map(normalizeEvent);
 }
 
 export async function addEvent(input: {
@@ -37,9 +24,12 @@ export async function addEvent(input: {
   end?: string | null;
   tags?: string[];
   with?: string[];
+  /** Blockers to attach as it is made (its dialog's Before…/After…), written with it; ignored when it is all day. */
+  attach?: readonly AttachPick[];
 }): Promise<string> {
   const start = input.start || null;
-  const row = await putDocument<Event>(midnightNextDay({
+  const ev = midnightNextDay({
+    id: newId(),
     type: EVENT_TYPE,
     title: input.title,
     notes: input.notes ?? "",
@@ -49,8 +39,10 @@ export async function addEvent(input: {
     end: start ? (input.end || null) : null,
     tags: normalizeTags(input.tags),
     with: [...new Set(input.with)],
-  }));
-  return row.id;
+  });
+  // The Event and the blockers attached to it land together, or not at all.
+  await putDocuments([ev, ...(await attachedBlockerRows(ev, input.attach ?? []))]);
+  return ev.id;
 }
 
 /** A timed Event keeps the day its end is on (ADR 0090), an all-day one its last day: a day after the first, and a timed one only with an end time. */
@@ -64,18 +56,23 @@ function endDayOf(input: { date: DateStr; endDate?: DateStr | null; end?: string
  * all-or-none write — so they never land half-moved, whichever Surface, dialog
  * or tool moved it.
  */
-async function writeMoved(was: Event, now: Event): Promise<void> {
+async function writeMoved(was: Event, now: Event, added: readonly DocumentInput[] = []): Promise<void> {
   // Made all day, its blockers are detached in the same write and stay where they stand (#519).
-  const blockers = !spanOf(now) && spanOf(was) ? await detachedFrom(was.id) : await blockersFollowing(was, now);
-  await putDocuments([now as DocumentInput, ...blockers]);
+  const blockers = !spanOf(now) && spanOf(was) ? await blockersDetachedFrom(was.id) : await blockersFollowing(was, now);
+  await putDocuments([now, ...blockers, ...added]);
 }
 
-/** The Event dialog's save: everything at once, its attached blockers following a new time. */
-export async function updateEvent(ev: Event): Promise<void> {
+/**
+ * The Event dialog's save: everything at once, its attached blockers
+ * following a new time, and those picked in the dialog (`attach`) attached
+ * against it in the same write.
+ */
+export async function updateEvent(ev: Event, attach: readonly AttachPick[] = []): Promise<void> {
   const next = midnightNextDay({ ...ev, type: EVENT_TYPE, tags: normalizeTags(ev.tags ?? []) });
   const was = await getDocument<Event>(ev.id);
   if (!was || was.type !== EVENT_TYPE) return void (await putDocument<Event>(next));
-  await writeMoved(normalize(was), normalize(next));
+  const now = normalizeEvent(next);
+  await writeMoved(normalizeEvent(was), now, await attachedBlockerRows(now, attach));
 }
 
 /** Edit an Event's own words — its notes and Tags — from wherever it is shown (its Peek, ADR 0085). */
@@ -90,8 +87,8 @@ export async function editEvent(id: string, edit: { notes?: string; tags?: strin
 export async function setEventWhen(id: string, when: EventWhen): Promise<void> {
   const ev = await getDocument<Event>(id);
   if (!ev || ev.type !== EVENT_TYPE) return;
-  const was = normalize(ev);
-  await writeMoved(was, normalize({ ...ev, ...midnightNextDay({ date: when.date, endDate: when.endDate, start: when.start, end: when.end }) }));
+  const was = normalizeEvent(ev);
+  await writeMoved(was, normalizeEvent({ ...ev, ...midnightNextDay({ date: when.date, endDate: when.endDate, start: when.start, end: when.end }) }));
 }
 
 export async function deleteEvent(id: string): Promise<void> {
@@ -103,7 +100,7 @@ export async function moveEvent(id: string, to: DateStr): Promise<void> {
   const ev = await getDocument<Event>(id);
   // Time blockers reach the Timed contract through this App too (ADR 0027); they have no day to move.
   if (!ev || ev.type !== EVENT_TYPE) return;
-  const e = normalize(ev);
+  const e = normalizeEvent(ev);
   const len = e.endDate && e.endDate > e.date ? diffDays(e.date, e.endDate) : 0;
   await writeMoved(e, { ...e, date: to, endDate: len > 0 ? addDays(to, len) : null });
 }
@@ -112,6 +109,6 @@ export async function moveEvent(id: string, to: DateStr): Promise<void> {
 export async function rescheduleEvent(id: string, when: TimedWhen): Promise<void> {
   const ev = await getDocument<Event>(id);
   if (!ev || ev.type !== EVENT_TYPE) return;
-  const was = normalize(ev);
+  const was = normalizeEvent(ev);
   await writeMoved(was, midnightNextDay(rescheduled(was, when)));
 }
