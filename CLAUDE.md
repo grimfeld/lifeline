@@ -70,12 +70,15 @@ clash stops it, for `--continue` once fixed. When it goes red, `--drop <pr>` reb
 without the PR at fault. It never merges itself: the user or the orchestrator merges the
 integration PR, with a merge commit, never squash.
 
+Run `pnpm check` in the foreground with a 600000 ms timeout: it takes a few minutes, and a wait keyed on a process
+name can match another agent's run.
+
 Agents working in parallel run only their own change's e2e specs, with
 `pnpm test:e2e:quiet` (dot reporter: a dot per case, then the failures); the full suite runs once, before the integration
 branch merges. A subagent reports in ten lines at most: branch, commit, what failed, and
 each decision it took.
 
-An orchestrator sets each subagent's `model`: `haiku` for lookups and merges, `sonnet` for
+An orchestrator sets each subagent's `model`: `haiku` for lookups and for resolving a merge that conflicts (merge a clean branch yourself, inline), `sonnet` for
 implementing against a settled design (call-site swaps, mechanical tickets), `opus` for
 designing a new piece, review and diagnosis.
 

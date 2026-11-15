@@ -28,6 +28,21 @@ the three instead. The two Demo builds start only when the run includes the `dem
   every Card on one Screen — all read from the registry, so new types, Fields,
   Commands and Cards are covered without editing anything. The seeded IndexedDB
   is saved to `.auth/seeded.json` and loaded by every test.
+  - `support/seed.ts` is the only data the layout cases see; the Demo life
+    (`src/demo/life/`) is not loaded.
+  - It fills what headless Commands set. A Field no Command sets, such as a links
+    Field like With or For, stays empty.
+  - To show one, patch it in the row's `afterOpen`; `peekWithPerson` in
+    `screens.spec.ts` is the pattern.
+- Before `evaluate` / `evaluateAll` (they read the DOM once, without waiting), wait with a
+  web-first assertion (`await expect(…).toBeVisible()`, `toHaveCount(n)`) for every element
+  the read depends on. Prefer an assertion such as `toHaveText([...])` over a raw read when
+  it can say the same thing.
+- A wait or assertion on something the test created targets that thing's exact accessible
+  name (`exact: true`), built from the data the test used:
+  `getByRole("button", { name: `Remove ${personTitle}`, exact: true })`. A pattern
+  (`/^Remove /`) also matches neighbouring controls that seeded data adds, such as a Tag
+  chip's `Remove tag …`.
 - `screens.spec.ts` lists the screens (`SCREENS`). **Add a row for every new
   screen**; the last test fails when a registered screen has none.
 - `support/layout.ts` is the check. It reports:
