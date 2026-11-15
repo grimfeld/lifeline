@@ -27,6 +27,8 @@ import {
   type TimeBlocker,
 } from "./domain/types";
 
+import { attachedBlockerIds, removeAttachedBlockers } from "./data/attached";
+
 // Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
 const EventsScreen = lazyChunk(() => import("./screens/EventsScreen").then((m) => ({ default: m.EventsScreen })));
 
@@ -54,6 +56,9 @@ const eventType: DocumentTypeDef = {
   order: 30,
   // Edited where it is peeked (ADR 0085): its day and times through the App's own controls.
   peekEdit: EventPeek,
+  // Its attached blockers live and die with it, and move with it between Workspaces (ADR 0045, ADR 0060; #519).
+  onDelete: (d) => removeAttachedBlockers(d.id),
+  followers: (d) => attachedBlockerIds(d.id),
   builtIn: true,
 };
 

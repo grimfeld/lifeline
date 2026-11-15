@@ -1,12 +1,12 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
-import { documentsTable, initApps } from "@lifeline/core";
+import { documentsTable, initApps, moveDocumentsToWorkspace, removeDocument } from "@lifeline/core";
 import { calendarApp } from "./index";
 import { calendarTimed } from "./timed";
 import { addEvent, allEvents, setEventWhen, updateEvent } from "./data/repo";
 import { addTimeBlocker, allTimeBlockers, rescheduleTimeBlocker } from "./data/blockers";
 import { addBlockerTemplate } from "./data/blockerTemplates";
-import { attachBlocker, attachedBlockersOf, detachBlocker } from "./data/attached";
+import { attachBlocker, attachedBlockersOf, detachBlocker, liveAttachment } from "./data/attached";
 import type { BlockerSide } from "./domain/types";
 
 initApps([calendarApp]);
@@ -162,6 +162,75 @@ describe("an Event's time edited in its dialog or Peek takes its attached blocke
     const row = (await allEvents()).find((e) => e.id === ev)!;
     await updateEvent({ ...row, title: "Dentist (moved)", start: "13:00", end: "14:00" });
     expect(await band(before)).toMatchObject({ date: "2026-08-24", start: "12:30", end: "13:00" });
+  });
+});
+
+describe("an attached blocker's life ends or changes with its Event (#519)", () => {
+  it("is deleted with the Event through Core's generic delete, and no other blocker is", async () => {
+    const ev = await dentist();
+    const other = await dentist();
+    const before = await attach(ev, "before");
+    const after = await attach(ev, "after");
+    const mine = await attach(other, "before");
+    const plain = await addTimeBlocker({ title: "Plain", date: "2026-08-24", start: "12:00", end: "13:00", weekdays: [] });
+    await removeDocument(ev);
+    const left = (await allTimeBlockers()).map((b) => b.id);
+    expect(left).not.toContain(before);
+    expect(left).not.toContain(after);
+    expect(left.sort()).toEqual([mine, plain].sort());
+  });
+
+  it("comes back, still attached, when the Event's removal from the Schedule is undone", async () => {
+    const ev = await dentist();
+    const before = await attach(ev, "before");
+    const after = await attach(ev, "after");
+    const was = await band(before);
+    const undo = await calendarTimed.remove!(ev);
+    expect(await allTimeBlockers()).toEqual([]);
+    await undo();
+    expect(await event(ev)).toBeTruthy();
+    expect(await band(before)).toEqual(was);
+    const back = await attachedBlockersOf(ev);
+    expect(back.map((b) => [b.id, b.side]).sort()).toEqual([[before, "before"], [after, "after"]].sort());
+  });
+
+  it("is detached, its times unchanged, when the Event is made all day", async () => {
+    const ev = await dentist();
+    const id = await attach(ev, "before");
+    const was = await band(id);
+    await setEventWhen(ev, { date: "2026-08-24", endDate: null, start: null, end: null });
+    expect(await band(id)).toEqual(was);
+    const b = (await allTimeBlockers())[0];
+    expect(b!.attachedTo ?? null).toBeNull();
+    expect(b!.side ?? null).toBeNull();
+    expect(await attachedBlockersOf(ev)).toEqual([]);
+  });
+
+  it("is detached too when the Event dialog saves it all day", async () => {
+    const ev = await dentist();
+    const id = await attach(ev, "after");
+    const e = (await allEvents()).find((x) => x.id === ev)!;
+    await updateEvent({ ...e, start: null, end: null });
+    expect((await allTimeBlockers()).find((b) => b.id === id)!.attachedTo ?? null).toBeNull();
+  });
+
+  it("goes with the Event to another Workspace", async () => {
+    const ev = await dentist();
+    const id = await attach(ev, "before");
+    const plain = await addTimeBlocker({ title: "Plain", date: "2026-08-24", start: "12:00", end: "13:00", weekdays: [] });
+    await moveDocumentsToWorkspace([ev], "ws1");
+    const rows = documentsTable();
+    expect((await rows.get(id))?.workspace).toBe("ws1");
+    expect((await rows.get(plain))?.workspace ?? "").toBe("");
+  });
+
+  it("is kept, and read as detached, when its Event is gone", async () => {
+    const ev = await dentist();
+    const id = await attach(ev, "before");
+    await documentsTable().update(ev, { deleted: 1 });
+    const b = (await allTimeBlockers()).find((x) => x.id === id)!;
+    expect(b).toBeTruthy();
+    expect(await liveAttachment(b)).toBeNull();
   });
 });
 

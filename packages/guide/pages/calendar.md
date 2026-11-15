@@ -141,6 +141,15 @@ so that it goes wherever the Event goes.
   is and stops following the Event. Undo in the toast attaches it again on the same side.
 - A blocker you drop from a template beside an Event is never attached, and blockers you placed
   before stay as they are. Attached bands look exactly like any other one-off band.
+- **Delete** — deleting the Event deletes its attached blockers with it, wherever you delete it
+  (the Schedule, a Base, the Vault, or Claude). Removing it from the Schedule and undoing brings
+  back the Event and its bands, still attached on the same sides.
+- **Made all day** — the bands are detached and stay exactly where they stand as plain one-off
+  blockers.
+- **Another Workspace** — moving the Event to another Workspace takes its attached blockers with
+  it, in one act.
+- **Event gone** — a band whose Event is missing reads as a plain one-off blocker and is kept,
+  never deleted for that reason.
 
 ## Also on the Calendar
 
