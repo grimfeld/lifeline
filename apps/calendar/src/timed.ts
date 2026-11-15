@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { getDocument, patchDocument, putDocuments, removeDocument, vaultDocPath, type DateStr, type DocumentInput, type TimedItem, type TimedProvider, type TimedTemplate } from "@lifeline/core";
+import { getDocument, patchDocument, putDocuments, removeDocument, vaultDocPath, type DateStr, type TimedItem, type TimedProvider, type TimedTemplate } from "@lifeline/core";
 import { daysOf, describeTime, piecesOf, spanOf } from "./domain/events";
 import { bandsIn, blockerSpan, describeBlocker, isOneOff } from "./domain/blockers";
 import { describeTemplate, durationOf, formatDuration } from "./domain/templates";
@@ -132,7 +132,7 @@ export const calendarTimed: TimedProvider = {
     const taken = row.type === EVENT_TYPE ? await attachedBlockersOf(itemId) : [];
     await removeDocument(itemId);
     return async () => {
-      await putDocuments([row as DocumentInput, ...(taken as unknown as DocumentInput[])]);
+      await putDocuments([row, ...taken]);
     };
   },
   async rename(itemId, title) {

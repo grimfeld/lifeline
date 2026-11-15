@@ -126,8 +126,10 @@ so that it goes wherever the Event goes.
 - **Attach** — open the Event's Peek and pick **Before…** or **After…**, then a Blocker template
   ("Travel 30"). The band is made flush against the Event: ending at its start, or starting at
   its end. An Event can have several, on either side. All-day Events don't offer it. The Event's
-  form offers **Before…** and **After…** too once the Event is saved, and its Peek lists the
-  blockers attached to it.
+  form offers **Before…** and **After…** too, while you create it as well as when you edit it:
+  what you pick there is listed under them (remove one with its ×) and attached when you save,
+  flush against the times you saved. The Event's Peek lists the blockers attached to it, with
+  their times, and their day when it isn't the Event's.
 - **It follows** — however the Event is moved (dragged on the Schedule, moved in Month, retimed in
   its Peek or its form, or by Claude), its attached blockers move with it. A band before the
   Event keeps its gap to the Event's start and its own length; a band after keeps its gap to the
@@ -136,9 +138,11 @@ so that it goes wherever the Event goes.
 - **Adjusting** — drag or resize an attached band yourself and it stays attached, keeping the new
   gap or length from then on. A band before stays before, even dragged past the Event.
 - **Its Peek** — open an attached band from its Event's Peek list (or any link to it) and its Peek reads "Before **Dentist**" or "After **Dentist**", linking
-  to the Event. A blocker that isn't attached shows no such line.
+  to the Event, above its usual fields. A blocker that isn't attached shows no such line. Bases
+  and the Vault don't show which Event a band is attached to: its Peek does.
 - **Detach** — on that Peek, **Detach** lets the band stand on its own: it stays exactly where it
-  is and stops following the Event. Undo in the toast attaches it again on the same side.
+  is and stops following the Event. Undo in the toast attaches it again on the same side, unless
+  the Event has been deleted meanwhile.
 - A blocker you drop from a template beside an Event is never attached, and blockers you placed
   before stay as they are. Attached bands look exactly like any other one-off band.
 - **Delete** — deleting the Event deletes its attached blockers with it, wherever you delete it

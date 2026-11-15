@@ -23,9 +23,10 @@ import {
  *
  * - A **user-defined type**'s Document: Core's whole editable Peek — every
  *   Field (Aliases, Coordinates and Links included) and its Tags.
- * - A **built-in**'s: the owning App's part (`peekPartOf`: its editable one,
- *   else its read-only one, else Core's read-only list of the App's Fields),
- *   then the **user's own Fields** (`userFieldsOf`) beneath it, edited by Core.
+ * - A **built-in**'s: the App's aside (`peekAside`), then the owning App's
+ *   part (`peekPartOf`: its editable one, else its read-only one, else Core's
+ *   read-only list of the App's Fields), then the **user's own Fields**
+ *   (`userFieldsOf`) beneath it, edited by Core.
  *   Core never draws a control for a Field the App defined.
  *
  * Then, for every Peek, the **body**: read, or — once the frame says
@@ -46,6 +47,7 @@ export function PeekContent({ doc, def, writing = false, onWrite }: { doc: Docum
         <UserTypePeek key={doc.id} doc={doc} def={def} />
       ) : (
         <>
+          {def?.peekAside && <def.peekAside doc={doc} />}
           {part ? <part.Part doc={doc} /> : <ReadOnlyPeek doc={doc} def={def} />}
           {def && <UserFields key={doc.id} doc={doc} fields={userFieldsOf(def)} />}
         </>

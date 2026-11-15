@@ -1,6 +1,8 @@
 import { test, expect, type Page } from "@playwright/test";
 import { inCore } from "./support/core";
 import { workLocally } from "./support/journal";
+import { openPalette } from "./support/palette";
+import { setTime } from "./support/time-field";
 
 /**
  * An attached blocker (CONTEXT.md, #497): picked from a timed Event's Peek,
@@ -115,4 +117,35 @@ test("an all-day Event's Peek offers no Before… or After…", async ({ page })
   await expect(peek.getByRole("checkbox", { name: "All day" })).toBeChecked();
   await expect(peek.getByRole("button", { name: "Before…", exact: true })).toHaveCount(0);
   await expect(peek.getByRole("button", { name: "After…", exact: true })).toHaveCount(0);
+});
+
+test("a new Event's dialog attaches the blockers picked from Before… and After… as it is added", async ({ page }) => {
+  const stamp = Date.now();
+  const title = `Interview ${stamp}`;
+  const travel = `Travel 30 ${stamp}`;
+  await page.goto("/app/events");
+  await workLocally(page);
+  await inCore(page, async (core, t: string) => core.putDocument({ type: "blocker_template", title: t, durationMin: 30, color: null, tags: [] }), travel);
+  await openPalette(page);
+  await page.getByPlaceholder("Type a command or search…").fill("Add event");
+  await page.getByRole("option", { name: "Add event Calendar", exact: true }).click();
+
+  const dialog = page.getByRole("dialog", { name: "New event" });
+  await dialog.getByLabel("Title").fill(title);
+  await setTime(dialog.getByRole("combobox", { name: "Start" }), "14:00");
+  for (const side of ["Before…", "After…"]) {
+    await dialog.getByRole("button", { name: side, exact: true }).click();
+    await page.getByRole("menuitem", { name: new RegExp(`^${travel}`) }).click();
+  }
+  await expect(dialog.getByRole("list", { name: "Blockers to attach" }).getByRole("listitem")).toHaveCount(2);
+  await dialog.getByRole("button", { name: "Add event" }).click();
+  await expect(dialog).toBeHidden();
+
+  const id = await inCore(page, async (core, t: string) => ((await core.documentsOf("event")).find((d) => d.title === t)?.id as string | undefined) ?? "", title);
+  await expect
+    .poll(async () => (await attached(page, id)).map((b) => [b.side, b.start, b.end]).sort())
+    .toEqual([
+      ["after", "15:00", "15:30"],
+      ["before", "13:30", "14:00"],
+    ]);
 });

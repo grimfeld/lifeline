@@ -1,5 +1,11 @@
-import { momentAfter, spanLasting, spanLength, type DateStr, type TimedSpan, type TimeStr } from "@lifeline/core";
-import type { BlockerSide, TimeBlocker } from "./types";
+import { endReadOn, formatTime, momentAfter, spanLasting, spanLength, WEEKDAY_NAMES, weekdayOf, type DateStr, type TimedSpan, type TimeStr } from "@lifeline/core";
+import type { Attachment, BlockerSide, TimeBlocker } from "./types";
+
+/** Each side as a person reads it: "Before Dentist", the Before… menu, a Base's Side. */
+export const SIDE_LABELS: Record<BlockerSide, string> = { before: "Before", after: "After" };
+
+/** Both sides, in the order they are offered. */
+export const BLOCKER_SIDES = Object.keys(SIDE_LABELS) as BlockerSide[];
 
 /** Minutes from one moment to another (negative when the second is earlier). */
 function minutesBetween(from: { date: DateStr; time: TimeStr }, to: { date: DateStr; time: TimeStr }): number {
@@ -37,7 +43,20 @@ export function flushSpan(event: TimedSpan, minutes: number, side: BlockerSide):
  * the two. Whether that Event still exists is the reader's question — one
  * whose Event is gone reads as detached (#519).
  */
-export function attachmentOf(b: Pick<TimeBlocker, "date" | "attachedTo" | "side">): { eventId: string; side: BlockerSide } | null {
+export function attachmentOf(b: Pick<TimeBlocker, "date" | "attachedTo" | "side">): Attachment | null {
   if (!b.date || !b.attachedTo || (b.side !== "before" && b.side !== "after")) return null;
   return { eventId: b.attachedTo, side: b.side };
+}
+
+/** Whether a blocker is attached to the Event `eventId` (`attachmentOf`'s rule). */
+export const isAttachedTo = (b: Pick<TimeBlocker, "date" | "attachedTo" | "side">, eventId: string): boolean => attachmentOf(b)?.eventId === eventId;
+
+/**
+ * An attached band's times as its Event's Peek lists them: "08:30 – 09:00",
+ * with the weekday in front when the band starts on another day than the
+ * Event (a trip the night before), and on its end when that is another day.
+ */
+export function describeBeside(band: TimedSpan, eventDay: DateStr): string {
+  const day = band.date !== eventDay ? `${WEEKDAY_NAMES[weekdayOf(band.date)]} ` : "";
+  return `${day}${formatTime(band.start)} – ${endReadOn(band, band.date)}`;
 }
