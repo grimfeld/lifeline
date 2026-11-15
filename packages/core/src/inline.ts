@@ -1,4 +1,4 @@
-import { isInvocable, linkCandidates, type LinkableDocument, type OwnedCommand } from "./commands";
+import { isInvocable, linkCandidates, matchLink, takesDocument, type LinkableDocument, type OwnedCommand } from "./commands";
 import type { CommandArg } from "./manifest";
 import { normalizeTag } from "./tags";
 
@@ -255,8 +255,10 @@ export function readInlineLine(input: InlineLineInput): InlineReading {
   let contentAt = -1;
   const filled = (a: CommandArg) => values[a.key] !== undefined;
   const put = (a: CommandArg, value: string, text: string) => {
-    if (a.kind === "list" || a.kind === "multiselect") {
-      values[a.key] = [...((values[a.key] as string[] | undefined) ?? []), value];
+    if (a.kind === "list" || a.kind === "multiselect" || a.kind === "links") {
+      const had = (values[a.key] as string[] | undefined) ?? [];
+      if (a.kind === "links" && had.includes(value)) return;
+      values[a.key] = [...had, value];
     } else if (filled(a)) {
       reading.problems.push(`${a.label} is given twice`);
       return;
@@ -267,26 +269,27 @@ export function readInlineLine(input: InlineLineInput): InlineReading {
 
   /** An `@` (or a link's `key:`) value among the link arguments `among`. */
   const link = (among: CommandArg[], value: string) => {
-    const want = fold(value);
     const hits = among
-      .filter((a) => !filled(a))
-      .map((a) => ({ a, docs: linkCandidates(a, docs).filter((d) => d.id === value || fold(d.title) === want) }))
-      .filter((h) => h.docs.length > 0);
+      .filter((a) => a.kind === "links" || !filled(a))
+      .map((a) => ({ a, m: matchLink(a, value, docs) }))
+      .filter((h) => !("problem" in h.m && h.m.problem.kind === "unknown"));
     if (among.length === 0) return void reading.problems.push(`${command!.title.replace(/…$/, "")} takes no link`);
     if (hits.length === 0) {
       const what = among.length === 1 ? among[0]!.label.toLowerCase() : "Document";
       return void reading.problems.push(`No ${what} is called “${value}”`);
     }
     if (hits.length > 1) return void reading.problems.push(`“${value}” fits ${hits.map((h) => h.a.label).join(" and ")}: say which with key:`);
-    const { a, docs: found } = hits[0]!;
-    if (found.length > 1) {
-      values[a.key] = undefined;
-      reading.ambiguous.push({ arg: a, value, ids: found.map((d) => d.id) });
-      reading.parts.push({ arg: a, text: `${value}? (${found.length} Documents)` });
+    const { a, m } = hits[0]!;
+    if ("problem" in m) {
+      if (m.problem.kind === "ambiguous") {
+        const ids = m.problem.candidates.map((c) => c.id);
+        if (a.kind === "link") values[a.key] = undefined;
+        reading.ambiguous.push({ arg: a, value, ids });
+        reading.parts.push({ arg: a, text: `${value}? (${ids.length} Documents)` });
+      }
       return;
     }
-    const [doc] = found;
-    if (doc) put(a, doc.id, doc.title);
+    put(a, m.id, docs.find((d) => d.id === m.id)?.title ?? value);
   };
 
   const option = (value: string) => {
@@ -321,7 +324,7 @@ export function readInlineLine(input: InlineLineInput): InlineReading {
       option(body);
     } else if (mark === "@") {
       span("link", t);
-      link(args.filter((a) => a.kind === "link"), body);
+      link(args.filter(takesDocument), body);
     } else if (mark === "/" && input.dates) {
       const got = input.dates.read(line.slice(t.start + 1));
       if (!got) {
@@ -346,7 +349,7 @@ export function readInlineLine(input: InlineLineInput): InlineReading {
       const value = unquote(t.raw.slice(name.length + 1));
       span("argument", t);
       if (value === "") continue;
-      if (a.kind === "link") link([a], value);
+      if (takesDocument(a)) link([a], value.replace(/^@(?=\p{L})/u, ""));
       else if (hasOptions(a)) {
         const o = a.options!.find((x) => optionMatches(x, value));
         if (o) put(a, o.value, o.label);
@@ -416,18 +419,18 @@ function suggest(input: InlineLineInput, tokens: Token[], cursor: number, comman
   }
   const linkSuggestions = (among: CommandArg[], q: string, prefix: string) =>
     among
-      .filter((a) => !given(a))
+      .filter((a) => a.kind === "links" || !given(a))
       .flatMap((a) => byStart(linkCandidates(a, input.lookup?.documents ?? []), (d) => d.title, q).map((d) => ({ a, d })))
       .slice(0, LIMIT)
       .map(({ a, d }) => ({ kind: "link" as const, label: d.title, detail: a.label, insert: `${prefix}${quoted(d.title)}`, from, to }));
-  if (mark === "@" || token.raw === "@") return linkSuggestions(args.filter((a) => a.kind === "link"), partial, "@");
+  if (mark === "@" || token.raw === "@") return linkSuggestions(args.filter(takesDocument), partial, "@");
   if (mark === "/" && input.dates) return input.dates.suggest(token.raw.slice(1)).map((s) => ({ kind: "date" as const, ...s, insert: `/${s.insert}`, from, to }));
 
   const keyName = KEY.exec(token.raw)?.[1];
   const a = keyName ? argByName(args, keyName) : undefined;
   if (keyName && a) {
     const value = fold(unquote(token.raw.slice(keyName.length + 1)));
-    if (a.kind === "link") return linkSuggestions([a], value, `${keyName}:`);
+    if (takesDocument(a)) return linkSuggestions([a], value, `${keyName}:`);
     if (hasOptions(a))
       return a.options!.filter((o) => near(o.label, value) || near(o.value, value)).map((o) => ({ kind: "option" as const, label: o.label, detail: a.label, insert: `${keyName}:${quoted(o.value)}`, from, to }));
     return [];
