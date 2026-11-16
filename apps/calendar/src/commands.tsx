@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { EVENT_AT_FIELD, PERSON_TYPE, PLACE_TYPE, formatTime, getDocument, initialText, peopleArg, peopleIn, peopleNamed, todayStr, type CommandDef, type CommandDialogProps } from "@lifeline/core";
+import { PERSON_TYPE, PLACE_TYPE, formatTime, getDocument, initialText, peopleArg, peopleIn, peopleNamed, todayStr, type CommandDef, type CommandDialogProps } from "@lifeline/core";
 import { toast } from "@lifeline/ui";
 import { Ban, CalendarPlus, LayoutTemplate, Zap } from "lucide-react";
 import { EventDialog } from "./components/EventDialog";
@@ -9,7 +9,7 @@ import { BlockerTemplateDialog } from "./components/BlockerTemplateDialog";
 import { addEventFromTemplate, useEventTemplates } from "./data/templates";
 import { addEvent } from "./data/repo";
 import { eventArgsError } from "./domain/eventForm";
-import { EVENT_TEMPLATE_TYPE } from "./domain/types";
+import { EVENT_AT_FIELD, EVENT_TEMPLATE_TYPE } from "./domain/types";
 
 function AddEventCommandDialog(props: CommandDialogProps) {
   // What the inline line understood: the title and moment ride the dialog's own prefill, the rest its `initial`.

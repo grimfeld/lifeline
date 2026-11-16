@@ -1,4 +1,4 @@
-import { EVENT_AT_FIELD, formatHuman, PERSON_TYPE, PLACE_TYPE, type AppManifest, type DocumentTypeDef } from "@lifeline/core";
+import { formatHuman, PERSON_TYPE, PLACE_TYPE, type AppManifest, type DocumentTypeDef } from "@lifeline/core";
 import { lazyChunk } from "@lifeline/ui";
 import { Ban, CalendarClock, LayoutTemplate } from "lucide-react";
 import { EventDialog } from "./components/EventDialog";
@@ -13,6 +13,7 @@ import { describeBlocker } from "./domain/blockers";
 import { describeTemplate, durationOf, formatDuration } from "./domain/templates";
 import {
   BLOCKER_TEMPLATE_TYPE,
+  EVENT_AT_FIELD,
   EVENT_TEMPLATE_TYPE,
   EVENT_TYPE,
   EVENTS,
@@ -53,6 +54,8 @@ const eventType: DocumentTypeDef = {
   linkable: { subtitle: (d) => formatHuman((d as Event).date) },
   // On the map where it is At (ADR 0122): Core stands it at the Place's or the Person's main Pin, so the Calendar reads no address.
   locatableVia: EVENT_AT_FIELD,
+  // At on a Person is where it happens, not who is seen (ADR 0119); At on a Place counts (Visited).
+  seenExcept: [{ field: EVENT_AT_FIELD, type: PERSON_TYPE }],
   href: () => EVENTS_HREF,
   order: 30,
   // Edited where it is peeked (ADR 0085): its day and times through the App's own controls.
