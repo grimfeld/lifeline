@@ -115,12 +115,55 @@ test("an Event clicked on the hours is retimed in its Peek; closing leaves one U
   await expect.poll(() => storedEvent(page, title)).toEqual({ date: "2026-11-10", start: "10:00", end: "11:00" });
 });
 
-test("an Event in Upcoming opens its Peek", async ({ page }) => {
+test("an Event in Upcoming opens its Peek on a click and on Enter, and closing hands the focus back to its row", async ({ page }) => {
   const title = `Upcoming dentist ${Date.now()}`;
   await addEvent(page, title);
   await page.goto("/calendar?view=upcoming&d=2026-11-09");
   await workLocally(page);
-  await page.getByRole("button", { name: title, exact: true }).click();
+  const row = page.getByRole("button", { name: title, exact: true });
+  await row.click();
+  let peek = await expectEventPeek(page, title);
+  await page.keyboard.press("Escape");
+  await expect(peek).toBeHidden();
+  await expect(row, "the focus is back on the row").toBeFocused();
+
+  await page.keyboard.press("Enter");
+  peek = await expectEventPeek(page, title);
+  await page.keyboard.press("Escape");
+  await expect(peek).toBeHidden();
+  await expect(row).toBeFocused();
+});
+
+/** Today's Event, 10:00–11:00, and the Screen with every Card on it, Today's agenda among them. */
+async function agendaWithEvent(page: Page, title: string) {
+  await page.goto("/screen/e2elongcontent1");
+  await workLocally(page);
+  await page.evaluate(
+    async ({ coreUrl, title }) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      await core.putDocument({ type: "event", title, notes: "", date: core.todayStr(), endDate: null, start: "10:00", end: "11:00", tags: [] });
+    },
+    { coreUrl: CORE_URL, title },
+  );
+  const card = page.locator('[data-slot="card"]').filter({ has: page.getByText("Today's agenda", { exact: true }) });
+  return card.getByRole("button").filter({ hasText: title });
+}
+
+test("an Event on the Agenda Card opens its Peek on a click, and closing hands the focus back to it", async ({ page }) => {
+  const title = `Agenda dentist ${Date.now()}`;
+  const item = await agendaWithEvent(page, title);
+  await item.click();
+  const peek = await expectEventPeek(page, title);
+  await page.keyboard.press("Escape");
+  await expect(peek).toBeHidden();
+  await expect(item, "the focus is back on the Event").toBeFocused();
+});
+
+test("an Event on the Agenda Card opens its Peek on Enter", async ({ page }) => {
+  const title = `Agenda physio ${Date.now()}`;
+  const item = await agendaWithEvent(page, title);
+  await item.focus();
+  await page.keyboard.press("Enter");
   await expectEventPeek(page, title);
 });
 

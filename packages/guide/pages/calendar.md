@@ -36,7 +36,7 @@ blocker bands.
 - **An Event** — tap (or click) it, here or on Month, Upcoming or the Agenda Card, and its
   [Peek](peek.md) opens: the Event's whole form — day and times with the quick controls, Notes,
   With and Tags — written as you change it. A piece of an Event that runs across days opens the
-  whole Event. On a phone the Peek is a sheet from the bottom, and the Event is scrolled above it.
+  whole Event. On a phone the Peek is a sheet from the bottom, and the Event (or whatever you tapped, from any view) is scrolled above it.
   Closing the Peek after changing the day or times leaves one **Undo** that puts them back.
   **Delete event** deletes it at once, with its own Undo.
 - **A Task's or a Chore's block or chip** — tap (or click) a Task's Time block and the Task's [Peek](peek.md)

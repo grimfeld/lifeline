@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Popover, PopoverAnchor, PopoverContent, Sheet, SheetContent, SheetTitle, usePhone } from "@lifeline/ui";
 import { appById, describeSpan, formatHuman, formatTime, type HoursTapped } from "@lifeline/core";
-import { useReturnToItem } from "./itemKeys";
+import { useOpenedFromItem } from "./itemKeys";
 
 /** Anchors the popover to an element that may re-render away: keep its last box. */
 function useVirtualAnchor(el: HTMLElement | null) {
@@ -40,10 +40,10 @@ function whenOf(tapped: HoursTapped): string {
  * subscription it comes from — beside the item at a desk, a bottom sheet on a
  * phone. There is nothing to edit.
  */
-export function HoursCard({ tapped, anchor, onClose }: { tapped: HoursTapped; anchor: HTMLElement | null; onClose: () => void }) {
+export function HoursCard({ tapped, anchor, placeAt, onClose }: { tapped: HoursTapped; anchor: HTMLElement | null; placeAt?: HTMLElement; onClose: () => void }) {
   const isMobile = usePhone();
-  const virtual = useVirtualAnchor(anchor);
-  const returnFocus = useReturnToItem(() => anchor);
+  const virtual = useVirtualAnchor(placeAt ?? anchor);
+  const returnFocus = useOpenedFromItem(() => anchor, { bottomSheet: isMobile });
   const { item } = tapped;
   const source = (tapped.kind === "timed" ? tapped.item.source : undefined) ?? appById(item.appId)?.title;
   const subtitle = tapped.kind === "timed" ? tapped.item.subtitle : undefined;

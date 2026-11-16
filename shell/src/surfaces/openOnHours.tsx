@@ -15,26 +15,28 @@ export function peekIdOnHours(tapped: HoursTapped): string | null {
 /**
  * Opening what was tapped on a time Surface (the Schedule, Month, Upcoming,
  * the Agenda Card): its Peek, told what was tapped and where, so it can draw
- * that timing and hand the focus back on close (#284) — or, for an item with
- * no Document, a small read-only card, which the caller mounts (`card`).
+ * that timing, keep the item above it on a phone and hand the focus back on
+ * close (#284) — or, for an item with no Document, a small read-only card,
+ * which the caller mounts (`card`). `anchor` is what was tapped, which takes
+ * the focus back; `placeAt`, where a desk card sits beside, when not there.
  */
 export function useOpenOnHours({
   defaultDay,
 }: {
   /** The day an untimed pool chip's new block lands on. */
   defaultDay: DateStr;
-}): { open: (tapped: HoursTapped, anchor: HTMLElement) => void; card: ReactNode } {
-  const [shown, setShown] = useState<{ tapped: HoursTapped; anchor: HTMLElement; id: number } | null>(null);
+}): { open: (tapped: HoursTapped, anchor: HTMLElement, placeAt?: HTMLElement) => void; card: ReactNode } {
+  const [shown, setShown] = useState<{ tapped: HoursTapped; anchor: HTMLElement; placeAt?: HTMLElement; id: number } | null>(null);
   const open = useCallback(
-    (tapped: HoursTapped, anchor: HTMLElement) => {
+    (tapped: HoursTapped, anchor: HTMLElement, placeAt?: HTMLElement) => {
       const docId = peekIdOnHours(tapped);
       // An unplaced pool chip has no day of its own: the Peek gives it a time on the day shown.
       const told: HoursTapped = tapped.kind === "work" && !tapped.item.displayDate && !tapped.item.date ? { kind: "work", item: { ...tapped.item, displayDate: defaultDay } } : tapped;
       if (docId) openPeek(docId, { tapped: told, anchor });
-      else setShown({ tapped, anchor, id: Date.now() });
+      else setShown({ tapped, anchor, placeAt, id: Date.now() });
     },
     [defaultDay],
   );
-  const card = shown && <HoursCard key={shown.id} tapped={shown.tapped} anchor={shown.anchor} onClose={() => setShown(null)} />;
+  const card = shown && <HoursCard key={shown.id} tapped={shown.tapped} anchor={shown.anchor} placeAt={shown.placeAt} onClose={() => setShown(null)} />;
   return { open, card };
 }

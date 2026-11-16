@@ -24,7 +24,7 @@ import {
 } from "@lifeline/core";
 import { ArrowLeft, ArrowUpRight, BookOpen, NotebookPen, Pencil, X } from "lucide-react";
 import { PeekContent } from "./PeekContent";
-import { useReturnToItem } from "../surfaces/itemKeys";
+import { useOpenedFromItem } from "../surfaces/itemKeys";
 
 /**
  * The **Peek** (ADR 0057): one Document opened where the user is — over the
@@ -67,8 +67,10 @@ export function PeekHost() {
   }, [location.pathname]);
   // Closed (or replaced by another), it leaves one Undo for the timing changed while it was open.
   useEffect(() => onPeekClosed(offerTimingUndo), []);
-  // Closing hands the focus back to the item it was opened from on the hours (#284); opened from anywhere else, the Sheet's own return holds.
-  const returnFocus = useReturnToItem(() => peekOrigin().anchor ?? null);
+  // Opened from the hours: on a phone the item is scrolled above the sheet, and closing hands the focus back to it (#284).
+  // Opened from anywhere else, the Sheet's own return holds.
+  const fromHours = !!id && !!peekOrigin().anchor;
+  const returnFocus = useOpenedFromItem(() => peekOrigin().anchor ?? null, { bottomSheet: isMobile });
   // Closed, it opens to read next time — even on the same Document.
   useEffect(() => {
     if (!id) setWritingId(null);
@@ -82,7 +84,8 @@ export function PeekHost() {
         side={isMobile ? "bottom" : "right"}
         className={
           isMobile
-            ? cn("gap-0 p-0", writing ? "h-dvh max-h-dvh rounded-t-none" : "max-h-[80dvh]")
+            ? // Opened from the hours, it leaves the top 40% of the screen to the hours, where what was tapped is scrolled.
+              cn("gap-0 p-0", writing ? "h-dvh max-h-dvh rounded-t-none" : fromHours ? "max-h-[60dvh]" : "max-h-[80dvh]")
             : cn("w-full gap-0 p-0", writing ? "sm:max-w-2xl" : "sm:max-w-md")
         }
         // The Peek's own ⌘E: the page's editor behind it leaves a key from in here alone.

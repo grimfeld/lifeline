@@ -766,8 +766,6 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
   const { open: openOnHours, card: hoursCard } = useOpenOnHours({ defaultDay: anchor });
   const open = useStable((target: HoursTapped, anchor: HTMLElement) => {
     if (Date.now() - lastDrag.current < 350) return;
-    // The sheet takes the lower half of a phone: bring what is being edited above it.
-    if (isMobile && anchor.closest("[data-col]")) anchor.scrollIntoView({ block: "start", behavior: "smooth" });
     openOnHours(target, anchor);
   });
   const pointer = useRef<{ y: number; grab: number }>({ y: 0, grab: 0 });

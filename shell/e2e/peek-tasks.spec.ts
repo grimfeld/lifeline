@@ -262,3 +262,71 @@ test("an Event's Peek nudges the Start, sets a length and moves to Tomorrow, wri
   await expect(dialog.getByRole("combobox", { name: "Start" })).toHaveCount(1);
   await expect(dialog.getByRole("button", { name: "15 minutes earlier" })).toHaveCount(1);
 });
+
+// --- On a phone the Peek is a bottom sheet, and what was tapped is scrolled above it (ADR 0124) ---
+
+test.describe("on a phone, what was tapped on the hours is scrolled above the Peek's sheet", () => {
+  test.skip(({ isMobile }) => !isMobile, "the bottom sheet is the phone's");
+
+  /** Events titled `title` on each day from `from` for `days` days, 10:00–11:00. */
+  const addEvents = (page: Page, title: string, from: string, days: number) =>
+    inCore(
+      page,
+      async (core, a: { title: string; from: string; days: number }) => {
+        for (let i = 0; i < a.days; i++) await core.putDocument({ type: "event", title: `${a.title} ${i}`, notes: "", date: core.addDays(a.from, i), endDate: null, start: "10:00", end: "11:00", tags: [] });
+      },
+      { title, from, days },
+    );
+
+  /** Tapped from low on the screen, the item ends up above the sheet once it has settled: wholly, or (one taller than the room above the sheet) from its start. */
+  async function tapAndExpectAboveSheet(page: Page, item: ReturnType<Page["locator"]>, title: string) {
+    await item.evaluate((el) => el.scrollIntoView({ block: "end" }));
+    const before = (await item.boundingBox())!;
+    expect(before.y, "the item starts low on the screen, where the sheet will cover it").toBeGreaterThan(780 / 2);
+    // Held before the tap: once the sheet is up, the page behind it is hidden from role queries.
+    const held = (await item.elementHandle())!;
+    await item.tap();
+    const sheet = page.getByRole("dialog", { name: title, exact: true });
+    await expect(sheet.getByRole("combobox", { name: "Start" })).toBeVisible();
+    await expect
+      .poll(async () => {
+        const [a, s] = [await held.boundingBox(), await sheet.boundingBox()];
+        return !!a && !!s && a.y >= 0 && a.y + Math.min(a.height, 24) <= s.y + 1 ? true : JSON.stringify({ a, s });
+      })
+      .toBe(true);
+  }
+
+  test("from Upcoming", async ({ page }) => {
+    const stamp = `Upcoming filler ${Date.now()}`;
+    await page.goto("/calendar?view=upcoming&d=2026-11-09");
+    await workLocally(page);
+    await addEvents(page, stamp, "2026-11-09", 21);
+    await tapAndExpectAboveSheet(page, page.getByRole("button", { name: `${stamp} 20`, exact: true }), `${stamp} 20`);
+  });
+
+  test("from the Month", async ({ page }) => {
+    const stamp = `Month late ${Date.now()}`;
+    await page.goto("/calendar?view=month&d=2026-11-09");
+    await workLocally(page);
+    await addEvents(page, stamp, "2026-11-30", 1);
+    await tapAndExpectAboveSheet(page, page.locator("[data-focus-key]", { hasText: `${stamp} 0` }), `${stamp} 0`);
+  });
+
+  test("from the Agenda Card", async ({ page }) => {
+    const stamp = `Agenda late ${Date.now()}`;
+    await page.goto("/screen/e2elongcontent1");
+    await workLocally(page);
+    const today = await inCore(page, async (core) => core.todayStr(), null);
+    await addEvents(page, stamp, today, 1);
+    const card = page.locator('[data-slot="card"]').filter({ has: page.getByText("Today's agenda", { exact: true }) });
+    await tapAndExpectAboveSheet(page, card.getByRole("button").filter({ hasText: `${stamp} 0` }), `${stamp} 0`);
+  });
+
+  test("from the Week", async ({ page }) => {
+    const stamp = `Week late ${Date.now()}`;
+    await page.goto("/calendar?view=week&d=2026-11-09");
+    await workLocally(page);
+    await inCore(page, async (core, title: string) => void (await core.putDocument({ type: "event", title, notes: "", date: "2026-11-10", endDate: null, start: "21:00", end: "22:00", tags: [] })), stamp);
+    await tapAndExpectAboveSheet(page, page.locator('[data-col="2026-11-10"] [data-focus-key]', { hasText: stamp }), stamp);
+  });
+});
