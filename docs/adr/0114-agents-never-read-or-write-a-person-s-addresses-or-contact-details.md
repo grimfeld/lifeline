@@ -1,6 +1,7 @@
 ---
 status: accepted
 amends: ADR 0105 (in part — the Private folder is no longer the only thing agents cannot see)
+amended-by: ADR 0119 (in part — a hidden Document is never named to an agent, in any field or any type)
 ---
 
 # Agents never read or write a Person's Addresses or Contact details
@@ -28,4 +29,3 @@ So **an agent sees a Person without their Addresses and Contact details**, and c
 - The Guide's People page and its agents section say exactly what an agent sees.
 - The walled keys are declared on the type (`agentWalled`). A write to a Document is checked against its own type's wall, so a type of the user's with its own `addresses` Field is written like any other. A Command's arguments and a Macro step's name no type, so they are checked against every type's wall: no Command may take an argument called `addresses` or `contactDetails`.
 - Occasions are part of the Person that the App keeps, declared like the walled parts so that no Field of the user's can take the key. That also hides them from the Fields an agent reads. They reach agents through the Person's `describe`, `people_upcoming` and the agenda instead.
-- **A hidden Document is never named to an agent, in any field or any type.** A link Field of any type whose target is hidden from agents (in the Private folder, or internal) reaches an agent blanked: get_document leaves it out and search does not match on it. A Command or Macro run by an agent resolves its link arguments only among the Documents an agent sees (`InvokeContext.sees`), so a hidden one's id, title or alias reads as no Document at all, an ambiguous name lists none, and a refused title (ADR 0119) names no hidden Document that has it.

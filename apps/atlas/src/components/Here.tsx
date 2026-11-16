@@ -8,20 +8,26 @@ import { toHit, type PlaceHit } from "./PlaceLookup";
 /** Whether this browser can give a position at all: without it, Here is not offered (#501). */
 export const canLocateHere = () => typeof navigator !== "undefined" && !!navigator.geolocation;
 
-/** Why no position came: a refusal, or none to be had (no fix, or too slow). */
-function noPositionMessage(e: GeolocationPositionError): string {
-  return e.code === e.PERMISSION_DENIED ? "Location is off for Lifeline: type its name instead." : "No position to be had right now: type its name instead.";
+/** Why no position came: a refusal, or none to be had (no fix, too slow, or a browser that threw). */
+function noPositionMessage(e: unknown): string {
+  const PERMISSION_DENIED = 1; // GeolocationPositionError.PERMISSION_DENIED, read as a number: the global may not exist.
+  return (e as GeolocationPositionError | undefined)?.code === PERMISSION_DENIED ? "Location is off for Lifeline: type its name instead." : "No position to be had right now: type its name instead.";
 }
 
-/** The device's position, read once (ADR 0120): never watched, never cached by the browser for us. */
-function readPosition(): Promise<Coords> {
-  return new Promise((resolve, reject) =>
-    navigator.geolocation.getCurrentPosition(
-      (p) => resolve({ lat: p.coords.latitude, lon: p.coords.longitude }),
-      (e) => reject(new Error(noPositionMessage(e))),
-      { enableHighAccuracy: true, timeout: 20_000, maximumAge: 0 },
-    ),
-  );
+/**
+ * The device's position, read once (ADR 0120): never watched, never cached by
+ * the browser for us. Whatever goes wrong, it rejects with one of
+ * `noPositionMessage`'s sentences, never the browser's own text.
+ */
+export function readPosition(geo: Geolocation = navigator.geolocation): Promise<Coords> {
+  return new Promise((resolve, reject) => {
+    const fail = (e: unknown) => reject(new Error(noPositionMessage(e)));
+    try {
+      geo.getCurrentPosition((p) => resolve({ lat: p.coords.latitude, lon: p.coords.longitude }), fail, { enableHighAccuracy: true, timeout: 20_000, maximumAge: 0 });
+    } catch (e) {
+      fail(e);
+    }
+  });
 }
 
 /**

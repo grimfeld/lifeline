@@ -1,5 +1,4 @@
-import { EVENT_AT_FIELD } from "@lifeline/app-calendar/src/domain/types";
-import { EVENT_TYPE, PLACE_TYPE, type Document, type SurfacePin } from "@lifeline/core";
+import { PLACE_TYPE, documentTypeSync, type Document, type SurfacePin } from "@lifeline/core";
 
 /** The World map's filter: Apps whose Pins are off, one Kind of Place, and To try. */
 export interface WorldFilter {
@@ -17,7 +16,9 @@ export interface WorldFilter {
  * the Places of another Kind or not To try. Both are read from the Place
  * itself: a Pin carries neither. An Event At a Place (#505) stands at its Pin
  * and follows its Place through both; one At a Person follows the Events chip
- * alone. `docs` holds the Places, and the Events whose At is read.
+ * alone. The At is read through the type's `locatableVia` (ADR 0122), so no
+ * App's Field key is named here. `docs` holds the Places, and the Events whose
+ * At is read.
  */
 export function worldPins(pins: readonly SurfacePin[], docs: readonly Document[], filter: WorldFilter): SurfacePin[] {
   const hidden = new Set(filter.hidden ?? []);
@@ -25,8 +26,9 @@ export function worldPins(pins: readonly SurfacePin[], docs: readonly Document[]
   const placeKept = (place: Document | undefined) => (!filter.kind || place?.kind === filter.kind) && (!filter.toTry || place?.toTry === true);
   const keeps = (p: SurfacePin) => {
     if (p.type === PLACE_TYPE) return placeKept(byId.get(p.itemId));
-    if (p.type !== EVENT_TYPE) return true;
-    const at = byId.get(p.itemId)?.[EVENT_AT_FIELD];
+    const via = documentTypeSync(p.type)?.locatableVia;
+    if (!via) return true;
+    const at = byId.get(p.itemId)?.[via];
     const target = typeof at === "string" ? byId.get(at) : undefined;
     return target?.type !== PLACE_TYPE || placeKept(target);
   };

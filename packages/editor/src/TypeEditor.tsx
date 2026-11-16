@@ -330,7 +330,7 @@ export function TypeEditor({
           </p>
         )}
         <div className="flex flex-wrap items-center justify-end gap-2">
-          {record && (
+          {record && (!base || base.overridden) && (
             <Button variant="destructive" className="mr-auto" onClick={() => void removal.ask(record, !!base)}>
               <Trash2 /> {base ? "Reset to default" : "Delete type"}
             </Button>

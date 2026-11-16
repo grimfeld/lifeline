@@ -60,13 +60,14 @@ location at all, there is no Here.
 ### To try
 
 Tick **To try** on a Place's page or in its Peek to keep it on your list of places to go. It drops
-off by itself once you have been: when an Event **At** the Place, or one whose notes link to it,
-has happened since you marked it, meaning its last day is on or after the day you ticked it, and
-before today. The day counts however you mark it: on its page, in its Peek, in a Base or by Claude. An Event from before you ticked it doesn't count, so a Place you have been to can go
-back on the list ("I want to go again"). An Event still to come, today's included,
-leaves the mark, so booking a table is not counted as going. A Day that only mentions the Place
-leaves it too. The mark is checked when an Event is saved and when you open the Place, so a dinner
-that passed since is caught then. Untick it yourself whenever you like.
+off by itself once you have been: when an Event **At** the Place, or one whose notes link to it, has
+happened since you marked it, meaning its last day is on or after the day you ticked it, and before
+today. The day counts however you mark it: on its page, in its Peek, in a Base or by Claude. An
+Event from before you ticked it doesn't count, so a Place you have been to can go back on the list
+("I want to go again"). An Event still to come, today's included, leaves the mark, so booking a
+table is not counted as going. A Day that only mentions the Place leaves it too. The mark is checked
+when an Event is saved and when you open the Place, so a dinner that passed since is caught then.
+Untick it yourself whenever you like.
 
 ### Closed
 
@@ -141,7 +142,10 @@ included. Its searches show each Place's Kind and address, and so does `agenda` 
 Place.
 
 - "Save that ramen place Anne told me about" — `places_add`, with a name and, if you like, a Kind,
-  an address (looked up once to put it on the map), aliases, Tags and To try ("I want to try it"). A name a Place already has is refused, and Claude is told which Place it is; so is renaming a Place to one (`update_document`). A Place in the Private folder is never named: Claude only learns that the name is taken.
+  an address (looked up once to put it on the map), aliases, Tags and To try ("I want to try it"). A
+  name a Place already has is refused, and Claude is told which Place it is; so is renaming a Place
+  to one (`update_document`). A Place in the Private folder is never named: Claude only learns that
+  the name is taken.
 - "Which museums have I saved?" — Claude searches your Places and reads them.
 
 ## Tips

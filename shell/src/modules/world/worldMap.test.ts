@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
-import type { Document, SurfacePin } from "@lifeline/core";
+import { initApps, type Document, type DocumentTypeDef, type SurfacePin } from "@lifeline/core";
 import { worldPins } from "./worldMap";
+
+// The Event type stands at its At (`locatableVia`), as the Calendar App declares it.
+const eventType = { id: "event", name: "Event", fields: [], locatableVia: "at" } as unknown as DocumentTypeDef;
+initApps([{ id: "calendar", title: "Calendar", types: [eventType], screens: [], cards: [], commands: [] }]);
 
 const pin = (appId: string, type: string, itemId: string, key = `${type}/${itemId}`): SurfacePin => ({ appId, type, itemId, key, name: itemId, lat: 1, lon: 2 });
 const place = (id: string, kind: string, toTry = false) => ({ id, type: "atlas_place", title: id, kind, toTry }) as unknown as Document;

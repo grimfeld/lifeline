@@ -162,10 +162,10 @@ A **Household** is the People who live together: Paul, Mary, Tom and Lily, "the 
 name, aliases, **members** you choose, and a page of your own words. It is not a family: Paul's
 mother in another town is his Tie, not a member, and Mary keeps her own name and is still one.
 
-- **Households**, beside **People** in World (its sidebar, or its tabs at the bottom,
-  against the bar, on a phone), lists every Household in the current Workspace,
-  A to Z, with the names and number of its current members (former members only on its page).
-  **Add household** takes a name and opens its page.
+- **Households**, beside **People** in World (its sidebar, or its tabs at the bottom, against the
+  bar, on a phone), lists every Household in the current Workspace, A to Z, with the names and
+  number of its current members (former members only on its page). **Add household** takes a name
+  and opens its page.
 - **A Household's page** — its name, underlined with dashes (click it to rename it; every
   `[[link]]` to it follows), its **Members**, its **Aliases** and **About it**, its body, then its
   own **Reports** (**Last seen** and **Last mentioned**) and **Timeline**: what links to the
@@ -281,7 +281,8 @@ Two things the wall doesn't cover:
 - **The body is yours.** A street or a number you write in a Person's body is read like any
   body. Lifeline doesn't look for addresses in what you write; keep them in the Person's Addresses
   and Contact details instead.
-- **The Private folder** still hides a whole Person from Claude, name and all: an Event At or With them shows Claude neither, and Claude can't name them in an Event's At or With.
+- **The Private folder** still hides a whole Person from Claude, name and all: an Event At or With
+  them shows Claude neither, and Claude can't name them in an Event's At or With.
 
 ## Tips
 

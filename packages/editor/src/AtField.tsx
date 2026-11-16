@@ -44,7 +44,7 @@ export function AtField({
         <div className="flex min-w-0">
           <span className="bg-muted inline-flex max-w-full min-w-0 items-center gap-1 rounded-md pl-1.5 text-xs">
             <MapPin className="text-muted-foreground size-3 shrink-0" />
-            <span className="min-w-0 truncate">{target ? target.title : loading ? "…" : "Place no longer here"}</span>
+            <span className="min-w-0 truncate">{target ? target.title : loading ? "…" : "No longer here"}</span>
             {target && chosen && <span className="text-muted-foreground shrink-0">{typeLine(chosen, defOf(chosen.type))}</span>}
             <Button size="icon-xs" variant="ghost" className="text-muted-foreground" aria-label="Clear At" onClick={() => onChange("")}>
               <X />

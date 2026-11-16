@@ -42,7 +42,7 @@ your change.
 ## The Guide: user-facing changes update it (ADR 0089)
 
 The **Guide** is Lifeline's in-app manual (`/guide`, and Claude's MCP `guide` tool): Markdown pages in
-`packages/guide/pages/`, one per Module, Surface and Core concept, never per App. How to write one is in
+`packages/guide/pages/`, one per Module, Surface and Core concept, never per App (a Module with several Apps may give one its own page, `kind: "module"`, ADR 0125). How to write one is in
 `packages/guide/AUTHORING.md`.
 
 - **A change a user can see updates its Guide page in the same PR.** That covers anything added, renamed,
