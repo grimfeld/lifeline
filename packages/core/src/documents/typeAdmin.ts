@@ -27,7 +27,7 @@ export async function countTypeDocuments(type: string): Promise<TypeDocumentCoun
 /**
  * Delete a user-defined type (ADR 0072): refused while any Document of it is
  * left, in any Workspace. Throws the refusal. Resetting a built-in's
- * customisation is not a delete — use `deleteDocumentType` for that.
+ * customisation is not a delete — use `resetBuiltinType` for that.
  */
 export async function deleteUserDocumentType(rec: Pick<DocumentTypeRecord, "id" | "typeId" | "label">): Promise<void> {
   const refusal = typeDeleteRefusal(rec.label, await countTypeDocuments(rec.typeId));

@@ -226,6 +226,19 @@ export async function deleteDocumentType(id: string): Promise<void> {
   await remove(DOCUMENT_TYPES, id);
 }
 
+/**
+ * Reset a built-in type to its default (ADR 0072): its override record goes,
+ * except the options the user added to a `userOptions` Choice, which stay on a
+ * record of their own — a Place with a Kind of yours must still find it (ADR
+ * 0123: an option is never removed).
+ */
+export async function resetBuiltinType(rec: DocumentTypeRecord): Promise<void> {
+  const kept = (Array.isArray(rec.fields) ? rec.fields : []).filter((f) => builtinType(rec.typeId)?.fields.find((b) => b.key === f.key)?.userOptions && f.options?.length);
+  if (kept.length === 0) return deleteDocumentType(rec.id);
+  const b = builtinType(rec.typeId);
+  await put<DocumentTypeRecord>(DOCUMENT_TYPES, { id: rec.id, typeId: rec.typeId, label: b?.label ?? rec.label, icon: b?.iconName ?? "", folder: b?.folder ?? "", fields: kept, order: 0, updatedAt: "", deleted: 0 });
+}
+
 /** Types the Vault tree shows: body-first ones (and any Document with a non-empty body, decided per row). */
 export function isVaultType(def: DocumentTypeDef): boolean {
   return !def.internal && (def.vault ?? def.body === "required");
