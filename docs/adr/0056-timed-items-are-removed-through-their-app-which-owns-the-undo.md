@@ -1,3 +1,8 @@
+---
+status: accepted
+amended-by: ADR 0124 (the timing Undo leaves on closing the Peek, not the sheet)
+---
+
 # Timed items are removed through their App, which owns the Undo
 
 On a phone the Schedule's hours are edited through a sheet opened by tapping the thing on them — a Time block, an Event or a one-off Time blocker — and that sheet must be able to remove it. A Time block is Core's (a Placement), so removing one is Core's business. An Event or a one-off blocker is the Calendar App's, and the Timed contract has so far only let Core read, move, retime and create them. We add optional **`remove`**, **`rename`** and **`href`** to the Timed contract. `remove` returns an **`undo()`**: the owning App restores what it deleted — whole, notes and Tags included — and Core only calls it. This is the contract's first destructive operation, and it mirrors Push's outcome shape (ADR 0054).
