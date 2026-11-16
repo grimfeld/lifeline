@@ -96,7 +96,7 @@ test("a Task moved to another day from Upcoming's Move to day…", async ({ page
   await expect.poll(() => dateOf(page, id)).toBe(later);
 });
 
-test("an Event's day changed in the Hours editor", async ({ page }) => {
+test("an Event's day changed in the Peek it opens from Upcoming (#536)", async ({ page }) => {
   const title = `Shift me ${Date.now()}`;
   const today = dayFromToday(0);
   await page.goto("/calendar?view=upcoming");
@@ -109,7 +109,7 @@ test("an Event's day changed in the Hours editor", async ({ page }) => {
   );
   await page.getByText(title).click();
   const later = dayFromToday(2);
-  await pickDate(page, datePickerLabelled(page, "Day"), later);
+  await pickDate(page, page.getByRole("dialog", { name: title, exact: true }).getByLabel("Day", { exact: true }), later);
   await expect.poll(() => dateOf(page, id)).toBe(later);
 });
 

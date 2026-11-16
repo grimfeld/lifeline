@@ -33,10 +33,15 @@ blocker bands.
   across days. A block never changes the item's own day.
 - **Moving and resizing** — drag a block to another hour or day; drag its bottom edge to resize.
   Everything snaps to the quarter hour. Drag a block back to the strip or the pool to remove it.
-- **Editing anything on the hours** — tap (or click) a block, an Event or a one-off blocker: change
-  its day (**Tomorrow** is one tap), start (15-minute nudges) and length, or remove it. Changes
-  apply at once; closing leaves one **Undo**. Removing a block keeps the Task; removing an Event or
-  blocker deletes it.
+- **An Event** — tap (or click) it, here or on Month, Upcoming or the Agenda Card, and its
+  [Peek](peek.md) opens: the Event's whole form — day and times with the quick controls, Notes,
+  With and Tags — written as you change it. A piece of an Event that runs across days opens the
+  whole Event. On a phone the Peek is a sheet from the bottom, and the Event is scrolled above it.
+  Closing the Peek after changing the day or times leaves one **Undo** that puts them back.
+  **Delete event** deletes it at once, with its own Undo.
+- **Editing a block or a blocker** — tap (or click) a block or a one-off blocker: change its day
+  (**Tomorrow** is one tap), start (15-minute nudges) and length, or remove it. Changes apply at
+  once; closing leaves one **Undo**. Removing a block keeps the Task; removing a blocker deletes it.
 - **Adding at an hour** — tap an empty hour on a phone, double-click on the desk: the **New event**
   dialog opens on that day at that hour, an hour long. On the desk, drag down empty hours to start
   it with that range (an End earlier than the Start is the next day's). On a phone, **+** in the
@@ -49,7 +54,8 @@ blocker bands.
 - **Ticking** — ticking a block ticks the item itself: its later blocks go, its past ones stay as
   record.
 - **On the keyboard** — Tab to a block, an Event, a chip or a one-off band: **Enter** opens it
-  (the editor sets its length too; closing it brings you back to the item). **↑** / **↓** move it
+  (an Event's Peek, or the editor that sets a block's length too; closing either brings you back
+  to the item). **↑** / **↓** move it
   a quarter hour (an hour with **Shift**), **←** / **→** a day. A chip in a day's strip moves by
   the day only; **Enter** on an Event template puts it on the day in view.
 

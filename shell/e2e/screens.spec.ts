@@ -677,6 +677,29 @@ async function quickAddOpen(page: Page) {
   await expect(place.getByText("Unplaced work", { exact: true })).toBeVisible();
 }
 
+/**
+ * An Event on the Week, clicked: its Peek (#536) — the Event Form with the
+ * longest title, notes and With a person could give it, opened from the hours
+ * (a bottom sheet on a phone, with the Event scrolled above it).
+ */
+const PEEK_DAY = "2031-01-07";
+async function eventPeekFromSchedule(page: Page) {
+  await workLocally(page);
+  const title: string = await page.evaluate(
+    async ({ coreUrl, day, title, notes }) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      const people: { id: string; title: string }[] = await core.documentsOf("contacts_person");
+      const person = people.reduce((a, b) => (b.title.length > a.title.length ? b : a));
+      await core.putDocument({ type: "event", title, notes, date: day, endDate: null, start: "10:00", end: "11:00", tags: [], with: [person.id] });
+      return title;
+    },
+    { coreUrl: CORE_URL, day: PEEK_DAY, title: longText("An event"), notes: longText("Its notes") },
+  );
+  await page.locator(`[data-col="${PEEK_DAY}"] [data-focus-key]`).filter({ hasText: title }).first().click();
+  const peek = page.getByRole("dialog", { name: title, exact: true });
+  await expect(peek.getByRole("combobox", { name: "Start" })).toBeVisible();
+}
+
 /** What Android's share sheet would open (the manifest's GET share target): no title, a long text with a long URL buried in it. */
 const LONG_SHARE = `/handoff?${new URLSearchParams({ text: `${longText("A shared passage")} https://${LONG_WORD.slice(0, 60)}.example.org/${LONG_WORD} ${longText("And more")}` })}`;
 
@@ -792,6 +815,7 @@ const SCREENS: ScreenCase[] = [
   { name: "Calendar · Day · Event dialog at an hour", path: `/calendar?view=day&d=${QUICK_ADD_DAY}`, afterOpen: quickAddOpen },
   { name: "Calendar · 3 Day", path: "/calendar?view=3day" },
   { name: "Calendar · Week", path: "/calendar?view=week" },
+  { name: "Calendar · Week · Peek of an Event", path: `/calendar?view=week&d=${PEEK_DAY}`, afterOpen: eventPeekFromSchedule },
   { name: "Calendar · Month", path: "/calendar?view=month" },
   { name: "Map", path: "/map" },
   { name: "Graph", path: "/graph" },

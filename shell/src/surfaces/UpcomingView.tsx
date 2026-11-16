@@ -17,7 +17,7 @@ import {
 } from "@lifeline/core";
 import { Check, ChevronUp } from "lucide-react";
 import { ItemMark, missed } from "./marks";
-import { HoursEditor, type HoursEditing } from "./HoursEditor";
+import { useOpenOnHours } from "./openOnHours";
 import { completeWork, useMoveDialog, WorkMenu, type DayWork } from "./WorkMenu";
 import type { CalendarCtx } from "./CalendarSurface";
 
@@ -141,9 +141,8 @@ export function UpcomingView({ ctx }: { ctx: CalendarCtx }) {
   const runs = upcomingRuns(from, to, busy, [today, anchor]);
 
   const [menuFor, setMenuFor] = useState<string | null>(null);
-  const [editing, setEditing] = useState<(HoursEditing & { id: number }) | null>(null);
   const move = useMoveDialog(today);
-  const edit = (target: HoursEditing["target"], el: HTMLElement) => setEditing({ target, anchor: el, id: Date.now() });
+  const { open: edit, editor } = useOpenOnHours({ defaultDay: anchor, inView: (d) => d >= from && d <= to, onGo: (d) => openDay(d) });
 
   // The end of the list reads further ahead as it comes into view.
   const scroller = useRef<HTMLDivElement>(null);
@@ -284,16 +283,7 @@ export function UpcomingView({ ctx }: { ctx: CalendarCtx }) {
       </div>
 
       {move.dialog}
-      {editing && (
-        <HoursEditor
-          key={editing.id}
-          editing={editing}
-          defaultDay={anchor}
-          inView={(d) => d >= from && d <= to}
-          onGo={(d) => openDay(d)}
-          onClose={() => setEditing(null)}
-        />
-      )}
+      {editor}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useId, useState } from "react";
 import { Field, TagInput, Textarea, useCommitDraft } from "@lifeline/ui";
-import { normalizeTag, useTagVocabulary } from "@lifeline/core";
+import { noteTiming, normalizeTag, useTagVocabulary } from "@lifeline/core";
 import { PeopleField } from "@lifeline/editor";
 import type { Event } from "../domain/types";
 import { whenFormErrors, whenOf, type WhenForm, type WhenFormErrors } from "../domain/eventForm";
@@ -29,6 +29,8 @@ export interface EventDraft extends WhenForm {
  * - **editing** — an existing Event, written as it changes: its day and times
  *   through the guarded `setEventWhen` once they make an Event (`whenFormErrors`),
  *   its notes a moment after typing stops, With and Tags at once (`editEvent`).
+ *   A change of day and times is noted to the Peek (`noteTiming`), which leaves
+ *   one Undo for it on closing (ADR 0056, #536).
  *
  * `idPrefix` names its controls (`whenIds`, then `<prefix>notes`, `with` and
  * `tags`): the Peek may sit over a page with the dialog's. The user's own
@@ -46,6 +48,9 @@ export function EventForm(props: EventFormProps) {
   // Keyed by the Event: following a link to another one must not carry an edit over.
   return <EditingForm key={props.event.id} event={props.event} idPrefix={props.idPrefix} />;
 }
+
+/** What the Peek's timing Undo knows an Event's day and times by. */
+export const eventTimingKey = (id: string) => `event:${id}`;
 
 /** Typed values are written a moment after the typing stops, as the Vault's editor writes. */
 const WRITE_DELAY = 500;
@@ -85,7 +90,11 @@ function EditingForm({ event, idPrefix }: { event: Event; idPrefix?: string }) {
           const next = patch.when;
           const ok = Object.keys(whenFormErrors(next)).length === 0;
           setUnfinished(ok ? null : next);
-          if (ok) written.change(next);
+          if (ok) {
+            written.change(next);
+            const before = whenOf(whenFormOf(event));
+            noteTiming({ key: eventTimingKey(event.id), label: event.title, before, after: whenOf(next), restore: () => setEventWhen(event.id, before) });
+          }
         }
       }}
     />

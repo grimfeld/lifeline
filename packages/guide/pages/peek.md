@@ -11,6 +11,8 @@ sheet from the bottom on a phone. The page behind stays in view.
 - **When it opens** — clicking a link, a backlink, a search result or a chip on a Surface opens a
   Peek, unless you are already in that Document's own Module.
 - **Ctrl+Enter** on a link in the editor peeks it, wherever it lives.
+- **From the hours** — tapping an Event on the [Calendar](calendar.md) (Schedule, Month,
+  Upcoming) or the Agenda Card opens its Peek; closing it brings the focus back to the Event.
 - **What it shows** — the Document's type and Module, its fields and its main actions, drawn by
   the App that owns it; your own Fields beneath.
 - **Edit** — change its fields right there.
@@ -20,6 +22,9 @@ sheet from the bottom on a phone. The page behind stays in view.
 - **Write in the Vault** — open its body in the [Vault](vault.md).
 - **Back** — following a link inside a Peek replaces what it shows; Back returns. A Peek never
   opens on top of another Peek.
+- **Undo for the timing** — closing a Peek in which you changed a day or a time (an Event's, say)
+  leaves one **Undo** that puts them back as they were when it opened, wherever it was opened
+  from. Deleting has its own Undo, at once.
 - Going to another page closes it.
 
 ## The Selection menu

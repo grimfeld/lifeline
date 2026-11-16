@@ -137,7 +137,7 @@ test("dragging the next-day piece of an overnight Event moves the whole Event, k
 });
 
 test("only the last piece of an overnight Event resizes, and it moves only the end", async ({ page, isMobile }) => {
-  test.skip(isMobile, "a phone sets an end in the Hours editor, not by an edge");
+  test.skip(isMobile, "a phone sets an end in the Event's Peek, not by an edge");
   const title = `Sleeper ${Date.now()}`;
   const { monday, tuesday } = await weekWithNightFlight(page, title);
   await expect(monday.locator(".cursor-ns-resize"), "the first piece carries on: no end of its own to drag").toHaveCount(0);
@@ -148,19 +148,19 @@ test("only the last piece of an overnight Event resizes, and it moves only the e
   await expect.poll(() => storedEvent(page, title)).toEqual({ date: "2025-11-10", endDate: "2025-11-11", start: "22:00", end: "07:00" });
 });
 
-test("the Hours editor gives an Event a Start and an End, rolling an earlier End to the next day", async ({ page }) => {
+test("an Event tapped on the hours gets a Start and an End in its Peek, rolling an earlier End to the next day (#536)", async ({ page }) => {
   const title = `Late shift ${Date.now()}`;
   await page.goto("/calendar?view=week&d=2025-11-10");
   await workLocally(page);
   await seedEvent(page, { title, date: "2025-11-10", endDate: null, start: "20:00", end: "21:00" });
   await page.locator('[data-col="2025-11-10"]').getByText(title).click();
-  await expect(page.getByRole("combobox", { name: "Start" })).toBeVisible();
-  await expect(page.getByRole("group", { name: "Length" }), "an Event is given an end, not a length").toHaveCount(0);
-  await setTime(page.getByRole("combobox", { name: "End" }), "02:00");
-  await expect(page.getByText(/^until Tue.* · 6h$/)).toBeVisible();
+  const peek = page.getByRole("dialog", { name: title, exact: true });
+  await expect(peek.getByRole("combobox", { name: "Start" })).toBeVisible();
+  await setTime(peek.getByRole("combobox", { name: "End" }), "02:00");
+  await expect(peek.getByText(/^until Tue.* · 6h$/)).toBeVisible();
   await expect.poll(() => storedEvent(page, title)).toEqual({ date: "2025-11-10", endDate: "2025-11-11", start: "20:00", end: "02:00" });
   // Moving the Start keeps the length.
-  await setTime(page.getByRole("combobox", { name: "Start" }), "19:00");
+  await setTime(peek.getByRole("combobox", { name: "Start" }), "19:00");
   await expect.poll(() => storedEvent(page, title)).toEqual({ date: "2025-11-10", endDate: "2025-11-11", start: "19:00", end: "01:00" });
 });
 

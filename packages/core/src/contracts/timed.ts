@@ -313,6 +313,12 @@ export interface TimedProvider {
   rename?(itemId: string, title: string): Promise<void>;
   /** Optional route that opens the item where its App edits it in full. */
   href?(itemId: string): string;
+  /**
+   * The Document whose Peek opens when the item is tapped on the hours (#536):
+   * the whole Event for any of its pieces (ADR 0090). null, or no hook, leaves
+   * the item to the hours editor.
+   */
+  peekOf?(item: TimedItem): string | null;
 }
 
 export interface SurfaceTimedItem extends TimedItem {
@@ -433,6 +439,11 @@ export async function renameTimedItem(item: Pick<TimedItem, "appId" | "itemId">,
   const provider = providerOf(item.appId);
   if (!provider?.rename) throw new Error(`${appById(item.appId)?.title ?? item.appId} items can't be renamed here`);
   await provider.rename(item.itemId, title);
+}
+
+/** The Document a tap on the item peeks (its App's `peekOf`); null when the App names none. */
+export function timedPeekId(item: TimedItem): string | null {
+  return providerOf(item.appId)?.peekOf?.(item) ?? null;
 }
 
 /** Where the owning App edits the item in full; undefined when it offers no route. */

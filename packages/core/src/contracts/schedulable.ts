@@ -28,6 +28,18 @@ export interface SchedulableItem {
 }
 
 /**
+ * A work item as the hours show it: a Time block (a placement with a start,
+ * ADR 0028) or an untimed chip (no placement, or one without a start).
+ */
+export type WorkOnHours = Pick<SchedulableItem, "appId" | "itemId" | "title" | "date" | "completedOn" | "estimateMin"> & {
+  color?: string;
+  displayDate?: DateStr;
+  placementId?: string;
+  start?: string | null;
+  end?: string | null;
+};
+
+/**
  * The Schedulable Contract (ADR 0001): surfaces render items from every
  * provider, but all semantics — what completing means, what happens when a
  * day passes uncompleted — belong to the owning App.
