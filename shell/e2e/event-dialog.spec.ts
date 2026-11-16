@@ -133,6 +133,7 @@ test("the Event dialog's quick controls change its draft: earlier/later, a lengt
   await expect(dialog).toBeHidden();
   await expect.poll(async () => { const e = await storedEvent(page, title); return e && { start: e.start, end: e.end }; }).toEqual({ start: "14:15", end: "15:45" });
   expect((await storedEvent(page, title))!.date).not.toBe("2026-11-10");
+});
 
 const addTemplate = (page: Page, title: string, over: Record<string, unknown> = {}) =>
   page.evaluate(

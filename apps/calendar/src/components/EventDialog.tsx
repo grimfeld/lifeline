@@ -98,7 +98,7 @@ export function EventDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md" onInteractOutside={(e) => {e.preventDefault();}}>
+      <DialogContent className="md:max-h-[90vh] md:overflow-y-auto sm:max-w-md" onInteractOutside={(e) => {e.preventDefault();}}>
         <DialogHeader>
           <DialogTitle>New event</DialogTitle>
         </DialogHeader>
