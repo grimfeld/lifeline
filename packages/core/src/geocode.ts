@@ -121,6 +121,12 @@ const ADDRESS_KEYS = new Set(["highway", "place", "boundary"]);
 /** A point of interest's own name: a named feature that is no street, town or border. */
 const poiName = (p: PhotonFeature["properties"]): string | undefined => (p.name?.trim() && p.osm_key && !ADDRESS_KEYS.has(p.osm_key) ? p.name.trim() : undefined);
 
+/** One Photon feature as a hit; `name` is set for a point of interest only. */
+function photonHit(f: PhotonFeature): GeocodeHit {
+  const name = poiName(f.properties);
+  return { lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0], label: photonLabel(f.properties), ...(name ? { name } : {}) };
+}
+
 /**
  * Address suggestions while typing (debounce on the caller's side, ≥3 chars
  * recommended). A point of interest keeps its `name` beside its address, so
@@ -139,12 +145,7 @@ export async function suggestAddresses(query: string, limit = 6): Promise<Geocod
   const res = await fetch(url, { signal: suggestAbort.signal, headers: { Accept: "application/json" } });
   if (!res.ok) throw new Error(`Address search failed (${res.status})`);
   const data = (await res.json()) as { features: PhotonFeature[] };
-  const out = data.features
-    .map((f) => {
-      const name = poiName(f.properties);
-      return { lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0], label: photonLabel(f.properties), ...(name ? { name } : {}) };
-    })
-    .filter((h) => Number.isFinite(h.lat) && Number.isFinite(h.lon) && h.label);
+  const out = data.features.map(photonHit).filter((h) => Number.isFinite(h.lat) && Number.isFinite(h.lon) && h.label);
   suggestCache.set(key, out);
   return out;
 }
@@ -156,19 +157,17 @@ const PHOTON_REVERSE = "https://photon.komoot.io/reverse";
 /**
  * The points of interest around a position, nearest first, for Here on the
  * Place form (ADR 0119). Asked once per tap, never in the background. The
- * position goes to Photon only: it is never cached, stored or logged, and a
+ * position, rounded to 4 decimals, goes to Photon only: it is never cached, stored or logged, and a
  * failure names the status alone. A street, a town or an unnamed feature is
  * left out: "Just here" covers a spot no lookup knows.
  */
 export async function placesNearby(at: Coords, limit = 10): Promise<GeocodeHit[]> {
   const lang = (typeof navigator !== "undefined" ? navigator.language : "en").slice(0, 2);
-  const params = new URLSearchParams({ lat: String(at.lat), lon: String(at.lon), limit: String(limit), radius: "0.2", lang: ["en", "de", "fr", "it"].includes(lang) ? lang : "en" });
+  // 4 decimals (~11 m) is finer than the 200 m search needs: the exact fix stays on the device (ADR 0120).
+  const near = (n: number) => n.toFixed(4);
+  const params = new URLSearchParams({ lat: near(at.lat), lon: near(at.lon), limit: String(limit), radius: "0.2", lang: ["en", "de", "fr", "it"].includes(lang) ? lang : "en" });
   const res = await fetch(`${PHOTON_REVERSE}?${params}`, { headers: { Accept: "application/json" } });
   if (!res.ok) throw new Error(`Nearby search failed (${res.status})`);
   const data = (await res.json()) as { features: PhotonFeature[] };
-  return data.features.flatMap((f) => {
-    const name = poiName(f.properties);
-    const hit = { lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0], label: photonLabel(f.properties) };
-    return name && Number.isFinite(hit.lat) && Number.isFinite(hit.lon) ? [{ ...hit, name }] : [];
-  });
+  return data.features.map(photonHit).filter((h) => h.name && Number.isFinite(h.lat) && Number.isFinite(h.lon));
 }

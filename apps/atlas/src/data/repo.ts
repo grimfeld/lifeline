@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { PLACE_TYPE, allDocumentTypes, assertTitleFree, allDocuments, buildLinkIndex, createDocument, documentsOf, getDocument, locateAddress, normalizeTags, patchDocument, renameDocument, saveFieldOptions, todayStr, useDocuments, writeGeo, type Coords, type Document, type Located, type Lookup } from "@lifeline/core";
+import { PLACE_TYPE, allDocumentTypes, assertTitleFree, allDocuments, buildLinkIndex, createDocument, documentsOf, extractLinks, normalizeName, getDocument, locateAddress, normalizeTags, patchDocument, renameDocument, saveFieldOptions, todayStr, useDocuments, writeGeo, type Coords, type Document, type Located, type Lookup } from "@lifeline/core";
 import { hasHappened, kindFrom, normalizePlace, toTrySinceOf, visitedBy } from "../domain/place";
 import { PLACES_FOLDER, type Place } from "../domain/types";
 
@@ -64,7 +64,7 @@ export async function addPlace(
     type: PLACE_TYPE,
     title: name,
     folder: PLACES_FOLDER,
-    fields: { aliases: cleanAliases(input.aliases), kind, tags: normalizeTags(input.tags ?? []), ...address, ...toTryFields(input.toTry === true), closed: false },
+    fields: { aliases: cleanAliases(input.aliases), kind, tags: normalizeTags(input.tags ?? []), ...address, toTry: input.toTry === true, closed: false },
   });
   return normalizePlace(doc);
 }
@@ -86,13 +86,6 @@ export async function setPlaceAddress(id: string, input: AddressInput, lookup: L
   return placed;
 }
 
-/**
- * To try and the day it was marked (ADR 0119): only an Event that has
- * happened since that day clears it, so a Place gone to before can be marked
- * again. Unmarked, no day is kept.
- */
-const toTryFields = (toTry: boolean): { toTry: boolean; toTrySince: string } => ({ toTry, toTrySince: toTry ? todayStr() : "" });
-
 export interface PlacePatch {
   title?: string;
   kind?: string;
@@ -105,7 +98,9 @@ export interface PlacePatch {
 
 /**
  * Change a Place: only the patched keys. A new name renames it, rewriting
- * every `[[link]]` to the old one; one another Place has is refused (Core's `TitleTaken`).
+ * every `[[link]]` to the old one; one another Place has is refused (Core's
+ * `TitleTaken`) before anything is written. The fields are written first and
+ * the rename last, so a refused or failed rename never leaves the rest half done.
  */
 export async function patchPlace(id: string, patch: PlacePatch): Promise<void> {
   const { title, ...rest } = patch;
@@ -113,19 +108,21 @@ export async function patchPlace(id: string, patch: PlacePatch): Promise<void> {
   if (rest.kind !== undefined) fields.kind = kindFrom(rest.kind);
   if (rest.aliases) fields.aliases = cleanAliases(rest.aliases);
   if (rest.tags) fields.tags = normalizeTags(rest.tags);
-  if (rest.toTry !== undefined) {
-    const was = await getDocument(id);
-    // Marked again while marked keeps its day; marked anew starts from today.
-    if (!(rest.toTry && was?.toTry === true)) Object.assign(fields, toTryFields(rest.toTry));
-  }
+  // Its day is Core's to keep (`beforeSave`): marked anew starts from today, marked again while marked keeps its day.
+  if (rest.toTry !== undefined) fields.toTry = rest.toTry;
   if (rest.closed !== undefined) fields.closed = rest.closed;
-  if (title !== undefined) {
-    if (!title.trim()) throw new Error("A Place needs a name");
-    const doc = await getDocument(id);
-    // Core holds Places' titles unique in every folder (`uniqueTitles`): a taken one is refused with `TitleTaken`.
-    if (doc) await renameDocument(doc, title);
+  const renamed = title !== undefined ? title.trim() : undefined;
+  if (renamed !== undefined) {
+    if (!renamed) throw new Error("A Place needs a name");
+    // Refused up front, so the fields below are not written for a rename that cannot be.
+    if (Object.keys(fields).length) assertTitleFree(await documentsOf(PLACE_TYPE), PLACE_TYPE, PLACES_FOLDER, renamed, id);
   }
   if (Object.keys(fields).length) await patchDocument(id, fields);
+  if (renamed !== undefined) {
+    const doc = await getDocument(id);
+    // Core holds Places' titles unique in every folder (`uniqueTitles`): a taken one is refused with `TitleTaken`.
+    if (doc) await renameDocument(doc, title!);
+  }
 }
 
 /** Rename and add Kinds: the list as the user wants it, a new one with no value. None is ever lost. */
@@ -141,15 +138,48 @@ export const saveKindOptions = (options: readonly { value?: string; label: strin
  * opened, so a dinner that passed while nothing was saved still counts.
  */
 export async function settleToTry(placeId?: string): Promise<void> {
-  const marked = (await documentsOf(PLACE_TYPE)).filter((p) => p.toTry === true && (!placeId || p.id === placeId));
+  await settle((await documentsOf(PLACE_TYPE)).filter((p) => p.toTry === true && (!placeId || p.id === placeId)));
+}
+
+/** Clear To try on those of `marked` gone to since it was set. Core's `beforeSave` drops the day with the mark. */
+async function settle(marked: readonly Document[]): Promise<void> {
   if (marked.length === 0) return;
   const today = todayStr();
   // Built here, not through the UI's shared index, so a save never evicts the screen's.
   const index = buildLinkIndex(await allDocuments(), allDocumentTypes());
-  for (const p of marked) if (visitedBy(index, p.id, today, toTrySinceOf(p))) await patchDocument(p.id, toTryFields(false));
+  for (const p of marked) if (visitedBy(index, p.id, today, toTrySinceOf(p))) await patchDocument(p.id, { toTry: false });
 }
 
-/** After an Event is saved (Core's `afterSaveOf`, ADR 0121): only one that has happened can clear a To try. */
+/**
+ * After an Event is saved (Core's `afterSaveOf`, ADR 0121): only one that has
+ * happened can clear a To try, and only on a Place it may link to: one whose
+ * id it holds (its At) or whose name or alias a `[[link]]` in it writes. Those
+ * are settled over the whole link index, so a name resolves as everywhere; an
+ * Event that names no To try Place costs no index at all.
+ */
 export async function afterEventSaved(event: Document): Promise<void> {
-  if (hasHappened(event, todayStr())) await settleToTry();
+  if (!hasHappened(event, todayStr())) return;
+  const marked = (await documentsOf(PLACE_TYPE)).filter((p) => p.toTry === true);
+  if (marked.length === 0) return;
+  const { ids, names } = referencesIn(event);
+  await settle(marked.filter((p) => ids.has(p.id) || [p.title, ...(Array.isArray(p.aliases) ? p.aliases : [])].some((n) => typeof n === "string" && names.has(normalizeName(n)))));
+}
+
+/** Every id a Document's fields hold, and every name its `[[links]]` write (the last part of a path, any `type:` prefix off): a superset of what it links to. */
+function referencesIn(doc: Document): { ids: Set<string>; names: Set<string> } {
+  const ids = new Set<string>();
+  const names = new Set<string>();
+  const read = (v: unknown): void => {
+    if (Array.isArray(v)) return v.forEach(read);
+    if (typeof v !== "string") return;
+    ids.add(v);
+    if (!v.includes("[[")) return;
+    for (const l of extractLinks(v)) {
+      const name = l.name.split("/").at(-1) ?? "";
+      names.add(normalizeName(name));
+      names.add(normalizeName(name.slice(name.indexOf(":") + 1)));
+    }
+  };
+  for (const [k, v] of Object.entries(doc)) if (k !== "id") read(v);
+  return { ids, names };
 }

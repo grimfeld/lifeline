@@ -99,3 +99,14 @@ export const visitedBy = (index: LinkIndex, placeId: string, today: DateStr, sin
 
 /** The day a Place was marked To try, when it was marked by a build that keeps it; none for an older mark. */
 export const toTrySinceOf = (doc: Document): DateStr | undefined => (typeof doc.toTrySince === "string" && /^\d{4}-\d{2}-\d{2}$/.test(doc.toTrySince) ? doc.toTrySince : undefined);
+
+/**
+ * The To try day a Place's write keeps (ADR 0119), whoever writes it (Core's
+ * `beforeSave`, ADR 0123): marked anew, today; still marked, the day it has
+ * (none for an older build's mark); unmarked, none.
+ */
+export function toTryOnSave(next: Document, was: Document | undefined, today: DateStr): { toTrySince: string } | undefined {
+  if (next.toTry !== true) return next.toTrySince ? { toTrySince: "" } : undefined;
+  if (was?.toTry === true) return { toTrySince: typeof was.toTrySince === "string" ? was.toTrySince : "" };
+  return { toTrySince: today };
+}
