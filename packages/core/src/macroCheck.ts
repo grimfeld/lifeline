@@ -1,6 +1,7 @@
 import { commandKey, commandNavigates, isInvocable, linkableDocuments, linkSource, linkProblemText, linkValues, matchLinks, pickLinked, readCommandArgs, takesDocument, type LinkableDocument, type OwnedCommand } from "./commands";
 import { MACRO_APP, type MacroShape } from "./macros";
 import type { CommandArg } from "./manifest";
+import type { Document } from "./documents/types";
 
 /**
  * The check a Macro passes before its first step (ADR 0092): every step can be
@@ -20,6 +21,11 @@ export interface DocumentLookup {
 
 /** The lookup over the local store, through its Workspace gates — the shell's, and the MCP device worker's. */
 export const storeLookup: DocumentLookup = { linkable: linkableDocuments };
+
+/** `storeLookup` for a caller that sees only some Documents (`InvokeContext.sees`, an agent's, ADR 0114). */
+export function seeingLookup(sees: (doc: Document) => boolean): DocumentLookup {
+  return { linkable: async (arg) => (await linkableDocuments(arg)).filter(sees) };
+}
 
 /**
  * One reason a Macro is broken. `fixed-link` is a fixed link, or entry of a

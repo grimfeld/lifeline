@@ -141,7 +141,7 @@ included. Its searches show each Place's Kind and address, and so does `agenda` 
 Place.
 
 - "Save that ramen place Anne told me about" — `places_add`, with a name and, if you like, a Kind,
-  an address (looked up once to put it on the map), aliases, Tags and To try ("I want to try it"). A name a Place already has is refused, and Claude is told which Place it is; so is renaming a Place to one (`update_document`).
+  an address (looked up once to put it on the map), aliases, Tags and To try ("I want to try it"). A name a Place already has is refused, and Claude is told which Place it is; so is renaming a Place to one (`update_document`). A Place in the Private folder is never named: Claude only learns that the name is taken.
 - "Which museums have I saved?" — Claude searches your Places and reads them.
 
 ## Tips
