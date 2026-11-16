@@ -65,16 +65,18 @@ test.describe("with the position granted", () => {
     await dialog.getByRole("button", { name: "Here" }).click();
 
     const nearby = dialog.getByRole("group", { name: "Places here" });
+    await expect(dialog.getByRole("status").filter({ hasText: "Which one are you in?" })).toHaveCount(1);
     // A street is no place to pick: only the restaurant is offered.
     await expect(nearby.getByRole("button", { name: /Rue Roger Verlomme, 75003/ })).toHaveCount(1);
     await nearby.getByRole("button", { name: /^Chez Janou/ }).click();
     await expect(dialog.getByLabel("Name")).toHaveValue("Chez Janou");
+    await expect(dialog.getByLabel("Name")).toBeFocused();
     await expect(dialog.getByLabel("Address")).toHaveValue("2 Rue Roger Verlomme, 75003 Paris, France");
     await expect(dialog.getByText("On the map at 48.8556, 2.3655")).toBeVisible();
     await expect(nearby).toBeHidden();
 
-    // The position went to Photon, once.
-    expect(asked.map((u) => [u.searchParams.get("lat"), u.searchParams.get("lon")])).toEqual([["48.85561", "2.36549"]]);
+    // The position went to Photon, once, rounded to 4 decimals.
+    expect(asked.map((u) => [u.searchParams.get("lat"), u.searchParams.get("lon")])).toEqual([["48.8556", "2.3655"]]);
 
     await dialog.getByRole("button", { name: "Add", exact: true }).click();
     await expect.poll(() => placeNamed(page, "Chez Janou")).toMatchObject({ address: "2 Rue Roger Verlomme, 75003 Paris, France", geo: [48.8556, 2.3655] });
@@ -94,6 +96,7 @@ test.describe("with the position granted", () => {
     await dialog.getByRole("button", { name: "Here" }).click();
     await dialog.getByRole("group", { name: "Places here" }).getByRole("button", { name: "Just here" }).click();
     await expect(dialog.getByLabel("Name")).toHaveValue("The viewpoint");
+    await expect(dialog.getByLabel("Name")).toBeFocused();
     await expect(dialog.getByText("On the map at 48.8556, 2.3655")).toBeVisible();
     await dialog.getByRole("button", { name: "Add", exact: true }).click();
     await expect.poll(() => placeNamed(page, "The viewpoint")).toMatchObject({ address: "", geo: [48.85561, 2.36549] });
