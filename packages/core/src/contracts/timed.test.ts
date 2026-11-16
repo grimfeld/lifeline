@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { allDayLead, isMissedMarker, clockMinutes, clockOf, lastDayCovered, momentAfter, spanLength, cutEdges, describeSpan, formatTime, minutesUntil, pieceLead, spanEndingAt, spanIsValid, spanWithEnd, spanLasting, spanMovedTo, startDayMovedTo } from "./timed";
+import { lastDayCovered } from "../dates";
+import { allDayLead, isMissedMarker, clockMinutes, clockOf, momentAfter, spanLength, cutEdges, describeSpan, formatTime, minutesUntil, pieceLead, spanEndingAt, spanIsValid, spanWithEnd, spanLasting, spanMovedTo, startDayMovedTo } from "./timed";
 
 describe("formatTime", () => {
   it("reads a clock time in the locale's style", () => {

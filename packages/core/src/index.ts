@@ -1,5 +1,6 @@
 export * from "./demo";
 export * from "./dates";
+export { errorMessage } from "./errors";
 export * from "./calendarViews";
 export * from "./ids";
 export * from "./editQueue";

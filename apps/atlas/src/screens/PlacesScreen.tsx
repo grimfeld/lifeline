@@ -12,9 +12,12 @@ import { placeHref } from "../constants";
 
 const ANY = "__any__";
 
-/** The three lists, and what each says when the Kind leaves none. */
+/** What the lists say when a Kind is picked and leaves none. */
+const NO_PLACE_OF_KIND = "No place of that Kind.";
+
+/** The three lists, and what each says when it is empty. */
 const LISTS: { value: PlacesShown; label: string; none: string }[] = [
-  { value: "open", label: "All", none: "No place of that Kind." },
+  { value: "open", label: "All", none: "No open place." },
   { value: "toTry", label: "To try", none: "No place to try here: mark one To try on its page." },
   { value: "closed", label: "Closed", none: "No closed place here." },
 ];
@@ -124,7 +127,7 @@ export function PlacesScreen() {
             </PhoneFilters>
           </PhoneDock>
           {shown.length === 0 ? (
-            <p className="text-muted-foreground text-sm">{kind ? "No place of that Kind." : none}</p>
+            <p className="text-muted-foreground text-sm">{kind ? NO_PLACE_OF_KIND : none}</p>
           ) : (
             <ul className="grid min-w-0" aria-label="Places">
               {shown.map((p) => (

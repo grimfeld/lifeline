@@ -1,8 +1,8 @@
 import { useEffect, useId, useState } from "react";
+import { errorMessage } from "@lifeline/core";
 import { Button, Checkbox, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, toast } from "@lifeline/ui";
 import { applyTidy } from "../data/repo";
 import type { TidyRow } from "../domain/givenNames";
-import { message } from "./writes";
 
 /**
  * The one-off tidy-up of given-name aliases (ADR 0117): People whose title begins
@@ -32,7 +32,7 @@ export function TidyNamesDialog({ open, onOpenChange, rows }: { open: boolean; o
       toast.success(n === 1 ? "Tidied 1 person" : `Tidied ${n} people`);
       onOpenChange(false);
     } catch (e) {
-      setError(message(e));
+      setError(errorMessage(e));
     } finally {
       setBusy(false);
     }

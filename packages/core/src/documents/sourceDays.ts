@@ -1,4 +1,4 @@
-import { addDays, type DateStr } from "../dates";
+import { addDays, lastDayCovered, type DateStr } from "../dates";
 import type { Document } from "./types";
 
 /** The Day's type: its Documents are titled by their date. */
@@ -38,7 +38,7 @@ export function eventSpan(src: Document | undefined): { from: DateStr; to: DateS
   if (!from) return undefined;
   const end = dateIn(src.endDate);
   if (!end || end <= from) return { from, to: from };
-  return { from, to: src.end === "00:00" ? addDays(end, -1) : end };
+  return { from, to: lastDayCovered({ date: from, endDate: end, end: String(src.end) }) };
 }
 
 /**

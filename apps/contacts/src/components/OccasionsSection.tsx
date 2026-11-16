@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { Button, Checkbox, ChoiceField, DatePicker, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Field, Input } from "@lifeline/ui";
 import { CalendarHeart } from "lucide-react";
-import { todayStr } from "@lifeline/core";
+import { errorMessage, todayStr } from "@lifeline/core";
 import type { Occasion, Person } from "../domain/types";
 import { dotJoin } from "../domain/dots";
 import { describeDay, isBirthday, occasionDayProblem, occasionLabelProblem, upcomingOccasions, whenOf } from "../domain/occasions";
 import { addOccasion, editOccasion, removePart, restorePart } from "../data/repo";
 import { asksMonthDay, dayWhenNoYear, daysIn, monthDay, occasionDraft, occasionInput, pickerDay, type OccasionDraft } from "../domain/occasionForm";
-import { message, removeWithUndo } from "./writes";
+import { removeWithUndo } from "./writes";
 import { Section } from "./Section";
 import { AddRow, CardList, CardRow } from "./Cards";
 
@@ -79,7 +79,7 @@ function OccasionForm({ personId, editing, onClose }: { personId: string; editin
       else await editOccasion(personId, editing.id, input);
       onClose();
     } catch (e) {
-      setError(message(e));
+      setError(errorMessage(e));
     }
   }
 
