@@ -298,6 +298,14 @@ describe("To try (ADR 0119)", () => {
     expect((await getDocument(janou.id))?.toTrySince).toBe("");
   });
 
+  it("made To try through Core, as an agent or an import makes one, is kept by an Event from the day before", async () => {
+    // Core's createDocument stamps the day too, so yesterday's dinner predates today's mark (F4).
+    const janou = await createDocument({ type: PLACE_TYPE, title: "Chez Janou", folder: "Places", fields: { aliases: [], toTry: true } });
+    expect((await getDocument(janou.id))?.toTrySince).toBe("2026-11-15");
+    await event("Dinner", { date: "2026-11-14", at: janou.id });
+    expect(await toTry(janou.id)).toBe(true);
+  });
+
   it("is not cleared by a Day that only mentions the Place", async () => {
     const janou = await markedOn("2026-11-02", () => addPlace({ name: "Chez Janou", toTry: true }));
     await createDocument({ type: "note", title: "Saturday", body: "Anne says [[Chez Janou]] is good." });
