@@ -326,6 +326,13 @@ export interface DocumentTypeDef {
    */
   uniqueTitles?: boolean;
   /**
+   * Links of this type's Fields that do not count their target as Seen (ADR
+   * 0112): an Event's At on a Person (ADR 0119) is where it happens, not who
+   * is seen. Each entry names a Link field and the type it points at; every
+   * other link, a wikilink in the text included, still counts.
+   */
+  seenExcept?: readonly { field: string; type: string }[];
+  /**
    * How the owning App makes one of these from a name alone, by its own rules
    * — so a field elsewhere (an Event's At, ADR 0119) can offer "Create …"
    * without importing the App (ADR 0100). Answers the Document there is when

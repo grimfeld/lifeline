@@ -60,6 +60,8 @@ export interface LinkIndex {
    */
   linkSources: Document[];
   byId: Map<string, Document>;
+  /** The type of a Document type id, as the index was built with. */
+  defOf(type: string): DocumentTypeDef | undefined;
   /** Resolve a name as written in [[…]] (with an optional `type:` prefix). The first target when a name expands to several. */
   resolve(name: string): LinkRef;
   /** Every target a written name stands for (ADR 0032) — several when a type's expander splits it. */
@@ -352,6 +354,7 @@ function assemble(docs: Document[], t: Targets, contributions: Map<string, Contr
     docs,
     linkSources: docs.filter((d) => originatesLinks(defs.get(d.type))),
     byId,
+    defOf: (type) => defs.get(type),
     resolve: t.resolve,
     resolveAll: t.resolveAll,
     linksFrom: (id) => linksFromMap.get(id) ?? [],
