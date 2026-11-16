@@ -700,6 +700,26 @@ async function eventPeekFromSchedule(page: Page) {
   await expect(peek.getByRole("combobox", { name: "Start" })).toBeVisible();
 }
 
+/**
+ * A Task's Time block on the Week, clicked: the Task's Peek (#537) with the
+ * block's timing above its Form, the longest title and notes a person could give it.
+ */
+async function taskPeekFromBlock(page: Page) {
+  await workLocally(page);
+  const title: string = await page.evaluate(
+    async ({ coreUrl, day, title, notes }) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      const task = await core.putDocument({ type: "task", title, status: "active", date: day, completedOn: null, recurrence: null, notes, tags: [], estimate: 90 });
+      await core.addTimeBlock("tasks", task.id, day, { start: "14:00", end: "15:30" });
+      return title;
+    },
+    { coreUrl: CORE_URL, day: PEEK_DAY, title: longText("A task"), notes: longText("Its notes") },
+  );
+  await page.locator(`[data-col="${PEEK_DAY}"] [data-focus-key]`).filter({ hasText: title }).first().click();
+  const peek = page.getByRole("dialog", { name: title, exact: true });
+  await expect(peek.getByRole("region", { name: "Time block" }).getByRole("button", { name: "Remove block" })).toBeVisible();
+}
+
 /** What Android's share sheet would open (the manifest's GET share target): no title, a long text with a long URL buried in it. */
 const LONG_SHARE = `/handoff?${new URLSearchParams({ text: `${longText("A shared passage")} https://${LONG_WORD.slice(0, 60)}.example.org/${LONG_WORD} ${longText("And more")}` })}`;
 
@@ -816,6 +836,7 @@ const SCREENS: ScreenCase[] = [
   { name: "Calendar · 3 Day", path: "/calendar?view=3day" },
   { name: "Calendar · Week", path: "/calendar?view=week" },
   { name: "Calendar · Week · Peek of an Event", path: `/calendar?view=week&d=${PEEK_DAY}`, afterOpen: eventPeekFromSchedule },
+  { name: "Calendar · Week · Peek of a Task from its block", path: `/calendar?view=week&d=${PEEK_DAY}`, afterOpen: taskPeekFromBlock },
   { name: "Calendar · Month", path: "/calendar?view=month" },
   { name: "Map", path: "/map" },
   { name: "Graph", path: "/graph" },

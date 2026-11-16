@@ -39,9 +39,15 @@ blocker bands.
   whole Event. On a phone the Peek is a sheet from the bottom, and the Event is scrolled above it.
   Closing the Peek after changing the day or times leaves one **Undo** that puts them back.
   **Delete event** deletes it at once, with its own Undo.
-- **Editing a block or a blocker** — tap (or click) a block or a one-off blocker: change its day
-  (**Tomorrow** is one tap), start (15-minute nudges) and length, or remove it. Changes apply at
-  once; closing leaves one **Undo**. Removing a block keeps the Task; removing a blocker deletes it.
+- **A Task's block or chip** — tap (or click) a Task's Time block and the Task's [Peek](peek.md)
+  opens, with a **Time block** section above its fields: the block's day (**Tomorrow** is one
+  tap), start (15-minute nudges) and length, and **Remove block**, which keeps the Task and its
+  chip. A done Task's block is record: it can be removed, not moved. Tapping an untimed chip opens
+  the same Peek, where **Give it a time** makes a new block (as long as the Estimate) and the chip
+  stays. Changes apply at once; closing the Peek leaves one **Undo** that puts the block back.
+- **Editing another block or a blocker** — tap (or click) a Chore's block or a one-off blocker:
+  change its day (**Tomorrow** is one tap), start (15-minute nudges) and length, or remove it.
+  Changes apply at once; closing leaves one **Undo**. Removing a blocker deletes it.
 - **Adding at an hour** — tap an empty hour on a phone, double-click on the desk: the **New event**
   dialog opens on that day at that hour, an hour long. On the desk, drag down empty hours to start
   it with that range (an End earlier than the Start is the next day's). On a phone, **+** in the
@@ -54,8 +60,8 @@ blocker bands.
 - **Ticking** — ticking a block ticks the item itself: its later blocks go, its past ones stay as
   record.
 - **On the keyboard** — Tab to a block, an Event, a chip or a one-off band: **Enter** opens it
-  (an Event's Peek, or the editor that sets a block's length too; closing either brings you back
-  to the item). **↑** / **↓** move it
+  (an Event's or a Task's Peek, or the editor that sets a Chore block's length too; closing either
+  brings you back to the item). **↑** / **↓** move it
   a quarter hour (an hour with **Shift**), **←** / **→** a day. A chip in a day's strip moves by
   the day only; **Enter** on an Event template puts it on the day in view.
 

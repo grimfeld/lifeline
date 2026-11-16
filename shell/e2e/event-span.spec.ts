@@ -173,7 +173,7 @@ test('an Event stored before as ending at "24:00" still ends at midnight on its 
   await expect(page.locator('[data-col="2025-11-11"]').getByTitle(title, { exact: false }), "midnight leaves no piece on the next day").toHaveCount(0);
 });
 
-test("the Hours editor keeps a Start and a Length for a Time block of work", async ({ page }) => {
+test("a Time block of work's Peek keeps a Start and a Length, never an End (#537)", async ({ page }) => {
   const title = `Write report ${Date.now()}`;
   await page.goto("/calendar?view=week&d=2025-11-10");
   await workLocally(page);
@@ -185,10 +185,11 @@ test("the Hours editor keeps a Start and a Length for a Time block of work", asy
     },
     { coreUrl: CORE_URL, title },
   );
-  await page.locator('[data-col="2025-11-10"]').getByText(title).click();
-  await expect(page.getByRole("combobox", { name: "Start" })).toBeVisible();
-  await expect(page.getByRole("group", { name: "Length" })).toBeVisible();
-  await expect(page.getByRole("combobox", { name: "End" })).toHaveCount(0);
+  await page.locator('[data-col="2025-11-10"] [data-focus-key]').filter({ hasText: title }).first().click();
+  const block = page.getByRole("dialog", { name: title, exact: true }).getByRole("region", { name: "Time block" });
+  await expect(block.getByRole("combobox", { name: "Start" })).toBeVisible();
+  await expect(block.getByRole("group", { name: "Length" })).toBeVisible();
+  await expect(block.getByRole("combobox", { name: "End" })).toHaveCount(0);
 });
 
 test("an overnight Event counts as running on its second day until it ends, on the Events screen", async ({ page }) => {
