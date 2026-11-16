@@ -1,6 +1,7 @@
 ---
 status: accepted
 amends: ADR 0053 (in part — Settings is no longer the only page that serves no Documents)
+amended-by: ADR 0125 (in part — a Module with several Apps may give one a page of its own)
 ---
 
 # The Guide is Markdown shipped with the code, one page per thing the user opens, checked against the registry
