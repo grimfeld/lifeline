@@ -80,7 +80,17 @@ describe("the places nearby (Photon, for Here)", () => {
     expect(asked).toHaveLength(1);
     const url = new URL(asked[0]!);
     expect(url.origin + url.pathname).toBe("https://photon.komoot.io/reverse");
-    expect([url.searchParams.get("lat"), url.searchParams.get("lon")]).toEqual(["48.85561", "2.36549"]);
+    expect([url.searchParams.get("lat"), url.searchParams.get("lon")]).toEqual(["48.8556", "2.3655"]);
+  });
+
+  it("rounds the position to 4 decimals (about 11 m) before it leaves", async () => {
+    const asked: string[] = [];
+    vi.stubGlobal("fetch", async (url: string) => {
+      asked.push(url);
+      return Response.json(photon([]));
+    });
+    await placesNearby({ lat: 43.296482, lon: 5.36978 });
+    expect(asked[0]).toContain("lat=43.2965&lon=5.3698");
   });
 
   it("asks again for the same spot: a position is never remembered", async () => {

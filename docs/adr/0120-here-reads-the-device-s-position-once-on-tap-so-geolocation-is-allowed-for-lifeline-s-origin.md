@@ -9,7 +9,7 @@ ADR 0119 gives the Place form **Here**: standing somewhere, I tap it and pick th
 
 - **Geolocation is allowed for Lifeline itself.** The policy now reads `geolocation=(self)`. Embeds and every other origin are still denied it, and the microphone, payment and USB stay denied.
 - **Once, on tap.** Here calls `getCurrentPosition` when tapped, and nothing else asks: no `watchPosition`, no position read on load or in the background. Where the browser has no geolocation, Here is not shown; a refusal or no fix says so, and the name is typed instead.
-- **Sent to Photon only, and never kept.** The position goes once to Photon's reverse lookup (`photon.komoot.io/reverse`, already in `connect-src` for the typeahead) for the points of interest around it. It is not cached, stored, synced or logged, and a failed lookup reports its status alone. What is kept is the Place's coordinates: the picked place's, or, with **Just here**, the position itself as the coordinates of the Place I name.
+- **Sent to Photon only, and never kept.** The position goes once, on tap only, to Photon's reverse lookup (`photon.komoot.io/reverse`, already in `connect-src` for the typeahead) for the points of interest around it. The data sent is the position **rounded to 4 decimals (about 11 m)**, which is finer than the 200 m search needs, plus the language; the exact fix never leaves the device. The owner signed off on this flow to an outside service during the review of PR #528, on condition of the rounding. It is not cached, stored, synced or logged, and a failed lookup reports its status alone. What is kept is the Place's coordinates: the picked place's, or, with **Just here**, the exact position as the coordinates of the Place I name.
 
 ## Considered options
 
