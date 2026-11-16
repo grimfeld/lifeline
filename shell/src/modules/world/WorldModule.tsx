@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { EVENT_TYPE, PLACE_TYPE, appById, documentType, openPin, useDocumentTypes, useDocuments, useLocatablePins } from "@lifeline/core";
-import { cn, MapView, PageHeader, PhoneDock, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
+import { FilterChip, MapView, PageHeader, PhoneDock, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
 import { Map as MapIcon, MapPin, Sparkles, Users } from "lucide-react";
 import { handModule } from "../handModule";
 import { worldPins } from "./worldMap";
@@ -51,33 +51,16 @@ function WorldMap() {
               const on = !hidden.includes(c.appId);
               const count = all.filter((p) => p.appId === c.appId).length;
               return (
-                <button
-                  key={c.appId}
-                  type="button"
-                  onClick={() => toggle(c.appId)}
-                  aria-pressed={on}
-                  className={cn(
-                    "focus-visible:ring-ring flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs transition-colors focus-visible:ring-2 focus-visible:outline-none max-md:h-8 max-md:justify-center max-md:px-3",
-                    on ? "bg-accent" : "text-muted-foreground opacity-60",
-                  )}
-                >
+                <FilterChip key={c.appId} on={on} onClick={() => toggle(c.appId)}>
                   <span className="size-2 rounded-full" style={{ background: appById(c.appId)?.color }} />
                   {c.label}
                   <span className="text-muted-foreground tabular-nums">{count}</span>
-                </button>
+                </FilterChip>
               );
             })}
-            <button
-              type="button"
-              onClick={() => setToTry((on) => !on)}
-              aria-pressed={toTry}
-              className={cn(
-                "focus-visible:ring-ring flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs transition-colors focus-visible:ring-2 focus-visible:outline-none max-md:h-8 max-md:justify-center max-md:px-3",
-                toTry ? "bg-accent" : "text-muted-foreground",
-              )}
-            >
+            <FilterChip on={toTry} onClick={() => setToTry((on) => !on)}>
               <Sparkles className="size-3" /> To try
-            </button>
+            </FilterChip>
             <Select value={kind || ANY} onValueChange={(v) => setKind(v === ANY ? "" : v)}>
               <SelectTrigger size="sm" className="min-w-0 max-md:h-8 max-md:flex-1 md:w-40" aria-label="Kind">
                 <SelectValue />

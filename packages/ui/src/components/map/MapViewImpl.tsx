@@ -61,17 +61,18 @@ function InvalidateOnResize() {
  * with name/subtitle/Open. Fits to the pins on mount and whenever they
  * change; `focus` centres on one pin instead.
  */
-export function MapView({
+export function MapView<P extends MapPin = MapPin>({
   pins,
   focus,
   onOpen,
   className,
   zoomControl = true,
 }: {
-  pins: MapPin[];
+  pins: P[];
   /** Key of a pin to centre on (e.g. from a `?focus=` param). */
   focus?: string;
-  onOpen?: (pin: MapPin) => void;
+  /** Gets back the very pin it was given, whatever more it carries. */
+  onOpen?: (pin: P) => void;
   className?: string;
   zoomControl?: boolean;
 }) {
