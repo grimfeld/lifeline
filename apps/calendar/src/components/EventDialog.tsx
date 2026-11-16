@@ -1,23 +1,10 @@
 import { useEffect, useState } from "react";
-import {
-  Button,
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Field,
-  Input,
-  TagInput,
-  Textarea,
-  toast,
-} from "@lifeline/ui";
-import { displayTitle, docHref, initialList, initialText, normalizeTag, todayStr, useLinkIndex, useTagVocabulary, type DateStr, type Handoff, type IntakePrefill } from "@lifeline/core";
-import { PeopleField } from "@lifeline/editor";
-import type { Event } from "../domain/types";
-import { addEvent, updateEvent } from "../data/repo";
+import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Field, Input, toast } from "@lifeline/ui";
+import { initialList, initialText, todayStr, type DateStr, type Handoff, type IntakePrefill } from "@lifeline/core";
+import { addEvent } from "../data/repo";
 import { eventFormErrors, newEventWhen, whenOf, withEnd, withStart, type EventFormErrors } from "../domain/eventForm";
-import { WhenFields, whenIds } from "./WhenFields";
+import { EventForm, type EventDraft } from "./EventForm";
+import { whenIds } from "./WhenFields";
 
 /** Each checked control's id — its input's and the one an error focuses — in the order the dialog shows them. */
 const FIELD_IDS: Record<keyof EventFormErrors, string> = { title: "ev-title", ...whenIds("ev-") };
@@ -29,10 +16,22 @@ const FIELD_IDS: Record<keyof EventFormErrors, string> = { title: "ev-title", ..
  */
 export type EventPrefill = IntakePrefill;
 
+/** A new Event's draft: timed, at the next quarter hour today or 09:00 another day, lasting an hour — unless the prefill says otherwise. */
+function newDraft(day: DateStr, pre: Partial<Pick<IntakePrefill, "start" | "endDate" | "end">>): Omit<EventDraft, "notes" | "with" | "tags"> {
+  // A given start keeps its day, and an hour's length (into the next day when late) unless an end is given too.
+  const timed = pre.start ? withStart({ date: day, start: "09:00", endDate: "", end: "10:00" }, pre.start) : newEventWhen(day);
+  // A given end without its day rolls past midnight as one typed would (ADR 0090).
+  const ended = pre.end ? (pre.endDate ? { ...timed, endDate: pre.endDate, end: pre.end } : withEnd(timed, pre.end)) : timed;
+  return { date: ended.date, endDate: ended.endDate === ended.date ? "" : ended.endDate, allDay: false, start: ended.start, end: ended.end };
+}
+
+/**
+ * Adds an Event: its title and the Event Form in adding mode (#532). An existing
+ * Event is never edited here — that is its Peek's, through the same Form.
+ */
 export function EventDialog({
   open,
   onOpenChange,
-  event,
   defaultDate,
   handoff,
   prefill,
@@ -41,87 +40,47 @@ export function EventDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Present = edit mode. */
-  event?: Event;
   defaultDate?: DateStr;
-  /** Create mode, Intake (ADR 0050): the title and the origin; the day and time are asked here. */
+  /** Intake (ADR 0050): the title and the origin; the day and time are asked here. */
   handoff?: Handoff;
-  /** Create mode: what is already known of the new Event; it beats `defaultDate` and the Handoff's title. */
+  /** What is already known of the new Event; it beats `defaultDate` and the Handoff's title. */
   prefill?: EventPrefill;
-  /** Create mode, the palette's inline line (CommandDialogProps.initial): the notes and Tags it understood beside the `prefill`. */
+  /** The palette's inline line (CommandDialogProps.initial): the notes and Tags it understood beside the `prefill`. */
   initial?: Record<string, unknown>;
-  /** Create mode: called with the new Event once it is saved (the Intake contract). */
+  /** Called with the new Event once it is saved (the Intake contract). */
   onSaved?: (id: string) => void;
 }) {
   const [title, setTitle] = useState("");
-  const [notes, setNotes] = useState("");
-  const [date, setDate] = useState<string>(todayStr());
-  const [endDate, setEndDate] = useState<string>("");
-  const [allDay, setAllDay] = useState(false);
-  const [start, setStart] = useState("09:00");
-  const [end, setEnd] = useState("10:00");
-  const [tags, setTags] = useState<string[]>([]);
-  const [withIds, setWithIds] = useState<string[]>([]);
+  const [draft, setDraft] = useState<EventDraft>(() => ({ ...newDraft(todayStr(), {}), notes: "", with: [], tags: [] }));
   /** Errors show once saving has been tried, and clear as each field is fixed. */
   const [tried, setTried] = useState(false);
-  const errors = tried ? eventFormErrors({ title, date, endDate, allDay, start, end }) : {};
-  const suggestions = useTagVocabulary().map((v) => v.tag);
-  const linkIndex = useLinkIndex();
-  const backlinks = event ? linkIndex.backlinksTo(event.id) : [];
+  const errors = tried ? eventFormErrors({ title, ...draft }) : {};
 
   // The prefill's parts, not the object: a caller passing a fresh one each render must not reset what is typed.
   const { title: preTitle, date: preDate, start: preStart, endDate: preEndDate, end: preEnd } = prefill ?? {};
   useEffect(() => {
     if (!open) return;
-    setTitle(event?.title ?? preTitle ?? handoff?.title ?? "");
-    setNotes(event?.notes ?? (handoff ? [handoff.url, handoff.author ? `From ${handoff.author}` : ""].filter(Boolean).join("\n") : initialText(initial, "notes")));
-    setTags(event?.tags ?? initialList(initial, "tags"));
-    setWithIds(event?.with ?? []);
+    setTitle(preTitle ?? handoff?.title ?? "");
     setTried(false);
-    if (event) {
-      setDate(event.date);
-      setEndDate(event.endDate ?? "");
-      setAllDay(event.start === null);
-      setStart(event.start ?? "09:00");
-      setEnd(event.end ?? "10:00");
-      return;
-    }
-    // A new Event is timed: at the next quarter hour today, 09:00 another day, lasting an hour.
-    const day = preDate ?? defaultDate ?? todayStr();
-    // A given start keeps its day, and an hour's length (into the next day when late) unless an end is given too.
-    const timed = preStart ? withStart({ date: day, start: "09:00", endDate: "", end: "10:00" }, preStart) : newEventWhen(day);
-    // A given end without its day rolls past midnight as one typed would (ADR 0090).
-    const ended = preEnd ? (preEndDate ? { ...timed, endDate: preEndDate, end: preEnd } : withEnd(timed, preEnd)) : timed;
-    setDate(ended.date);
-    setEndDate(ended.endDate === ended.date ? "" : ended.endDate);
-    setAllDay(false);
-    setStart(ended.start);
-    setEnd(ended.end);
-  }, [open, event, defaultDate, handoff, initial, preTitle, preDate, preStart, preEndDate, preEnd]);
+    setDraft({
+      ...newDraft(preDate ?? defaultDate ?? todayStr(), { start: preStart, endDate: preEndDate, end: preEnd }),
+      notes: handoff ? [handoff.url, handoff.author ? `From ${handoff.author}` : ""].filter(Boolean).join("\n") : initialText(initial, "notes"),
+      with: [],
+      tags: initialList(initial, "tags"),
+    });
+  }, [open, defaultDate, handoff, initial, preTitle, preDate, preStart, preEndDate, preEnd]);
 
   async function submit() {
-    const invalid = Object.keys(eventFormErrors({ title, date, endDate, allDay, start, end }));
+    const invalid = Object.keys(eventFormErrors({ title, ...draft }));
     if (invalid.length) {
       setTried(true);
       const first = (Object.keys(FIELD_IDS) as (keyof EventFormErrors)[]).find((k) => invalid.includes(k));
       if (first) document.getElementById(FIELD_IDS[first])?.focus();
       return;
     }
-    const fields = {
-      title: title.trim(),
-      notes: notes.trim(),
-      ...whenOf({ date, endDate, allDay, start, end }),
-      tags,
-      with: withIds,
-    };
-    if (event) {
-      await updateEvent({ ...event, ...fields });
-      toast.success("Event updated");
-    } else {
-      const id = await addEvent(fields);
-      toast.success("Event added");
-      onSaved?.(id);
-    }
+    const id = await addEvent({ title: title.trim(), notes: draft.notes.trim(), ...whenOf(draft), tags: draft.tags, with: draft.with });
+    toast.success("Event added");
+    onSaved?.(id);
     onOpenChange(false);
   }
 
@@ -129,7 +88,7 @@ export function EventDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md" onInteractOutside={(e) => {e.preventDefault();}}>
         <DialogHeader>
-          <DialogTitle>{event ? "Edit event" : "New event"}</DialogTitle>
+          <DialogTitle>New event</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4">
           <Field label="Title" error={errors.title}>
@@ -142,56 +101,13 @@ export function EventDialog({
               onKeyDown={(e) => e.key === "Enter" && void submit()}
             />
           </Field>
-          <WhenFields
-            value={{ date, endDate, allDay, start, end }}
-            errors={errors}
-            onChange={(w) => {
-              setDate(w.date);
-              setEndDate(w.endDate);
-              setAllDay(w.allDay);
-              setStart(w.start);
-              setEnd(w.end);
-            }}
-          />
-          <Field label="Notes">
-            <Textarea id="ev-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Optional" />
-          </Field>
-          <Field label="With">
-            <PeopleField id="ev-with" value={withIds} onChange={setWithIds} households />
-          </Field>
-          <Field label="Tags">
-            <TagInput id="ev-tags" value={tags} onChange={setTags} suggestions={suggestions} normalize={normalizeTag} placeholder="Add tag…" />
-          </Field>
-          {event && backlinks.length > 0 && (
-            <div className="text-muted-foreground grid gap-1 text-xs">
-              <span>
-                Mentioned in {backlinks.length} {backlinks.length === 1 ? "note" : "notes"}
-              </span>
-              <ul className="grid gap-0.5">
-                {backlinks.map((b) => {
-                  const src = linkIndex.byId.get(b.sourceId);
-                  const title = src ? displayTitle(src) : b.sourceId;
-                  return (
-                    <li key={`${b.sourceId}/${b.field ?? ""}`} className="truncate">
-                      {src ? (
-                        <a href={docHref(src)} className="hover:text-foreground underline-offset-2 hover:underline">
-                          {title}
-                        </a>
-                      ) : (
-                        title
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          )}
+          <EventForm mode="adding" draft={draft} onChange={setDraft} errors={errors} idPrefix="ev-" />
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={() => void submit()}>{event ? "Save" : "Add event"}</Button>
+          <Button onClick={() => void submit()}>Add event</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

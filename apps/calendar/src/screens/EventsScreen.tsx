@@ -18,7 +18,7 @@ import {
   toast,
   Tip,
 } from "@lifeline/ui";
-import { formatHuman, nowClock, todayStr } from "@lifeline/core";
+import { formatHuman, nowClock, openPeek, todayStr } from "@lifeline/core";
 import { Clock, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import type { Event } from "../domain/types";
 import { describeTime, isMultiDay } from "../domain/events";
@@ -96,7 +96,6 @@ function Section({ title, events, onEdit }: { title: string; events: Event[]; on
 export function EventsScreen() {
   const events = useEvents();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<Event | undefined>();
   const today = todayStr();
   const [params, setParams] = useSearchParams();
   const tab: Tab = (TABS as readonly string[]).includes(params.get("tab") ?? "") ? (params.get("tab") as Tab) : "events";
@@ -104,10 +103,8 @@ export function EventsScreen() {
   const now = nowClock();
   const groups = useMemo(() => groupEvents(events, { date: today, time: now }), [events, today, now]);
 
-  function edit(e: Event) {
-    setEditing(e);
-    setDialogOpen(true);
-  }
+  // An Event is edited in its Peek, through the same Form the dialog adds with (#532).
+  const edit = (e: Event) => openPeek(e.id);
 
   return (
     <div className="mx-auto grid w-full max-w-3xl gap-6 p-6">
@@ -116,10 +113,7 @@ export function EventsScreen() {
         {tab === "events" && (
           <PhoneDock>
             <Button
-              onClick={() => {
-                setEditing(undefined);
-                setDialogOpen(true);
-              }}
+              onClick={() => setDialogOpen(true)}
             >
               <Plus /> New event
             </Button>
@@ -156,7 +150,7 @@ export function EventsScreen() {
         </TabsContent>
       </Tabs>
 
-      <EventDialog open={dialogOpen} onOpenChange={setDialogOpen} event={editing} />
+      <EventDialog open={dialogOpen} onOpenChange={setDialogOpen} />
     </div>
   );
 }

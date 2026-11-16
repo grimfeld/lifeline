@@ -153,6 +153,24 @@ test("an Event peeked from the Vault gets a time there; an end before its start 
   expect((await field(page, id)).end).toBe("09:00");
 });
 
+test("an Event peeked from the Vault takes Notes and Tags through the Event Form, written as they change", async ({ page }) => {
+  const stamp = Date.now();
+  await page.goto("/vault");
+  await workLocally(page);
+  const id = await inCore(
+    page,
+    async (core, title: string) =>
+      (await core.putDocument({ type: "event", title, date: "2026-03-02", endDate: null, start: null, end: null, notes: "", tags: [] })).id as string,
+    `Review ${stamp}`,
+  );
+  const dialog = await peek(page, id);
+  const form = dialog.getByRole("group", { name: "Event" });
+  await form.getByLabel("Notes").fill("Room 4");
+  await form.getByPlaceholder("Add tag…").fill("work");
+  await form.getByPlaceholder("Add tag…").press("Enter");
+  await expect.poll(async () => { const d = await field(page, id); return { notes: d.notes, tags: d.tags }; }).toEqual({ notes: "Room 4", tags: ["work"] });
+});
+
 /**
  * A People field in a Peek (#446, #447): a Person picked by alias is stored at
  * once, removed, picked again, and then shows on their Timeline via the field.

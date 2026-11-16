@@ -84,6 +84,8 @@ The **Events** page has three tabs:
 
 - **Events** — Today, Upcoming and the past 30 days. **New event** adds one: title, day, start
   and end, or **All day** (with an optional last day for several days), notes, **With** and Tags.
+  An Event's menu (**⋯**) has **Edit**, which opens its Peek: the same Fields, saved as you change
+  them, and **Delete**.
   **With** is who was there: type a name or an alias from People and pick it. The Event then
   shows on each Person's page under Events, and counts as having seen them. A `[[link]]` to a
   Person in the notes ("Dinner with [[Marc]]") counts as having seen them too. **With** offers
@@ -115,7 +117,9 @@ Commands and Cards:
   you can place.
 - **Countdown** — a Card: a big number of days until one event you pick. Where: a Card you can
   place.
-- **Peek** — an Event opened from a link: its day and times, notes, With (picked People, saved at once) and Tags edited in place.
+- **Peek** — an Event opened from a link, or from **Edit** on the Events page: the same Fields as
+  **New event** (day and times, notes, With — People or a Household — and Tags), saved as you
+  change them.
 
 Editing or deleting a template never changes the Events it made.
 
