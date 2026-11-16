@@ -112,6 +112,29 @@ test("an Event Intake (a Handoff) opens the Event dialog prefilled, and its Add 
   await expect.poll(() => storedEvent(page, title)).toMatchObject({ date: "2026-12-04" });
 });
 
+test("the Event dialog's quick controls change its draft: earlier/later, a length, Tomorrow; nothing is stored until Add", async ({ page }) => {
+  const title = `Quick draft ${Date.now()}`;
+  await page.goto("/app/events");
+  await workLocally(page);
+  await page.getByRole("button", { name: "New event" }).click();
+  const dialog = page.getByRole("dialog", { name: "New event" });
+  await dialog.getByLabel("Title").fill(title);
+  await pickDate(page, dialog.getByLabel("Day", { exact: true }), "2026-11-10");
+  await setTime(dialog.getByRole("combobox", { name: "Start" }), "14:00");
+
+  await dialog.getByRole("button", { name: "15 minutes later" }).click();
+  await expect(dialog.getByText(/^until .+ · 1h$/), "the length is kept").toBeVisible();
+  await dialog.getByRole("group", { name: "Length", exact: true }).getByRole("button", { name: "1h 30m", exact: true }).click();
+  await expect(dialog.getByText(/^until .+ · 1h 30m$/)).toBeVisible();
+  await dialog.getByRole("button", { name: "Tomorrow" }).click();
+  expect(await storedEvent(page, title), "a draft is not written").toBeNull();
+
+  await dialog.getByRole("button", { name: "Add event" }).click();
+  await expect(dialog).toBeHidden();
+  await expect.poll(async () => { const e = await storedEvent(page, title); return e && { start: e.start, end: e.end }; }).toEqual({ start: "14:15", end: "15:45" });
+  expect((await storedEvent(page, title))!.date).not.toBe("2026-11-10");
+});
+
 const addTemplate = (page: Page, title: string, over: Record<string, unknown> = {}) =>
   page.evaluate(
     async ({ coreUrl, title, over }) => {

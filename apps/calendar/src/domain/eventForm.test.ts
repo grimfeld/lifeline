@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { endDayPicked, eventArgsError, eventFormErrors, lengthOf, newEventWhen, whenOf, withAllDay, withDate, withEnd, withStart, type EventForm } from "./eventForm";
+import { nudgeStart, withLength, endDayPicked, eventArgsError, eventFormErrors, lengthOf, newEventWhen, whenOf, withAllDay, withDate, withEnd, withStart, type EventForm } from "./eventForm";
 
 const ok: EventForm = { title: "Dentist", date: "2026-08-10", endDate: "", allDay: true, start: "09:00", end: "10:00" };
 
@@ -202,5 +202,35 @@ describe("endDayPicked", () => {
   it("is true for an end day rolling would not give", () => {
     expect(endDayPicked({ ...timed, endDate: "2026-08-12", end: "06:00" })).toBe(true);
     expect(endDayPicked({ ...timed, start: "09:00", endDate: "2026-08-11", end: "17:00" })).toBe(true);
+  });
+});
+
+describe("the quick timing controls", () => {
+  const timed = { date: "2026-08-10", endDate: "", start: "09:00", end: "10:00" };
+
+  it("moving the Start 15 minutes keeps the length", () => {
+    expect(nudgeStart(timed, 15)).toEqual({ ...timed, start: "09:15", end: "10:15" });
+    expect(nudgeStart(timed, -15)).toEqual({ ...timed, start: "08:45", end: "09:45" });
+  });
+
+  it("a nudge stays within the day", () => {
+    expect(nudgeStart({ ...timed, start: "00:00", end: "00:30" }, -15)).toEqual({ ...timed, start: "00:00", end: "00:30" });
+    expect(nudgeStart({ ...timed, start: "23:45", end: "23:55" }, 15).start).toBe("23:45");
+  });
+
+  it("a nudge across midnight rolls the End to the next day", () => {
+    expect(nudgeStart({ ...timed, start: "23:00", end: "23:45" }, 15)).toMatchObject({ start: "23:15", end: "00:00", endDate: "2026-08-11" });
+  });
+
+  it("a length sets the End after the Start, into the next day when it passes midnight", () => {
+    expect(withLength(timed, 90)).toEqual({ ...timed, end: "10:30" });
+    expect(withLength({ ...timed, start: "23:00" }, 120)).toMatchObject({ end: "01:00", endDate: "2026-08-11" });
+    expect(lengthOf(withLength(timed, 45))).toBe(45);
+  });
+
+  it("without a Start there is nothing to nudge or lengthen", () => {
+    const blank = { ...timed, start: "", end: "" };
+    expect(nudgeStart(blank, 15)).toBe(blank);
+    expect(withLength(blank, 60)).toBe(blank);
   });
 });

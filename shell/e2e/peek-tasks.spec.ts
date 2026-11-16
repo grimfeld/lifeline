@@ -227,3 +227,38 @@ test("a Task's For is edited in its Peek: a Person picked by alias is stored at 
   );
   await pickAndRemovePerson(page, id, title, "For", "for");
 });
+
+test("an Event's Peek nudges the Start, sets a length and moves to Tomorrow, written at once, an overnight End on the next day", async ({ page }) => {
+  const stamp = Date.now();
+  await page.goto("/vault");
+  await workLocally(page);
+  const id = await inCore(
+    page,
+    async (core, title: string) =>
+      (await core.putDocument({ type: "event", title, date: "2099-03-02", endDate: null, start: "09:00", end: "10:00", notes: "", tags: [] })).id as string,
+    `Quick timing ${stamp}`,
+  );
+  const dialog = await peek(page, id);
+  const stored = async () => { const d = await field(page, id); return { date: d.date, endDate: d.endDate, start: d.start, end: d.end }; };
+
+  await dialog.getByRole("button", { name: "15 minutes later" }).click();
+  await expect.poll(stored).toEqual({ date: "2099-03-02", endDate: null, start: "09:15", end: "10:15" });
+  await dialog.getByRole("button", { name: "15 minutes earlier" }).click();
+  await dialog.getByRole("button", { name: "15 minutes earlier" }).click();
+  await expect.poll(stored).toEqual({ date: "2099-03-02", endDate: null, start: "08:45", end: "09:45" });
+
+  await dialog.getByRole("group", { name: "Length", exact: true }).getByRole("button", { name: "2h", exact: true }).click();
+  await expect.poll(stored).toEqual({ date: "2099-03-02", endDate: null, start: "08:45", end: "10:45" });
+
+  await dialog.getByRole("button", { name: "Tomorrow" }).click();
+  await expect.poll(async () => (await stored()).date).not.toBe("2099-03-02");
+  expect(await stored()).toMatchObject({ start: "08:45", end: "10:45" });
+
+  // An End earlier than the Start lands on the next day (ADR 0090).
+  await setTime(dialog.getByRole("combobox", { name: "End" }), "07:00");
+  await expect.poll(async () => (await stored()).endDate).not.toBeNull();
+
+  // There is one set of day and time controls, never two.
+  await expect(dialog.getByRole("combobox", { name: "Start" })).toHaveCount(1);
+  await expect(dialog.getByRole("button", { name: "15 minutes earlier" })).toHaveCount(1);
+});

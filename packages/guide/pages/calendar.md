@@ -86,6 +86,10 @@ The **Events** page has three tabs:
 
 - **Events** — Today, Upcoming and the past 30 days. **New event** adds one: title, day, start
   and end, or **All day** (with an optional last day for several days), notes, **With** and Tags.
+  Under the day and times sit the **quick controls**, the same in the dialog and the Peek: **15 minutes
+  earlier** and **later** (the End goes with the Start, so the length stays), **Tomorrow**, and a
+  **length** in one tap (or type any other) that sets the End. An End earlier than the Start is the
+  next day's, so an overnight Event takes no extra step.
   An Event's menu (**⋯**) has **Edit**, which opens its Peek: the same Fields, saved as you change
   them, and **Delete**.
   **With** is who was there: type a name or an alias from People and pick it. The Event then
