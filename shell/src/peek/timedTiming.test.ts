@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { TimedItem } from "@lifeline/core";
-import { timedAllDay, timedEndingAt, timedNudged, timedOnDay, timedStartingAt, timedWhenOf } from "./timedTiming";
+import { timedControls, timedAllDay, timedEndingAt, timedNudged, timedOnDay, timedStartingAt, timedWhenOf } from "./timedTiming";
 
 const item = (over: Partial<TimedItem>): TimedItem => ({ key: "calendar/b", appId: "calendar", itemId: "b", title: "Focus", date: "2026-11-10", start: "10:00", end: "11:00", ...over });
 
@@ -35,5 +35,19 @@ describe("a Timed item's timing in the Peek (#538)", () => {
 
   it("goes all day on its start day", () => {
     expect(timedAllDay({ date: "2026-11-10", start: "22:00", endDate: "2026-11-11", end: "06:00" })).toEqual({ date: "2026-11-10", start: null, endDate: "2026-11-10", end: null });
+  });
+});
+
+describe("what a Timed item's timing section lets the user do", () => {
+  it("retimes it where its App reschedules", () => {
+    expect(timedControls({}, { reschedule: true, move: true })).toBe("retime");
+    expect(timedControls({}, { reschedule: true, move: false })).toBe("retime");
+  });
+  it("moves it to another day only where its App moves but does not reschedule (a Deadline)", () => {
+    expect(timedControls({}, { reschedule: false, move: true })).toBe("day");
+  });
+  it("is read-only where its App does neither, and for a weekly blocker's rule", () => {
+    expect(timedControls({}, { reschedule: false, move: false })).toBe("none");
+    expect(timedControls({ fixed: true }, { reschedule: true, move: true })).toBe("none");
   });
 });

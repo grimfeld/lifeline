@@ -10,7 +10,9 @@ import type { AppManifest } from "@lifeline/core";
  * reason it is not. Built the way the Guide test (guide/guide.test.ts) reads the
  * registry: the Apps as the browser loads them.
  *
- * A Field hidden from forms (`hidden`: ids, ranks, bookkeeping) is out of scope.
+ * A Field hidden from forms (`hidden`: ids, ranks, bookkeeping) is out of scope:
+ * no Form draws it, so there is no Form for the Command to drift from, and its
+ * App sets it itself (a link id an argument resolves, a rank, a stamp).
  */
 
 /** The add Command of each built-in type, and the argument that carries a Field whose key differs from its own (one argument, or several). */
@@ -58,17 +60,33 @@ const ADDS: Record<string, { command: string; as?: Record<string, string | strin
 /**
  * Commands that make a Document but are not "the add Command of a type" — a
  * second way in (a template, a quick-add that takes a handful of the Fields), or
- * a Command whose Document is a record of something else. A Command whose id
- * says add / new / capture and is in neither `ADDS` nor here fails the test below:
- * decide which it is.
+ * a Command whose Document is a record of something else. Every Command that
+ * returns a Document, whatever its id, is in `ADDS` or here, or the test below
+ * fails: decide which it is.
  */
 const NOT_THE_TYPES_ADD: Record<string, string> = {
   "calendar.add-from-template": "makes an Event from a template: the template supplies the Fields",
   "library.quick-add": "the one-line capture of a Work (title, author, type); library.add is the type's add Command",
   "notes.capture": "appends a line to the day's Daily note: a body, not a Document's Fields",
-  "people.occasion-add": "adds an Occasion to a Person (a hidden json Field of it), not a Document",
   "projects.task.place": "places an existing Task; makes nothing",
   "prices.add": "records a price: makes a one-line Receipt with its line (and a Product or Shop it names), so it fits no one type",
+  // Commands that change an existing Document and return it: they add nothing, so no type's Form is theirs to follow.
+  "projects.edit": "edits an existing Project (its Peek is the Form); returns it",
+  "projects.stage": "moves an existing Project's stage, a transition; returns it",
+  "projects.milestone.edit": "edits an existing Milestone; returns it",
+  "projects.milestone.reach": "declares an existing Milestone reached, a transition; returns it",
+  "projects.lane.edit": "edits an existing Lane; returns it",
+  "library.next-part": "moves an existing Work on to its next part (episode, volume, disc), a transition; returns it",
+  "library.shelf": "moves an existing Work along the shelf, a transition; returns it",
+  "library.acquisition": "sets an existing Work's acquisition; returns it",
+  "library.nightstand": "puts an existing Work on or off the nightstand; returns it",
+  "library.catch-up": "marks an existing Work caught up to a part; returns it",
+  "library.get": "reads an existing Work; changes nothing",
+  "cinema.mark-watched": "marks an existing Movie or Series watched, a transition; returns it",
+  "cinema.next-part": "moves an existing Work on to its next part (episode, volume, disc), a transition; returns it",
+  "discotheque.mark-listened": "marks an existing Album listened, a transition; returns it",
+  "discotheque.next-part": "moves an existing Work on to its next part (episode, volume, disc), a transition; returns it",
+  "knowledge.draft-change": "drafts a change to an existing Word, Sentence or Fact for the user to accept; adds nothing",
 };
 
 /**
@@ -179,11 +197,16 @@ describe("a type's add Command", () => {
     expect(stale).toEqual([]);
   });
 
-  it("is named for every Command that adds: a new add Command joins ADDS or says why not", () => {
+  it("is named for every Command that returns a Document: a new one joins ADDS or says why not", () => {
     const named = new Set([...Object.values(ADDS).map((a) => a.command), ...Object.keys(NOT_THE_TYPES_ADD)]);
     const unnamed = APPS.flatMap((a) => a.commands)
-      .filter((c) => c.invoke && c.returnsDocument && /(^|[.-])(add|new|capture)$/.test(c.id) && !named.has(c.id))
+      .filter((c) => c.returnsDocument && !named.has(c.id))
       .map((c) => c.id);
-    expect(unnamed, "These Commands add Documents but no type's Fields are checked against them: put the type in ADDS (shell/src/commandFields.test.ts), or the Command in NOT_THE_TYPES_ADD with the reason").toEqual([]);
+    expect(unnamed, "These Commands return Documents but no type's Fields are checked against them: put the type in ADDS (shell/src/commandFields.test.ts), or the Command in NOT_THE_TYPES_ADD with the reason").toEqual([]);
+  });
+
+  it("names no Command in NOT_THE_TYPES_ADD that is gone or returns no Document", () => {
+    const returning = new Set(APPS.flatMap((a) => a.commands).filter((c) => c.returnsDocument).map((c) => c.id));
+    expect(Object.keys(NOT_THE_TYPES_ADD).filter((id) => !returning.has(id))).toEqual([]);
   });
 });

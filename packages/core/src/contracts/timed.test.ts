@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { allDayLead, isMissedMarker, clockMinutes, clockOf, lastDayCovered, momentAfter, spanLength, cutEdges, describeSpan, formatTime, minutesUntil, pieceLead, spanEndingAt, spanIsValid, spanWithEnd, spanLasting, spanMovedTo, startDayMovedTo } from "./timed";
+import { nudgeClock, blockEndAt, allDayLead, isMissedMarker, clockMinutes, clockOf, lastDayCovered, momentAfter, spanLength, cutEdges, describeSpan, formatTime, minutesUntil, pieceLead, spanEndingAt, spanIsValid, spanWithEnd, spanLasting, spanMovedTo, startDayMovedTo } from "./timed";
 
 describe("formatTime", () => {
   it("reads a clock time in the locale's style", () => {
@@ -172,5 +172,33 @@ describe("markers", () => {
   });
   it("leads an all-day item as All day, a Deadline or an Occasion", () => {
     expect([allDayLead({}), allDayLead({ marker: true }), allDayLead({ marker: true, occasion: true })]).toEqual(["All day", "Deadline", "Occasion"]);
+  });
+});
+
+describe("the quick timing controls' nudge", () => {
+  it("moves a start by the minutes given, either way", () => {
+    expect(nudgeClock("09:00", 15)).toBe("09:15");
+    expect(nudgeClock("09:00", -15)).toBe("08:45");
+  });
+  it("keeps it inside the day: never before midnight, never past the last quarter hour", () => {
+    expect(nudgeClock("00:00", -15)).toBe("00:00");
+    expect(nudgeClock("23:45", 15)).toBe("23:45");
+  });
+  it("stops at a later limit given (a block that must still fit its length)", () => {
+    expect(nudgeClock("22:45", 15, 23 * 60)).toBe("23:00");
+    expect(nudgeClock("23:00", 15, 23 * 60)).toBe("23:00");
+  });
+  it("is null for text that is no time", () => {
+    expect(nudgeClock("", 15)).toBeNull();
+  });
+});
+
+describe("a Time block's end", () => {
+  it("is its length after its start", () => {
+    expect(blockEndAt("10:00", 60)).toBe("11:00");
+  });
+  it("stays on its day: 24:00 at the latest", () => {
+    expect(blockEndAt("23:30", 60)).toBe("24:00");
+    expect(blockEndAt("23:00", 60)).toBe("24:00");
   });
 });

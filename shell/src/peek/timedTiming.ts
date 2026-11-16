@@ -1,5 +1,4 @@
-import { addDays, diffDays, NEW_TIMED_MIN, spanLasting, spanMovedTo, spanWithEnd, toHours, type DateStr, type TimedItem, type TimedWhen } from "@lifeline/core";
-import { SNAP_MIN, toClock } from "../surfaces/hours";
+import { addDays, diffDays, NEW_TIMED_MIN, nudgeClock, spanLasting, spanMovedTo, spanWithEnd, type DateStr, type TimedItem, type TimedWhen } from "@lifeline/core";
 
 /** A Timed item's when as the Peek's timing section holds it (#538): always an end day, the end null where the item has none. */
 export type WhenTime = Required<TimedWhen>;
@@ -18,9 +17,8 @@ export function timedStartingAt(w: WhenTime, start: string): WhenTime {
 
 /** The start moved by `min` minutes inside its start day, the length kept. */
 export function timedNudged(w: WhenTime, min: number): WhenTime {
-  if (!w.start) return w;
-  const h = Math.max(0, Math.min(24 - SNAP_MIN / 60, toHours(w.start) + min / 60));
-  return timedStartingAt(w, toClock(h));
+  const start = w.start && nudgeClock(w.start, min);
+  return start ? timedStartingAt(w, start) : w;
 }
 
 /** A new End (ADR 0090): an End earlier than the Start rolls to the next day; an end day rolling would not give is kept. */
@@ -42,4 +40,16 @@ export function timedAllDay(w: WhenTime): WhenTime {
 /** What the Timed hooks take: an all-day when has no end day of its own. */
 export function contractWhen(w: WhenTime): TimedWhen {
   return w.start ? w : { date: w.date, start: null, end: null };
+}
+
+/**
+ * What a Timed item's timing section lets the user do, as its App allows
+ * (ADR 0124, ADR 0056): `retime` — day and hours, where the App reschedules;
+ * `day` — another day only, where it only moves (a Deadline); `none` —
+ * read-only, and always for a weekly blocker, which is a rule.
+ */
+export type TimedControls = "retime" | "day" | "none";
+export function timedControls(item: Pick<TimedItem, "fixed">, can: { reschedule: boolean; move: boolean }): TimedControls {
+  if (item.fixed) return "none";
+  return can.reschedule ? "retime" : can.move ? "day" : "none";
 }

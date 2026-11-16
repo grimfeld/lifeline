@@ -36,7 +36,7 @@ blocker bands.
 - **An Event** — tap (or click) it, here or on Month, Upcoming or the Agenda Card, and its
   [Peek](peek.md) opens: the Event's whole form — day and times with the quick controls, Notes,
   With and Tags — written as you change it. A piece of an Event that runs across days opens the
-  whole Event. On a phone the Peek is a sheet from the bottom, and the Event is scrolled above it.
+  whole Event. On a phone the Peek is a sheet from the bottom, and the Event (or whatever you tapped, from any view) is scrolled above it.
   Closing the Peek after changing the day or times leaves one **Undo** that puts them back.
   **Delete event** deletes it at once, with its own Undo.
 - **A Task's or a Chore's block or chip** — tap (or click) a Task's Time block and the Task's [Peek](peek.md)
@@ -51,8 +51,10 @@ blocker bands.
   Undo. Changes apply at once; closing the Peek leaves one **Undo** that puts the band back.
   Weekly bands are rules: change them on the Blockers tab.
 - **Another App's item** — a Workout Session, a Deadline or an Occasion opens its Peek (the
-  Session's, the Project's or Milestone's, the Person's) with its day and time on top: read only
-  where its App keeps the time (a Session is a record; a Deadline moves by dragging it).
+  Session's, the Project's or Milestone's, the Person's) with its day and time on top, changed as
+  far as its App allows: a Deadline moves to another day there (its **Day**, or **Tomorrow** in one
+  tap), with one **Undo** on closing; it is read only where its App keeps the time (a Session is
+  a record).
 - **A subscription's event** — has nothing in Lifeline to open: a tap shows a small read-only card
   with its title, day and time, place and the subscription it comes from.
 - **Adding at an hour** — tap an empty hour on a phone, double-click on the desk: the **New event**

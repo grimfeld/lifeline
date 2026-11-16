@@ -1,5 +1,5 @@
-import { BLOCK_DEFAULT_MIN, toHours, type DateStr, type WorkOnHours } from "@lifeline/core";
-import { addMinutes, minutesBetween, SNAP_MIN, toClock } from "../surfaces/hours";
+import { BLOCK_DEFAULT_MIN, blockEndAt, DAY_MIN, nudgeClock, SNAP_MIN, type DateStr, type WorkOnHours } from "@lifeline/core";
+import { minutesBetween } from "../surfaces/hours";
 
 /**
  * A Time block's timing as the Peek's timing section holds it (#537): its
@@ -20,9 +20,8 @@ export function blockOfTapped(item: WorkOnHours, defaultDay: DateStr): BlockTime
 
 /** The start moved by `min` minutes, the length kept, inside the day. */
 export function blockNudged(b: BlockTime, min: number): BlockTime {
-  if (!b.start) return b;
-  const latest = 24 - b.len / 60;
-  return { ...b, start: toClock(Math.max(0, Math.min(latest, toHours(b.start) + min / 60))) };
+  const start = b.start && nudgeClock(b.start, min, DAY_MIN - b.len);
+  return start ? { ...b, start } : b;
 }
 
 /** Another length, at least one grid step and at most the day. */
@@ -32,5 +31,5 @@ export function blockLasting(b: BlockTime, min: number): BlockTime {
 
 /** Where it ends: its length after its start, at most midnight. */
 export function blockEnd(b: BlockTime & { start: string }): string {
-  return addMinutes(b.start, b.len);
+  return blockEndAt(b.start, b.len);
 }

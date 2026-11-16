@@ -30,7 +30,7 @@ import { BlockersTab, TemplatesTab } from "./PlanningTabs";
 const TABS = ["events", "templates", "blockers"] as const;
 type Tab = (typeof TABS)[number];
 
-function EventRow({ ev, onEdit }: { ev: Event; onEdit: (e: Event) => void }) {
+function EventRow({ ev, onOpen }: { ev: Event; onOpen: (e: Event) => void }) {
   const today = todayStr();
   const past = isOver(ev, { date: today, time: nowClock() });
   return (
@@ -57,7 +57,7 @@ function EventRow({ ev, onEdit }: { ev: Event; onEdit: (e: Event) => void }) {
             </DropdownMenuTrigger>
           </Tip>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => onEdit(ev)}>
+            <DropdownMenuItem onClick={() => onOpen(ev)}>
               <Pencil /> Edit
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -76,13 +76,13 @@ function EventRow({ ev, onEdit }: { ev: Event; onEdit: (e: Event) => void }) {
   );
 }
 
-function Section({ title, events, onEdit }: { title: string; events: Event[]; onEdit: (e: Event) => void }) {
+function Section({ title, events, onOpen }: { title: string; events: Event[]; onOpen: (e: Event) => void }) {
   if (events.length === 0) return null;
   return (
     <section className="grid gap-2">
       <h2 className="text-muted-foreground text-sm font-medium">{title}</h2>
       {events.map((e) => (
-        <EventRow key={e.id} ev={e} onEdit={onEdit} />
+        <EventRow key={e.id} ev={e} onOpen={onOpen} />
       ))}
     </section>
   );
@@ -104,7 +104,7 @@ export function EventsScreen() {
   const groups = useMemo(() => groupEvents(events, { date: today, time: now }), [events, today, now]);
 
   // An Event is edited in its Peek, through the same Form the dialog adds with (#532).
-  const edit = (e: Event) => openPeek(e.id);
+  const openEvent = (e: Event) => openPeek(e.id);
 
   return (
     <div className="mx-auto grid w-full max-w-3xl gap-6 p-6">
@@ -138,9 +138,9 @@ export function EventsScreen() {
               </CardContent>
             </Card>
           )}
-          <Section title="Today" events={groups.today} onEdit={edit} />
-          <Section title="Upcoming" events={groups.upcoming} onEdit={edit} />
-          <Section title="Past 30 days" events={groups.past} onEdit={edit} />
+          <Section title="Today" events={groups.today} onOpen={openEvent} />
+          <Section title="Upcoming" events={groups.upcoming} onOpen={openEvent} />
+          <Section title="Past 30 days" events={groups.past} onOpen={openEvent} />
         </TabsContent>
         <TabsContent value="templates" className="pt-4">
           <TemplatesTab />

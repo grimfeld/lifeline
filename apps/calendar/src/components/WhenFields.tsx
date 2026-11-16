@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { Button, Checkbox, DatePicker, Field, LengthPicker, TimeField, formatLength } from "@lifeline/ui";
-import { Minus, Plus } from "lucide-react";
-import { addDays, describeEnd, todayStr } from "@lifeline/core";
-import { endDayPicked, lengthOf, NUDGE_MIN, nudgeStart, withAllDay, withDate, withEnd, withLength, withStart, type WhenForm, type WhenFormErrors } from "../domain/eventForm";
+import { Button, Checkbox, DatePicker, Field, QuickTiming, TimeField, formatLength } from "@lifeline/ui";
+import { addDays, describeEnd, SNAP_MIN, todayStr } from "@lifeline/core";
+import { endDayPicked, lengthOf, nudgeStart, withAllDay, withDate, withEnd, withLength, withStart, type WhenForm, type WhenFormErrors } from "../domain/eventForm";
 
 /** Each control's id under a prefix — the dialog's and a Peek's must not clash when one sits over the other. */
 export const whenIds = (prefix: string) => ({
@@ -92,26 +91,14 @@ export function WhenFields({
           )}
         </div>
       )}
-      <div role="group" aria-label="Quick timing" className="flex flex-wrap items-center gap-1.5">
-        {!value.allDay && (
-          <>
-            <Button type="button" size="icon" variant="outline" disabled={!timeOk} onClick={() => onChange(nudgeStart(value, -NUDGE_MIN))} aria-label="15 minutes earlier">
-              <Minus />
-            </Button>
-            <Button type="button" size="icon" variant="outline" disabled={!timeOk} onClick={() => onChange(nudgeStart(value, NUDGE_MIN))} aria-label="15 minutes later">
-              <Plus />
-            </Button>
-          </>
-        )}
-        {value.date !== tomorrow && (
-          <Button type="button" size="sm" variant="outline" onClick={() => onChange(withDate(value, tomorrow))}>
-            Tomorrow
-          </Button>
-        )}
-      </div>
-      {!value.allDay && (
-        <LengthPicker value={length} onChange={(m) => m && timeOk && onChange(withLength(value, m))} />
-      )}
+      <QuickTiming
+        step={SNAP_MIN}
+        onNudge={value.allDay ? undefined : (m) => onChange(nudgeStart(value, m))}
+        nudgeDisabled={!timeOk}
+        onTomorrow={value.date !== tomorrow ? () => onChange(withDate(value, tomorrow)) : undefined}
+        length={length}
+        onLength={value.allDay ? undefined : (m) => timeOk && onChange(withLength(value, m))}
+      />
       {canAllDay && (
         <label className="flex items-center gap-2 text-sm">
           <Checkbox id={ids.allDay} checked={value.allDay} onCheckedChange={(v) => onChange(withAllDay(value, !!v))} /> All day
