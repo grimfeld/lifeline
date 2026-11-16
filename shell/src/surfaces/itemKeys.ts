@@ -106,7 +106,8 @@ export function useOpenedFromItem(anchor: () => HTMLElement | null, { bottomShee
     if (!bottomSheet || !item || !content) return;
     const undo: (() => void)[] = [];
     // The sheet's own height, not its sliding-in box: it rests on the bottom of the screen.
-    const watch = new ResizeObserver(() => void (item.isConnected && undo.push(scrollAbove(item, window.innerHeight - content.offsetHeight))));
+    // Scrolled on the next frame: scrolling inside the observer's own callback would loop it.
+    const watch = new ResizeObserver(() => requestAnimationFrame(() => void (item.isConnected && undo.push(scrollAbove(item, window.innerHeight - content.offsetHeight)))));
     watch.observe(content);
     const settled = setTimeout(() => watch.disconnect(), 1500);
     release.current = () => {
