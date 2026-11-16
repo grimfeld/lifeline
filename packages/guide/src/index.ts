@@ -35,10 +35,9 @@ const ENTRIES: Entry[] = [
   { slug: "journal", title: "Journal", kind: "module", module: "journal", apps: ["notes"] },
   // The people Module is titled World (ADR 0119); its Apps get their own pages as they land.
   { slug: "world", title: "World", kind: "module", module: "people" },
-  // Contacts' own page: the Module's id is people, so People is a Core concept here, not a second Module page.
-  { slug: "people", title: "People", kind: "core", apps: ["contacts"] },
-  // Atlas's own page, beside People's in World.
-  { slug: "places", title: "Places", kind: "core", apps: ["atlas"] },
+  // Contacts' and Atlas's own pages, sub-pages of World (ADR 0125). Only `world` carries `module`, so the Guide opens it for the Module.
+  { slug: "people", title: "People", kind: "module", apps: ["contacts"] },
+  { slug: "places", title: "Places", kind: "module", apps: ["atlas"] },
   { slug: "notes", title: "Notes", kind: "module", module: "notes", apps: ["commonplace", "sources"] },
   { slug: "research", title: "Research", kind: "module", module: "research", apps: ["writer"] },
   { slug: "manuscript", title: "Manuscript", kind: "module", module: "manuscript", apps: ["manuscript"] },
