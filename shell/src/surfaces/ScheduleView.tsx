@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { ItemMark, missed } from "./marks";
+import { AtMark, ItemMark, missed } from "./marks";
 import { DndContext, DragOverlay, MouseSensor, TouchSensor, pointerWithin, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent, type DragMoveEvent, type DragStartEvent } from "@dnd-kit/core";
 import { Button, cn, Tip, toast, Tooltip, TooltipContent, TooltipTrigger } from "@lifeline/ui";
 import {
@@ -119,7 +119,7 @@ function PushIcon({ item, className }: { item: WorkItem; className?: string }) {
  * item. A chip is a source (ADR 0028): dragging it onto an hour makes a new
  * Time block and leaves the chip here, greyed while `planned` blocks lie ahead.
  */
-function Chip({ id, focusKey, data, title, color, done, planned, onComplete, work, onOpen, onStep, late, compact }: { id: string; focusKey: string; data: Record<string, unknown>; title: string; color?: string; done?: boolean; planned?: number; onComplete?: () => void; work?: WorkItem; onOpen?: (el: HTMLElement) => void; onStep?: (step: Step) => void; late?: boolean; compact?: boolean }) {
+function Chip({ id, focusKey, data, title, at, color, done, planned, onComplete, work, onOpen, onStep, late, compact }: { id: string; focusKey: string; data: Record<string, unknown>; title: string; at?: SurfaceTimedItem["at"]; color?: string; done?: boolean; planned?: number; onComplete?: () => void; work?: WorkItem; onOpen?: (el: HTMLElement) => void; onStep?: (step: Step) => void; late?: boolean; compact?: boolean }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id, data });
   const scheduled = !!planned && planned > 0;
   return (
@@ -157,6 +157,7 @@ function Chip({ id, focusKey, data, title, color, done, planned, onComplete, wor
         <ItemMark mark={work?.mark} />
         {title}
       </span>
+      {!compact && <AtMark item={{ at }} />}
       {work && !compact && <PushIcon item={work} className="hidden group-hover:block max-md:block" />}
       {scheduled && !compact && <span className="text-muted-foreground ml-auto shrink-0 tabular-nums">×{planned}</span>}
       {!compact && <span className={cn("size-1.5 shrink-0 rounded-full", !scheduled && "ml-auto")} style={{ background: color ?? "var(--muted-foreground)" }} />}
@@ -234,6 +235,7 @@ function Block({ entry, from, cols, col, touch, onResize, onComplete, onRemove, 
         )}
         {done && <Check className="size-3 shrink-0" />}
         <span className={cn("truncate font-medium", done && "line-through")}>{entry.item.title}</span>
+        {!isBlock && !short && <AtMark item={entry.item} className="text-2xs" />}
         {isBlock && <PushIcon item={entry.item} className="ml-auto hidden group-focus-within:block group-hover:block" />}
         {isBlock && onRemove && (
           // Shown on hover, and while anything in the block has focus, so Tab finds it (WCAG 2.1.1).
@@ -296,7 +298,7 @@ const Strip = memo(function Strip({ date, work, allDay, onCompleteChip, onOpen, 
   return (
     <div ref={stripDrop.setNodeRef} className={cn("min-h-12 max-h-32 space-y-1 overflow-y-auto border-l p-1 max-md:max-h-24", compact && "p-0.5", stripDrop.isOver && "bg-accent/40")}>
       {allDay.map((t) => (
-        <Chip key={t.key} id={`timed:${t.key}`} focusKey={timedFocus(t)} data={{ timed: t }} title={t.title} color={t.color} late={missed(t)} compact={compact} onOpen={(el) => onOpen({ kind: "timed", item: t }, el)} onStep={(st) => onStep({ kind: "timed", item: t }, st, timedFocus(t))} />
+        <Chip key={t.key} id={`timed:${t.key}`} focusKey={timedFocus(t)} data={{ timed: t }} title={t.title} at={t.at} color={t.color} late={missed(t)} compact={compact} onOpen={(el) => onOpen({ kind: "timed", item: t }, el)} onStep={(st) => onStep({ kind: "timed", item: t }, st, timedFocus(t))} />
       ))}
       {work.map((w) => (
         <Chip key={w.key} id={`item:${w.key}`} focusKey={`item:${w.key}`} data={{ item: w }} title={w.title} color={w.color} done={!!w.completedOn} planned={w.blocksAhead} onComplete={() => onCompleteChip(w)} work={w} compact={compact} onOpen={(el) => onOpen({ kind: "work", item: w }, el)} onStep={(st) => onStep({ kind: "work", item: w }, st, `item:${w.key}`)} />

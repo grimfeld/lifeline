@@ -1,4 +1,5 @@
 import {
+  atTarget,
   addDays,
   allDocuments,
   allDocumentTypes,
@@ -159,7 +160,7 @@ async function agentTimedItems(range: { start: string; end: string }): Promise<T
 async function agentAt(it: TimedItem): Promise<{ id: string; title: string; fields?: Record<string, unknown> } | undefined> {
   if (!it.at) return undefined;
   const doc = await getDocument(it.at.docId);
-  if (!doc || doc.deleted || !isAgentVisible(doc)) return undefined;
+  if (!doc || !atTarget(doc, it.at.docId) || !isAgentVisible(doc)) return undefined;
   const fields = searchFieldsOf(doc);
   return fields ? { id: doc.id, title: doc.title, fields } : { id: doc.id, title: doc.title };
 }

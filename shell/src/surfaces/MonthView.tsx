@@ -21,7 +21,7 @@ import {
   type SurfaceTimedItem,
 } from "@lifeline/core";
 import { ChevronDown, Inbox, Pin } from "lucide-react";
-import { ItemMark, missed } from "./marks";
+import { AtMark, ItemMark, missed } from "./marks";
 import { HoursEditor, type HoursEditing } from "./HoursEditor";
 import { moveWork, useMoveDialog, WorkMenu, type DayWork } from "./WorkMenu";
 import type { CalendarCtx } from "./CalendarSurface";
@@ -71,6 +71,7 @@ function TimedChip({ item, onOpen, onStep }: { item: SurfaceTimedItem; onOpen: (
       <span className="size-1.5 shrink-0 rounded-sm" style={{ background: item.color ?? "var(--muted-foreground)" }} />
       {lead && <span className="text-muted-foreground shrink-0">{lead}</span>}
       <span className="truncate">{item.title}</span>
+      <AtMark item={item} />
     </div>
   );
 }
