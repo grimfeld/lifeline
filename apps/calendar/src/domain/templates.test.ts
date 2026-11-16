@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compareTemplates, describeTemplate, durationOf, endOf, formatDuration } from "./templates";
+import { compareTemplates, describeTemplate, durationOf, endOf, formatDuration, fillFromTemplate } from "./templates";
 import type { EventTemplate } from "./types";
 
 function tpl(over: Partial<EventTemplate> = {}): EventTemplate {
@@ -63,5 +63,41 @@ describe("compareTemplates", () => {
   it("sorts by title", () => {
     const names = [tpl({ title: "Standup" }), tpl({ title: "Gym" })].sort(compareTemplates).map((t) => t.title);
     expect(names).toEqual(["Gym", "Standup"]);
+  });
+});
+
+describe("fillFromTemplate", () => {
+  const draft = { title: "", notes: "", tags: [] as string[], date: "2026-11-20", endDate: "", allDay: false, start: "09:00", end: "10:00" };
+
+  it("takes the title, the usual start and the length, on the draft's day", () => {
+    const f = fillFromTemplate(tpl({ title: "Gym", defaultStart: "18:00", durationMin: 90 }), draft);
+    expect(f).toMatchObject({ title: "Gym", date: "2026-11-20", allDay: false, start: "18:00", end: "19:30", endDate: "" });
+  });
+
+  it("lets a given start win over the usual one, keeping the template's length", () => {
+    const f = fillFromTemplate(tpl({ defaultStart: "18:00", durationMin: 30 }), draft, "11:15");
+    expect(f).toMatchObject({ start: "11:15", end: "11:45" });
+  });
+
+  it("keeps the draft's start when the template has none", () => {
+    const f = fillFromTemplate(tpl({ defaultStart: null, durationMin: 45 }), { ...draft, start: "14:00" });
+    expect(f).toMatchObject({ start: "14:00", end: "14:45" });
+  });
+
+  it("rolls past midnight onto the next day", () => {
+    const f = fillFromTemplate(tpl({ defaultStart: "23:00", durationMin: 120 }), draft);
+    expect(f).toMatchObject({ start: "23:00", end: "01:00", endDate: "2026-11-21" });
+  });
+
+  it("makes an all-day draft for an all-day template, on one day", () => {
+    const f = fillFromTemplate(tpl({ allDay: true, defaultStart: null }), { ...draft, endDate: "2026-11-22" }, "10:00");
+    expect(f).toMatchObject({ allDay: true, endDate: "" });
+  });
+
+  it("adds the template's notes and Tags to what is there", () => {
+    const f = fillFromTemplate(tpl({ notes: "Bring towel", tags: ["health"] }), { ...draft, notes: "Leg day", tags: ["a", "health"] });
+    expect(f.notes).toBe("Leg day\nBring towel");
+    expect(f.tags).toEqual(["a", "health"]);
+    expect(fillFromTemplate(tpl({ notes: "Bring towel" }), draft).notes).toBe("Bring towel");
   });
 });

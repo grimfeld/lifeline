@@ -104,6 +104,11 @@ list of quarter hours that opens on a click or ⌥/Alt+↓. With the list shut, 
 Commands and Cards:
 
 - **Add event** — the event form. Where: the palette (Ctrl+K), the Capture sheet.
+  Your **Event templates** are listed above its Fields, however it opened (the palette, the phone's
+  **+** sheet, the Events screen, **More…** on an empty hour). Picking one fills the form — its
+  title, all day or its length, its usual start, notes and Tags — and saves nothing until **Add
+  event**, so you can adjust first. When the dialog was opened from an hour, that start wins over the
+  template's usual one. With no templates, the list is not shown.
 - **Add today: <template>** — one per Event template: puts it on today at its usual time, no
   form. Where: the palette; folded under **Add today…** on the Capture sheet.
 - **Add event from a template** — the same, on any day and time, for Claude
