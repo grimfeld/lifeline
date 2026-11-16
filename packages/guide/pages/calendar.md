@@ -39,15 +39,22 @@ blocker bands.
   whole Event. On a phone the Peek is a sheet from the bottom, and the Event is scrolled above it.
   Closing the Peek after changing the day or times leaves one **Undo** that puts them back.
   **Delete event** deletes it at once, with its own Undo.
-- **A Task's block or chip** — tap (or click) a Task's Time block and the Task's [Peek](peek.md)
-  opens, with a **Time block** section above its fields: the block's day (**Tomorrow** is one
+- **A Task's or a Chore's block or chip** — tap (or click) a Task's Time block and the Task's [Peek](peek.md)
+  opens (a Chore's opens the Chore's, the same way), with a **Time block** section above its fields: the block's day (**Tomorrow** is one
   tap), start (15-minute nudges) and length, and **Remove block**, which keeps the Task and its
   chip. A done Task's block is record: it can be removed, not moved. Tapping an untimed chip opens
   the same Peek, where **Give it a time** makes a new block (as long as the Estimate) and the chip
   stays. Changes apply at once; closing the Peek leaves one **Undo** that puts the block back.
-- **Editing another block or a blocker** — tap (or click) a Chore's block or a one-off blocker:
-  change its day (**Tomorrow** is one tap), start (15-minute nudges) and length, or remove it.
-  Changes apply at once; closing leaves one **Undo**. Removing a blocker deletes it.
+- **A blocker** — tap (or click) a one-off blocker's band and its [Peek](peek.md) opens, with a
+  **Timing** section on top: its day (**Tomorrow** is one tap), start (15-minute nudges) and end
+  (an End earlier than the Start is the next day's), and **Delete blocker**, at once with its own
+  Undo. Changes apply at once; closing the Peek leaves one **Undo** that puts the band back.
+  Weekly bands are rules: change them on the Blockers tab.
+- **Another App's item** — a Workout Session, a Deadline or an Occasion opens its Peek (the
+  Session's, the Project's or Milestone's, the Person's) with its day and time on top: read only
+  where its App keeps the time (a Session is a record; a Deadline moves by dragging it).
+- **A subscription's event** — has nothing in Lifeline to open: a tap shows a small read-only card
+  with its title, day and time, place and the subscription it comes from.
 - **Adding at an hour** — tap an empty hour on a phone, double-click on the desk: the **New event**
   dialog opens on that day at that hour, an hour long. On the desk, drag down empty hours to start
   it with that range (an End earlier than the Start is the next day's). On a phone, **+** in the
@@ -60,8 +67,7 @@ blocker bands.
 - **Ticking** — ticking a block ticks the item itself: its later blocks go, its past ones stay as
   record.
 - **On the keyboard** — Tab to a block, an Event, a chip or a one-off band: **Enter** opens it
-  (an Event's or a Task's Peek, or the editor that sets a Chore block's length too; closing either
-  brings you back to the item). **↑** / **↓** move it
+  (its Peek, or a subscription's card; closing it brings you back to the item). **↑** / **↓** move it
   a quarter hour (an hour with **Shift**), **←** / **→** a day. A chip in a day's strip moves by
   the day only; **Enter** on an Event template puts it on the day in view.
 
@@ -156,9 +162,10 @@ Editing or deleting a template never changes the Events it made.
 - **Deadlines** — a Project's or Milestone's Deadline, as an all-day flag. Drag it to move the
   Deadline. A missed one stays red on its day.
 - **Occasions** — a Person's Birthday or other named day, as an all-day flag ("🎂 Anne · 65"). It
-  can't be dragged, is not an Event and is never red. Click it to open the Person; see
+  can't be dragged, is not an Event and is never red. Click it to peek the Person; see
   [People](people.md).
-- **Calendar subscriptions** — events from an iCal link, in its colour, read-only.
+- **Calendar subscriptions** — events from an iCal link, in its colour, read-only: a tap shows a
+  small card, with nothing to edit.
 - **In a Module** — House shows a Calendar of its Chores only, in Month and Upcoming. A Module's
   Calendar keeps its own view and day.
 

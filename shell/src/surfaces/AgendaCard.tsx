@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router";
 import { appById, formatTime, hourWindow, layoutColumns, todayStr, toHours, useSurfaceItems, useTimedItems, type CardProps, type SurfaceItem, type SurfaceTimedItem } from "@lifeline/core";
 import { cn } from "@lifeline/ui";
 import { PushButton } from "./push";
@@ -53,9 +52,8 @@ export function AgendaCard({ settings }: CardProps) {
   const nowH = now.getHours() + now.getMinutes() / 60;
   const scroller = useRef<HTMLDivElement>(null);
   const didScroll = useRef(false);
-  // The Schedule's editor, on the same hours (CONTEXT.md — Schedule). The card only consults: an empty hour adds nothing.
-  const navigate = useNavigate();
-  const { open, editor } = useOpenOnHours({ defaultDay: today, inView: (d) => d === today, onGo: (d) => navigate(`/calendar?view=day&d=${d}`) });
+  // What the Schedule opens, on the same hours (CONTEXT.md — Schedule): the item's Peek. The card only consults: an empty hour adds nothing.
+  const { open, card } = useOpenOnHours({ defaultDay: today });
 
   useEffect(() => {
     if (didScroll.current || !scroller.current) return;
@@ -174,7 +172,7 @@ export function AgendaCard({ settings }: CardProps) {
       {items.length === 0 && (
         <div className="text-muted-foreground -mt-2 pb-1 text-center text-xs">Nothing timed today.</div>
       )}
-      {editor}
+      {card}
     </div>
   );
 }

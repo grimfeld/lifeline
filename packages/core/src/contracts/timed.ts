@@ -239,6 +239,8 @@ export interface TimedItem {
    * Person's Occasion): whoever may not see that Document may not see the item.
    */
   docId?: string;
+  /** Where an item with no Document comes from — a Calendar subscription's name — for its read-only card (#538). */
+  source?: string;
 }
 
 /** Whether a Deadline marker's day has passed (ADR 0061): it stays there, red, and never rolls forward. An Occasion is never missed. */
@@ -315,10 +317,18 @@ export interface TimedProvider {
   href?(itemId: string): string;
   /**
    * The Document whose Peek opens when the item is tapped on the hours (#536):
-   * the whole Event for any of its pieces (ADR 0090). null, or no hook, leaves
-   * the item to the hours editor.
+   * the whole Event for any of its pieces (ADR 0090), a Time blocker's own, a
+   * Person's for an Occasion. null, or no hook, means the item has no Document
+   * (an iCal subscription's): a tap shows a small read-only card instead (#538).
    */
   peekOf?(item: TimedItem): string | null;
+  /**
+   * Whether the App's own part of that Peek draws the item's timing (an
+   * Event's Form does). Otherwise the Peek draws a **timing section** for it
+   * above the App's part, through the hooks above: editable where the App
+   * reschedules, read-only where it does not (#538).
+   */
+  timingInPeek?(item: TimedItem): boolean;
 }
 
 export interface SurfaceTimedItem extends TimedItem {
@@ -446,6 +456,11 @@ export function timedPeekId(item: TimedItem): string | null {
   return providerOf(item.appId)?.peekOf?.(item) ?? null;
 }
 
+/** Whether the item's App draws its timing in its own part of the Peek; else the Peek's timing section does. */
+export function timedTimingInPeek(item: TimedItem): boolean {
+  return providerOf(item.appId)?.timingInPeek?.(item) ?? false;
+}
+
 /** Where the owning App edits the item in full; undefined when it offers no route. */
 export function timedHref(item: Pick<TimedItem, "appId" | "itemId">): string | undefined {
   return providerOf(item.appId)?.href?.(item.itemId);
@@ -486,7 +501,7 @@ export function describeSpan(span: TimedSpan): string {
 /**
  * The readout beside an End, ahead of its length: "until 18:00", or "until
  * Tue, Aug 25 06:00" style when it ends on another day. The Event form and
- * the Hours editor show it.
+ * a Peek's timing section show it.
  */
 export function describeEnd(span: Pick<TimedSpan, "date" | "endDate" | "end">): string {
   return `until ${span.endDate !== span.date ? `${formatHuman(span.endDate)} ` : ""}${formatTime(span.end)}`;

@@ -35,6 +35,7 @@ import {
   useTimedTemplates,
   type DateStr,
   type Handoff,
+  type HoursTapped,
   type IntakePrefill,
   type SurfaceItem,
   type SurfaceTimedItem,
@@ -42,7 +43,6 @@ import {
 } from "@lifeline/core";
 import { CalendarClock, Check, ChevronDown, Inbox, LayoutTemplate, Plus, Trash2, Zap } from "lucide-react";
 import { usePush } from "./push";
-import type { HoursTarget } from "./HoursEditor";
 import { useOpenOnHours } from "./openOnHours";
 import { snap, sweptRange, toClock } from "./hours";
 import { DEFAULT_MIN, HOUR_PX, addHours, durationOf, entriesByDay as groupEntries, hourLabel, landingHours, lengthOf, resizedEnd, slotHours, templateLength, weekdayName, type Band, type Entry, type Ghost, type Lifted, type WorkItem } from "./scheduleGrid";
@@ -141,7 +141,7 @@ function Chip({ id, focusKey, data, title, color, done, planned, onComplete, wor
       onClick={(ev) => onOpen?.(ev.currentTarget)}
       title={scheduled ? `${title} · ${planned} block${planned === 1 ? "" : "s"} planned — drag again for another` : title}
     >
-      {/* Too narrow for controls (a phone's Week): the tap opens the editor, which ticks too. */}
+      {/* Too narrow for controls (a phone's Week): the tap opens its Peek, which ticks too. */}
       {onComplete && !done && !compact && (
         <button
           type="button"
@@ -265,7 +265,7 @@ function Block({ entry, from, cols, col, touch, onResize, onComplete, onRemove, 
         </div>
       )}
       {cut.after && !short && <div className="text-muted-foreground absolute inset-x-1.5 bottom-0.5 truncate text-2xs">{cut.after}</div>}
-      {/* On a phone the edge was a 12px target that fought the scroll: length is set in the editor there. A piece that carries on into the next day has no end of its own to drag. */}
+      {/* On a phone the edge was a 12px target that fought the scroll: length is set in the Peek there. A piece that carries on into the next day has no end of its own to drag. */}
       {!touch && !cut.after && (
       <div
         className={cn("absolute inset-x-0 bottom-0 cursor-ns-resize touch-none", short ? "h-1.5" : "h-2")}
@@ -295,7 +295,7 @@ function Block({ entry, from, cols, col, touch, onResize, onComplete, onRemove, 
 }
 
 /** The untimed row of a day: work without a time + all-day events. Lives outside the scroller. */
-const Strip = memo(function Strip({ date, work, allDay, onCompleteChip, onOpen, onStep, compact }: { date: DateStr; work: WorkItem[]; allDay: SurfaceTimedItem[]; onCompleteChip: (item: WorkItem) => void; onOpen: (target: HoursTarget, el: HTMLElement) => void; onStep: (target: HoursTarget, step: Step, focusKey: string) => void; compact?: boolean }) {
+const Strip = memo(function Strip({ date, work, allDay, onCompleteChip, onOpen, onStep, compact }: { date: DateStr; work: WorkItem[]; allDay: SurfaceTimedItem[]; onCompleteChip: (item: WorkItem) => void; onOpen: (target: HoursTapped, el: HTMLElement) => void; onStep: (target: HoursTapped, step: Step, focusKey: string) => void; compact?: boolean }) {
   const stripDrop = useDroppable({ id: `strip:${date}` });
   return (
     <div ref={stripDrop.setNodeRef} className={cn("min-h-12 max-h-32 space-y-1 overflow-y-auto border-l p-1 max-md:max-h-24", compact && "p-0.5", stripDrop.isOver && "bg-accent/40")}>
@@ -467,9 +467,9 @@ const DayColumn = memo(function DayColumn({
   touch: boolean;
   /** Where a lifted item will land: read by the ghost alone, so a drag does not redraw the column. */
   ghosts: GhostStore;
-  onOpen: (target: HoursTarget, el: HTMLElement) => void;
+  onOpen: (target: HoursTapped, el: HTMLElement) => void;
   /** An arrow key on an item: move it by the step. */
-  onStep: (target: HoursTarget, step: Step, focusKey: string) => void;
+  onStep: (target: HoursTapped, step: Step, focusKey: string) => void;
   onSlotClick: (date: DateStr, hours: number) => void;
   /** A desk sweep over empty hours was let go: add across that range. */
   onSweep: (date: DateStr, startH: number, endH: number) => void;
@@ -635,7 +635,7 @@ function TemplatePalette({ templates, onAdd, collapsible }: { templates: TimedTe
  * The Unplaced pool: a full-height column beside the grid on the desktop, a
  * collapsed drawer above it on a phone (where the grid needs the whole width).
  */
-function PoolColumn({ items, onComplete, onOpen, collapsible }: { items: WorkItem[]; onComplete: (item: WorkItem) => void; onOpen: (target: HoursTarget, el: HTMLElement) => void; collapsible?: boolean }) {
+function PoolColumn({ items, onComplete, onOpen, collapsible }: { items: WorkItem[]; onComplete: (item: WorkItem) => void; onOpen: (target: HoursTapped, el: HTMLElement) => void; collapsible?: boolean }) {
   const { setNodeRef, isOver } = useDroppable({ id: POOL });
   const [open, setOpen] = useState(false);
   const chips = items.map((w) => (
@@ -763,8 +763,8 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
     const prefill: IntakePrefill = span ? { date, start, end: span.end, ...(span.endDate !== date ? { endDate: span.endDate } : {}) } : { date, start };
     setAdding({ prefill, id: Date.now() });
   };
-  const { open: openOnHours, editor: hoursEditor } = useOpenOnHours({ defaultDay: anchor, inView: (d) => days.includes(d), onGo: (d) => go(d) });
-  const open = useStable((target: HoursTarget, anchor: HTMLElement) => {
+  const { open: openOnHours, card: hoursCard } = useOpenOnHours({ defaultDay: anchor });
+  const open = useStable((target: HoursTapped, anchor: HTMLElement) => {
     if (Date.now() - lastDrag.current < 350) return;
     // The sheet takes the lower half of a phone: bring what is being edited above it.
     if (isMobile && anchor.closest("[data-col]")) anchor.scrollIntoView({ block: "start", behavior: "smooth" });
@@ -786,7 +786,7 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
    * item moves by the step and keeps its length; a chip only by the day, as
    * a drop on that day's strip would; a pool chip has no day to step from.
    */
-  const step = useStable((target: HoursTarget, st: Step, focusKey: string) => {
+  const step = useStable((target: HoursTapped, st: Step, focusKey: string) => {
     let write: Promise<void> | undefined;
     let date: DateStr | undefined;
     if (target.kind === "work") {
@@ -1036,7 +1036,7 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
 
       <DragOverlay dropAnimation={null}>{active && <div className="bg-card rounded-md border px-2 py-1 text-xs shadow-md">{active.title}</div>}</DragOverlay>
 
-      {hoursEditor}
+      {hoursCard}
       {adding && eventIntake && <eventIntake.dialog key={adding.id} open onOpenChange={(o) => !o && setAdding(null)} handoff={NO_HANDOFF} prefill={adding.prefill} />}
     </DndContext>
   );

@@ -720,6 +720,48 @@ async function taskPeekFromBlock(page: Page) {
   await expect(peek.getByRole("region", { name: "Time block" }).getByRole("button", { name: "Remove block" })).toBeVisible();
 }
 
+/**
+ * A one-off Time blocker's band on the Week, clicked: its Peek (#538) with the
+ * band's timing above, the longest title a person could give it.
+ */
+async function blockerPeekFromBand(page: Page) {
+  await workLocally(page);
+  const title: string = await page.evaluate(
+    async ({ coreUrl, day, title }) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      await core.putDocument({ type: "time_blocker", title, date: day, endDate: day, weekdays: [], start: "08:00", end: "10:00", color: null, active: true, tags: [] });
+      return title;
+    },
+    { coreUrl: CORE_URL, day: PEEK_DAY, title: longText("A blocker") },
+  );
+  await page.locator(`[data-col="${PEEK_DAY}"]`).getByLabel(title, { exact: false }).click();
+  const peek = page.getByRole("dialog", { name: title, exact: true });
+  await expect(peek.getByRole("region", { name: "Timing" }).getByRole("button", { name: "Delete blocker" })).toBeVisible();
+}
+
+/**
+ * A Calendar subscription's item on the Week, clicked: its read-only card
+ * (#538) with the longest title, place and subscription name.
+ */
+async function icalCardFromSchedule(page: Page) {
+  await workLocally(page);
+  const title: string = await page.evaluate(
+    async ({ coreUrl, day, title, where, sub }) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      const id = core.newId() as string;
+      const d = day.replaceAll("-", "");
+      const body = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//e2e//EN", "BEGIN:VEVENT", `UID:${id}@e2e`, `DTSTAMP:${d}T000000`, `DTSTART:${d}T110000`, `DTEND:${d}T120000`, `SUMMARY:${title}`, `LOCATION:${where}`, "END:VEVENT", "END:VCALENDAR"].join("\r\n");
+      const fetchedAt = new Date().toISOString();
+      await core.db().collection("_source_cache").put({ id, updatedAt: fetchedAt, deleted: 0, fetchedAt, ok: true, status: 200, contentType: "text/calendar", body });
+      await core.putDocument({ id, type: "window", kind: "ical", title: sub, url: "https://example.invalid/cal.ics", refreshMinutes: 1440, color: "blue", tags: [] });
+      return title;
+    },
+    { coreUrl: CORE_URL, day: PEEK_DAY, title: longText("A subscribed event"), where: longText("A place"), sub: longText("A subscription") },
+  );
+  await page.locator(`[data-col="${PEEK_DAY}"] [data-focus-key]`).filter({ hasText: title }).first().click();
+  await expect(page.getByRole("dialog", { name: title, exact: true })).toBeVisible();
+}
+
 /** What Android's share sheet would open (the manifest's GET share target): no title, a long text with a long URL buried in it. */
 const LONG_SHARE = `/handoff?${new URLSearchParams({ text: `${longText("A shared passage")} https://${LONG_WORD.slice(0, 60)}.example.org/${LONG_WORD} ${longText("And more")}` })}`;
 
@@ -837,6 +879,8 @@ const SCREENS: ScreenCase[] = [
   { name: "Calendar · Week", path: "/calendar?view=week" },
   { name: "Calendar · Week · Peek of an Event", path: `/calendar?view=week&d=${PEEK_DAY}`, afterOpen: eventPeekFromSchedule },
   { name: "Calendar · Week · Peek of a Task from its block", path: `/calendar?view=week&d=${PEEK_DAY}`, afterOpen: taskPeekFromBlock },
+  { name: "Calendar · Week · Peek of a Time blocker from its band", path: `/calendar?view=week&d=${PEEK_DAY}`, afterOpen: blockerPeekFromBand },
+  { name: "Calendar · Week · a subscription's read-only card", path: `/calendar?view=week&d=${PEEK_DAY}`, afterOpen: icalCardFromSchedule },
   { name: "Calendar · Month", path: "/calendar?view=month" },
   { name: "Map", path: "/map" },
   { name: "Graph", path: "/graph" },

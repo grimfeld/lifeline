@@ -62,8 +62,14 @@ describe("calendarTimed.peekOf (#536)", () => {
     expect(items.map((i) => calendarTimed.peekOf!(i))).toEqual(["e", "e"]);
   });
 
-  it("leaves a Time blocker band to the hours editor, for now", () => {
+  it("peeks a Time blocker band's blocker, whose timing the Peek's section draws (#538)", () => {
     const [band] = timedItemsOf([], [blocker({})], { start: "2026-08-10", end: "2026-08-10" });
-    expect(calendarTimed.peekOf!(band!)).toBeNull();
+    expect(calendarTimed.peekOf!(band!)).toBe(band!.itemId);
+    expect(calendarTimed.timingInPeek!(band!)).toBe(false);
+  });
+
+  it("leaves an Event's timing to its own Form", () => {
+    const [item] = timedItemsOf([event({})], [], { start: "2026-08-10", end: "2026-08-10" });
+    expect(calendarTimed.timingInPeek!(item!)).toBe(true);
   });
 });

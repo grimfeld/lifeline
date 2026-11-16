@@ -267,7 +267,7 @@ test("dragging the next-day part of a one-off overnight blocker moves the whole 
 });
 
 test("only the last part of a one-off overnight blocker resizes, and it moves only the end", async ({ page, isMobile }) => {
-  test.skip(isMobile, "a phone sets an end in the Hours editor, not by an edge");
+  test.skip(isMobile, "a phone sets an end in the Peek, not by an edge");
   const title = `Ferry ${Date.now()}`;
   const { monday, tuesday } = await weekWithOvernightBlocker(page, { title, endDate: "2025-11-11" });
   await expect(monday.locator(".cursor-ns-resize"), "the evening part carries on: no end of its own to drag").toHaveCount(0);

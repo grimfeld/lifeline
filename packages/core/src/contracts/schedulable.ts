@@ -81,8 +81,8 @@ export interface SchedulableProvider {
   /**
    * The Document whose Peek opens when the item's Time block or untimed chip
    * is tapped on the hours (#537): a Task's own, an Occurrence's Task. The Peek
-   * draws the block's timing above the App's part. null, or no hook, leaves
-   * the item to the hours editor.
+   * draws the block's timing above the App's part. null, or no hook, means
+   * the item has no Document: a tap shows a small read-only card (#538).
    */
   peekOf?(itemId: string): string | null;
   /** Optional route that opens the item where its App edits it in full. */

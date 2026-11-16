@@ -33,4 +33,10 @@ export const projectsTimed: TimedProvider = {
   href(itemId) {
     return projectHref(parseMarkerId(itemId).projectId);
   },
+
+  // Tapped on the hours, the Milestone's Peek, or the Project's for its own Deadline (#538).
+  peekOf(item) {
+    const { projectId, milestoneId } = parseMarkerId(item.itemId);
+    return milestoneId ?? projectId;
+  },
 };

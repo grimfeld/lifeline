@@ -2,6 +2,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
 import { Button, Field, TagInput, toast } from "@lifeline/ui";
 import { DocumentEditor, FieldsForm, MarkdownView } from "@lifeline/editor";
 import { BlockTiming } from "./BlockTiming";
+import { TimedTiming } from "./TimedTiming";
 import {
   effectiveTags,
   extractProseTags,
@@ -11,6 +12,8 @@ import {
   peekPartOf,
   peekTapped,
   schedulablePeekId,
+  timedPeekId,
+  timedTimingInPeek,
   usePeekStack,
   templateStartsFor,
   useAllDocuments,
@@ -33,7 +36,8 @@ import {
  *   Core never draws a control for a Field the App defined.
  *
  * Opened from the hours on a work item's Time block or untimed chip, the
- * block's timing comes first, above the App's part (#537).
+ * block's timing comes first, above the App's part (#537); on a Time blocker
+ * band or another App's Timed item, its timing through its App's hooks (#538).
  *
  * Then, for every Peek, the **body**: read, or — once the frame says
  * `writing` — written with the Vault's own editor. An empty body offers the
@@ -90,15 +94,17 @@ function visitOf(tapped: object): number {
 }
 
 /**
- * What was tapped on the hours, when it is this Document's work item: its
- * Time block's timing (or a chip's way to a time) above the App's part. An
- * Event's timing is its Form's own Fields, so a Timed item adds nothing here.
+ * What was tapped on the hours, when it peeks this Document: a work item's
+ * Time block's timing (or a chip's way to a time), or a Timed item's day and
+ * hours through its App's hooks (#538), above the App's part. An Event's
+ * timing is its Form's own Fields (`timingInPeek`), so it adds nothing here.
  */
 function TappedTiming({ doc }: { doc: Document }) {
   usePeekStack(); // what was tapped is known while the Peek shows the Document it was opened on
   const tapped = peekTapped();
-  if (tapped?.kind !== "work" || schedulablePeekId(tapped.item) !== doc.id) return null;
-  return <BlockTiming key={visitOf(tapped)} item={tapped.item} />;
+  if (tapped?.kind === "work") return schedulablePeekId(tapped.item) === doc.id ? <BlockTiming key={visitOf(tapped)} item={tapped.item} /> : null;
+  if (tapped?.kind === "timed" && timedPeekId(tapped.item) === doc.id && !timedTimingInPeek(tapped.item)) return <TimedTiming key={visitOf(tapped)} item={tapped.item} />;
+  return null;
 }
 
 /**
