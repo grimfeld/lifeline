@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { CORE_URL } from "./support/seed";
+import { setTime } from "./support/time-field";
 
 /**
  * The Schedule and Month by keyboard (#284): an item that takes the focus
@@ -153,4 +154,122 @@ test("deleting an Event from its Peek acts at once, with its own Undo", async ({
   await expect.poll(() => storedEvent(page, title)).toBeNull();
   await page.locator("[data-sonner-toast]", { hasText: `${title} deleted` }).getByRole("button", { name: "Undo" }).click();
   await expect.poll(() => storedEvent(page, title)).toEqual({ date: "2026-11-10", start: "10:00", end: "11:00" });
+});
+
+// --- a Task's Time block and untimed chip open the Task's Peek (#537) ---
+
+/** A Task on the Tuesday, with a Time block 14:00–15:00 that day unless `block` is false; `done` makes it record. */
+async function addTask(page: Page, title: string, { block = true, done = false } = {}): Promise<string> {
+  await page.goto("/calendar?view=week&d=2026-11-09");
+  await workLocally(page);
+  return page.evaluate(
+    async ({ coreUrl, title, block, done }) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      const task = await core.putDocument({ type: "task", title, status: "active", date: "2026-11-10", completedOn: done ? "2026-11-10" : null, recurrence: null, notes: "", tags: [], estimate: 45 });
+      if (block) await core.addTimeBlock("tasks", task.id, "2026-11-10", { start: "14:00", end: "15:00" });
+      return task.id as string;
+    },
+    { coreUrl: CORE_URL, title, block, done },
+  );
+}
+
+/** The Task's Time blocks, live (removed ones left out). */
+const storedBlocks = (page: Page, taskId: string) =>
+  page.evaluate(
+    async ({ coreUrl, taskId }) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      const rows: { itemId: string; date: string; start: string | null; end: string | null }[] = await core.all("placements");
+      return rows.filter((p) => p.itemId === taskId && p.start).map((p) => ({ date: p.date, start: p.start, end: p.end }));
+    },
+    { coreUrl: CORE_URL, taskId },
+  );
+
+/** The Task's Peek, with the timing section of what was tapped above its Form. */
+async function expectTaskPeek(page: Page, title: string) {
+  const peek = page.getByRole("dialog", { name: title, exact: true });
+  await expect(peek).toBeVisible();
+  await expect(peek.getByText("Estimate", { exact: true }), "the Task's own Fields are there").toBeVisible();
+  return { peek, timing: peek.getByRole("region", { name: "Time block" }) };
+}
+
+test("a Task's Time block opens the Task's Peek with the block's timing; closing leaves one Undo that puts the block back", async ({ page }) => {
+  const title = `Write report ${Date.now()}`;
+  const id = await addTask(page, title);
+  const block = page.locator('[data-col="2026-11-10"] [data-focus-key]').filter({ hasText: title }).first();
+  await block.focus();
+  await page.keyboard.press("Enter");
+  const { peek, timing } = await expectTaskPeek(page, title);
+  await expect(timing.getByRole("combobox", { name: "Start" })).toHaveValue("14:00");
+  await expect(timing.getByText("Ends 15:00")).toBeVisible();
+
+  await timing.getByRole("button", { name: "15 minutes later" }).click();
+  await timing.getByRole("group", { name: "Length" }).getByRole("button", { name: "2h", exact: true }).click();
+  await expect.poll(() => storedBlocks(page, id)).toEqual([{ date: "2026-11-10", start: "14:15", end: "16:15" }]);
+  await page.keyboard.press("Escape");
+  await expect(peek).toBeHidden();
+
+  const toast = page.locator("[data-sonner-toast]", { hasText: `${title} updated` });
+  await expect(toast, "one Undo for the whole visit").toHaveCount(1);
+  await toast.getByRole("button", { name: "Undo" }).click();
+  await expect.poll(() => storedBlocks(page, id)).toEqual([{ date: "2026-11-10", start: "14:00", end: "15:00" }]);
+});
+
+test("Remove block in a Task's Peek keeps the Task and its chip, with its own Undo", async ({ page }) => {
+  const title = `Tidy inbox ${Date.now()}`;
+  const id = await addTask(page, title);
+  await page.locator('[data-col="2026-11-10"] [data-focus-key]').filter({ hasText: title }).first().click();
+  const { peek, timing } = await expectTaskPeek(page, title);
+  await timing.getByRole("button", { name: "Remove block" }).click();
+  await expect.poll(() => storedBlocks(page, id)).toEqual([]);
+  await expect(peek.getByRole("region", { name: "Time block" }).getByText("Give it a time")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.locator("[data-focus-key]", { hasText: title }), "the Task's chip stays on its day").toHaveCount(1);
+  await expect(page.getByText(`${title} updated`), "removal is not a timing change").toHaveCount(0);
+  await page.locator("[data-sonner-toast]", { hasText: "Block removed" }).getByRole("button", { name: "Undo" }).click();
+  await expect.poll(() => storedBlocks(page, id)).toEqual([{ date: "2026-11-10", start: "14:00", end: "15:00" }]);
+});
+
+test("a done Task's block is record in its Peek: removable, never retimed", async ({ page }) => {
+  const title = `Filed taxes ${Date.now()}`;
+  await addTask(page, title, { done: true });
+  await page.locator('[data-col="2026-11-10"] [data-focus-key]').filter({ hasText: title }).first().click();
+  const { timing } = await expectTaskPeek(page, title);
+  await expect(timing.getByText(/done, kept as record/)).toBeVisible();
+  await expect(timing.getByRole("combobox", { name: "Start" })).toHaveCount(0);
+  await expect(timing.getByRole("button", { name: "15 minutes later" })).toHaveCount(0);
+  await expect(timing.getByRole("button", { name: "Remove block" })).toBeVisible();
+});
+
+test("a Task's untimed chip opens its Peek and is given a time there, making a block and keeping the chip", async ({ page }) => {
+  const title = `Call the bank ${Date.now()}`;
+  const id = await addTask(page, title, { block: false });
+  const chip = page.locator("[data-focus-key]").filter({ hasText: title }).first();
+  await chip.click();
+  const { peek, timing } = await expectTaskPeek(page, title);
+  await expect(timing.getByText("Give it a time")).toBeVisible();
+  await setTime(timing.getByRole("combobox", { name: "Start" }), "09:30");
+  await expect.poll(() => storedBlocks(page, id), "the Estimate is its length").toEqual([{ date: "2026-11-10", start: "09:30", end: "10:15" }]);
+  await expect(timing.getByRole("button", { name: "Remove block" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(peek).toBeHidden();
+  await expect(page.locator("[data-focus-key]", { hasText: title }), "the chip and the new block").toHaveCount(2);
+
+  await page.locator("[data-sonner-toast]", { hasText: `${title} updated` }).getByRole("button", { name: "Undo" }).click();
+  await expect.poll(() => storedBlocks(page, id)).toEqual([]);
+});
+
+test("a Task peeked from anywhere but the hours shows no timing section", async ({ page }) => {
+  const title = `Vault task ${Date.now()}`;
+  const id = await addTask(page, title);
+  await page.goto("/vault");
+  await workLocally(page);
+  await page.evaluate(
+    async ({ coreUrl, id }) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      core.openPeek(id);
+    },
+    { coreUrl: CORE_URL, id },
+  );
+  const { timing } = await expectTaskPeek(page, title);
+  await expect(timing).toHaveCount(0);
 });

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { Button, Field, TagInput, toast } from "@lifeline/ui";
 import { DocumentEditor, FieldsForm, MarkdownView } from "@lifeline/editor";
+import { BlockTiming } from "./BlockTiming";
 import {
   effectiveTags,
   extractProseTags,
@@ -8,6 +9,9 @@ import {
   normalizeTag,
   patchDocument,
   peekPartOf,
+  peekTapped,
+  schedulablePeekId,
+  usePeekStack,
   templateStartsFor,
   useAllDocuments,
   useLinkIndex,
@@ -28,6 +32,9 @@ import {
  *   then the **user's own Fields** (`userFieldsOf`) beneath it, edited by Core.
  *   Core never draws a control for a Field the App defined.
  *
+ * Opened from the hours on a work item's Time block or untimed chip, the
+ * block's timing comes first, above the App's part (#537).
+ *
  * Then, for every Peek, the **body**: read, or — once the frame says
  * `writing` — written with the Vault's own editor. An empty body offers the
  * type's Templates either way; picked while reading, it asks the frame to
@@ -46,6 +53,7 @@ export function PeekContent({ doc, def, writing = false, onWrite }: { doc: Docum
         <UserTypePeek key={doc.id} doc={doc} def={def} />
       ) : (
         <>
+          <TappedTiming doc={doc} />
           {part ? <part.Part doc={doc} /> : <ReadOnlyPeek doc={doc} def={def} />}
           {def && <UserFields key={doc.id} doc={doc} fields={userFieldsOf(def)} />}
         </>
@@ -70,6 +78,27 @@ export function PeekContent({ doc, def, writing = false, onWrite }: { doc: Docum
         ))}
     </div>
   );
+}
+
+/** One visit per tap: opening the same Document from another block (or the same one again) starts the timing afresh. */
+const visits = new WeakMap<object, number>();
+let lastVisit = 0;
+function visitOf(tapped: object): number {
+  let n = visits.get(tapped);
+  if (n === undefined) visits.set(tapped, (n = ++lastVisit));
+  return n;
+}
+
+/**
+ * What was tapped on the hours, when it is this Document's work item: its
+ * Time block's timing (or a chip's way to a time) above the App's part. An
+ * Event's timing is its Form's own Fields, so a Timed item adds nothing here.
+ */
+function TappedTiming({ doc }: { doc: Document }) {
+  usePeekStack(); // what was tapped is known while the Peek shows the Document it was opened on
+  const tapped = peekTapped();
+  if (tapped?.kind !== "work" || schedulablePeekId(tapped.item) !== doc.id) return null;
+  return <BlockTiming key={visitOf(tapped)} item={tapped.item} />;
 }
 
 /**

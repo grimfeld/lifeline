@@ -294,6 +294,11 @@ export async function removeTimeBlock(placementId: string): Promise<() => Promis
   return () => put<Placement>("placements", { ...pl, deleted: 0 });
 }
 
+/** The Document a tap on the item's block or chip peeks (its App's `peekOf`); null when the App names none. */
+export function schedulablePeekId(item: Pick<SchedulableItem, "appId" | "itemId">): string | null {
+  return schedulableProviders().find((p) => p.appId === item.appId)?.peekOf?.(item.itemId) ?? null;
+}
+
 /** Where the owning App edits an item in full; undefined when it offers no route. */
 export function schedulableHref(item: Pick<SchedulableItem, "appId" | "itemId">): string | undefined {
   return schedulableProviders().find((p) => p.appId === item.appId)?.href?.(item.itemId);

@@ -78,6 +78,13 @@ export interface SchedulableProvider {
    * keep the Estimate it asks for.
    */
   setEstimate?(itemId: string, minutes: number): Promise<void>;
+  /**
+   * The Document whose Peek opens when the item's Time block or untimed chip
+   * is tapped on the hours (#537): a Task's own, an Occurrence's Task. The Peek
+   * draws the block's timing above the App's part. null, or no hook, leaves
+   * the item to the hours editor.
+   */
+  peekOf?(itemId: string): string | null;
   /** Optional route that opens the item where its App edits it in full. */
   href?(itemId: string): string;
 }
