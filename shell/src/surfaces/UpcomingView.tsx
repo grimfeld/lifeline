@@ -16,7 +16,7 @@ import {
   allDayLead,
 } from "@lifeline/core";
 import { Check, ChevronUp } from "lucide-react";
-import { ItemMark, missed } from "./marks";
+import { AtMark, ItemMark, missed } from "./marks";
 import { HoursEditor, type HoursEditing } from "./HoursEditor";
 import { completeWork, useMoveDialog, WorkMenu, type DayWork } from "./WorkMenu";
 import type { CalendarCtx } from "./CalendarSurface";
@@ -233,12 +233,14 @@ export function UpcomingView({ ctx }: { ctx: CalendarCtx }) {
                     {r.allDay.map((t) => (
                       <Row key={t.key} color={t.color} lead={allDayLead(t)} late={missed(t)} onOpen={(el) => edit({ kind: "timed", item: t }, el)}>
                         <span className="truncate font-medium">{t.title}</span>
+                        <AtMark item={t} className="text-xs" />
                       </Row>
                     ))}
                     {r.atTimes.map((e) =>
                       e.kind === "timed" ? (
                         <Row key={e.item.key} color={e.item.color} lead={pieceLead(e.item) ?? `${formatTime(e.start)}${e.item.end ? `–${formatTime(e.item.end)}` : ""}`} late={missed(e.item)} onOpen={(el) => edit({ kind: "timed", item: e.item }, el)}>
                           <span className="truncate font-medium">{e.item.title}</span>
+                          <AtMark item={e.item} className="text-xs" />
                         </Row>
                       ) : (
                         <Row key={`${e.item.key}#${e.item.placementId}`} color={e.item.color} lead={formatTime(e.start)} faded={!!e.item.completedOn} tick={<Tick item={e.item as DayWork} />} onOpen={(el) => edit({ kind: "work", item: e.item }, el)}>

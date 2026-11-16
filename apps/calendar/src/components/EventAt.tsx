@@ -1,4 +1,4 @@
-import { useDocument } from "@lifeline/core";
+import { atTarget, useDocument } from "@lifeline/core";
 
 /**
  * Where an Event happens, as a list shows it (ADR 0119): "At Chez Janou", or
@@ -7,7 +7,7 @@ import { useDocument } from "@lifeline/core";
  */
 export function useAtTitle(at: string | undefined): string | undefined {
   const doc = useDocument(at || undefined);
-  return doc && !doc.deleted ? doc.title : undefined;
+  return at ? atTarget(doc, at)?.title : undefined;
 }
 
 /** The At of an Event in a line of text: " · At Chez Janou", or nothing. */

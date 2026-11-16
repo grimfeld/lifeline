@@ -14,7 +14,11 @@ export const livePlace = (row: Document | undefined): Place | undefined => (row 
 
 const cleanAliases = (aliases: readonly string[] | undefined) => (aliases ?? []).map((a) => a.trim()).filter(Boolean);
 
-/** Throws Core's `TitleTaken` when another Place has this title, in any folder, case and accents aside (ADR 0119). */
+/**
+ * Throws Core's `TitleTaken` when another Place has this title, in any folder, case and accents aside (ADR 0119).
+ * Not the guard: Core's `putDocument` is, and decides. This only refuses early, before an address lookup that a
+ * taken name would waste.
+ */
 async function assertFree(title: string): Promise<void> {
   assertTitleFree(await documentsOf(PLACE_TYPE), PLACE_TYPE, PLACES_FOLDER, title);
 }
