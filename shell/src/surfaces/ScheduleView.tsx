@@ -12,6 +12,7 @@ import {
   formatHuman,
   formatTime,
   hourWindow,
+  intakeByKey,
   layoutColumns,
   momentAfter,
   moveSurfaceItem,
@@ -33,7 +34,8 @@ import {
   useTimedItems,
   useTimedTemplates,
   type DateStr,
-  type PoolItem,
+  type Handoff,
+  type IntakePrefill,
   type SurfaceItem,
   type SurfaceTimedItem,
   type TimedTemplate,
@@ -41,7 +43,6 @@ import {
 import { CalendarClock, Check, ChevronDown, Inbox, LayoutTemplate, Plus, Trash2, Zap } from "lucide-react";
 import { usePush } from "./push";
 import { HoursEditor, type HoursEditing, type HoursTarget } from "./HoursEditor";
-import { AddAtHour, type AddingAt } from "./AddAtHour";
 import { snap, sweptRange, toClock } from "./hours";
 import { DEFAULT_MIN, HOUR_PX, addHours, durationOf, entriesByDay as groupEntries, hourLabel, landingHours, lengthOf, resizedEnd, slotHours, templateLength, weekdayName, type Band, type Entry, type Ghost, type Lifted, type WorkItem } from "./scheduleGrid";
 import type { CalendarCtx } from "./CalendarSurface";
@@ -53,6 +54,8 @@ const NO_STRIP: { work: WorkItem[]; allDay: SurfaceTimedItem[] } = { work: [], a
 /** Long enough that a flick to scroll never lifts a block; short enough to feel like a press. */
 const LONG_PRESS_MS = 350;
 const POOL = "pool";
+/** The Event dialog opened from an hour carries nothing from elsewhere: one object, so it never resets what is typed. */
+const NO_HANDOFF: Handoff = { title: "", text: "" };
 
 /** Hours since midnight, now. */
 function hoursNow(): number {
@@ -466,9 +469,9 @@ const DayColumn = memo(function DayColumn({
   onOpen: (target: HoursTarget, el: HTMLElement) => void;
   /** An arrow key on an item: move it by the step. */
   onStep: (target: HoursTarget, step: Step, focusKey: string) => void;
-  onSlotClick: (date: DateStr, hours: number, point: { x: number; y: number }) => void;
+  onSlotClick: (date: DateStr, hours: number) => void;
   /** A desk sweep over empty hours was let go: add across that range. */
-  onSweep: (date: DateStr, startH: number, endH: number, point: { x: number; y: number }) => void;
+  onSweep: (date: DateStr, startH: number, endH: number) => void;
   onResize: (entry: Entry, endHours: number) => void;
   onBandResize: (band: Band, endHours: number) => void;
   onComplete: (item: SurfaceItem) => void;
@@ -499,11 +502,11 @@ const DayColumn = memo(function DayColumn({
           const r = sweptRange(p.hours, hoursAt(e.currentTarget.parentElement!, e.clientY), from, to);
           setSweep((g) => (g?.startH === r.startH && g.lenH === r.endH - r.startH ? g : { date, startH: r.startH, lenH: r.endH - r.startH }));
         },
-        onPointerUp: (e: React.PointerEvent<HTMLDivElement>) => {
+        onPointerUp: () => {
           pressed.current = null;
           if (!sweep) return;
           setSweep(null);
-          onSweep(date, sweep.startH, sweep.startH + sweep.lenH, { x: e.clientX, y: e.clientY });
+          onSweep(date, sweep.startH, sweep.startH + sweep.lenH);
         },
         onPointerCancel: () => {
           pressed.current = null;
@@ -526,7 +529,7 @@ const DayColumn = memo(function DayColumn({
               [touch ? "onClick" : "onDoubleClick"]: (e: React.MouseEvent<HTMLDivElement>) => {
                 const rect = e.currentTarget.getBoundingClientRect();
                 const hours = slotHours(from, to, i, e.clientY - rect.top);
-                onSlotClick(date, hours, { x: e.clientX, y: e.clientY });
+                onSlotClick(date, hours);
               },
             }}
             {...sweepHandlers}
@@ -713,6 +716,8 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
   const bandItems = useMemo(() => allTimed.filter((t) => t.background && t.start), [allTimed]);
   const templates = useTimedTemplates();
   const creator = timedCreators()[0];
+  // The first App that makes Timed items opens its own add dialog for an empty hour (the Calendar's Event dialog).
+  const eventIntake = creator?.createIntake ? intakeByKey(creator.createIntake) : undefined;
 
   // The read hooks hand out stable arrays while nothing changed, so these
   // memos hit and a day column's layout is not redone on every render.
@@ -749,7 +754,15 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
   // A drag ends with a click on whatever it was released over: that click is not a tap.
   const lastDrag = useRef(0);
   const [editing, setEditing] = useState<(HoursEditing & { id: number }) | null>(null);
-  const [adding, setAdding] = useState<AddingAt | null>(null);
+  /** An empty hour or a swept range was chosen: the Event dialog, started there (#539). */
+  const [adding, setAdding] = useState<{ prefill: IntakePrefill; id: number } | null>(null);
+  /** Start the Event dialog on `date` at `hours`, until `endHours` when a range was swept (an hour on, else); ADR 0090 rolls an end past midnight to the next day. */
+  const addAt = (date: DateStr, hours: number, endHours?: number) => {
+    const start = toClock(hours);
+    const span = endHours === undefined ? null : spanLasting(date, start, Math.round((endHours - hours) * 60));
+    const prefill: IntakePrefill = span ? { date, start, end: span.end, ...(span.endDate !== date ? { endDate: span.endDate } : {}) } : { date, start };
+    setAdding({ prefill, id: Date.now() });
+  };
   const open = useStable((target: HoursTarget, anchor: HTMLElement) => {
     if (Date.now() - lastDrag.current < 350) return;
     // The sheet takes the lower half of a phone: bring what is being edited above it.
@@ -802,11 +815,11 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
     // Off the days on screen, the item is gone from under the keyboard: say where it went.
     write.then(() => void (!days.includes(landed) && toast.success(`Moved to ${formatHuman(landed)}`))).catch(fail);
   });
-  const slotClick = useStable((date: DateStr, hours: number, point: { x: number; y: number }) => {
+  const slotClick = useStable((date: DateStr, hours: number) => {
     if (Date.now() - lastDrag.current < 350) return;
-    setAdding({ date, hours, point });
+    addAt(date, hours);
   });
-  const sweep = useStable((date: DateStr, hours: number, endHours: number, point: { x: number; y: number }) => setAdding({ date, hours, endHours, point }));
+  const sweep = useStable((date: DateStr, hours: number, endHours: number) => addAt(date, hours, endHours));
   const resize = useStable((en: Entry, endH: number) => {
     const end = toClock(endH);
     if (en.kind === "block") scheduleSurfaceItem(en.item, en.item.displayDate, { start: en.start, end }).catch(fail);
@@ -934,13 +947,13 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
     >
       <div className="flex h-full flex-col gap-3 p-4 max-md:gap-2 max-md:p-3">
         {ctx.header(
-          creator?.create && (
+          eventIntake && (
             <Button
               size="icon"
               variant="outline"
               className="md:hidden"
               aria-label="Add"
-              onClick={() => setAdding({ date: anchor, hours: anchor === today ? Math.min(snap(hoursNow()), to - 1) : Math.max(from, 9), point: null })}
+              onClick={() => addAt(anchor, anchor === today ? Math.min(snap(hoursNow()), to - 1) : Math.max(from, 9))}
             >
               <Plus />
             </Button>
@@ -1032,7 +1045,7 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
           onClose={() => setEditing(null)}
         />
       )}
-      {adding && <AddAtHour at={adding} templates={templates} pool={pool as (PoolItem & { color?: string })[]} onClose={() => setAdding(null)} />}
+      {adding && eventIntake && <eventIntake.dialog key={adding.id} open onOpenChange={(o) => !o && setAdding(null)} handoff={NO_HANDOFF} prefill={adding.prefill} />}
     </DndContext>
   );
 }

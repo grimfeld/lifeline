@@ -170,17 +170,16 @@ test("opened from an empty hour, the dialog shows its day and range, and a templ
   const position = { x: 40, y: 2 * 56 + 10 };
   if (isMobile) await column.tap({ position });
   else await column.dblclick({ position });
-  const quick = page.getByRole("dialog", { name: /^Add on / });
-  await setTime(quick.getByRole("combobox", { name: "Start" }), "12:15");
-  await setTime(quick.getByRole("combobox", { name: "End" }), "13:45");
-  await quick.getByRole("button", { name: "More…" }).click();
-
+  // The hour opens the dialog itself (#539), at that day and hour.
   const dialog = page.getByRole("dialog", { name: "New event" });
-  await expect(dialog.getByRole("combobox", { name: "Start" })).toHaveValue(/^12:15/);
-  await expect(dialog.getByText(/· 1h 30m$/)).toBeVisible();
+  const start = dialog.getByRole("combobox", { name: "Start" });
+  await expect(start).not.toHaveValue("");
+  await expect(dialog.getByText(/· 1h$/)).toBeVisible();
+  const given = await start.inputValue();
   await dialog.getByRole("group", { name: "Event templates" }).getByRole("button", { name: template }).click();
-  await expect(dialog.getByRole("combobox", { name: "Start" }), "the given start wins over the usual 18:00").toHaveValue(/^12:15/);
+  await expect(start, "the given start wins over the usual 18:00").toHaveValue(given);
   await expect(dialog.getByText(/· 30m$/)).toBeVisible();
+  await setTime(start, "12:15");
   await dialog.getByRole("button", { name: "Add event" }).click();
   await expect.poll(() => storedEvent(page, template)).toEqual({ date: day, endDate: null, start: "12:15", end: "12:45" });
 });
