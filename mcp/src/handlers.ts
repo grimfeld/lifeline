@@ -9,12 +9,14 @@ import {
   checkMacro,
   reasonLine,
   memoLookup,
+  seeingLookup,
   commandNavigates,
   isInvocable,
   reportMessage,
   runMacroHeadless,
   withMacros,
   type InvokeAgent,
+  type InvokeContext,
   type MacroRecord,
   saveMacro,
   commandKey,
@@ -40,6 +42,7 @@ import {
   timedProviders,
   whenProblem,
   TitleTaken,
+  titleTakenText,
   assertTitleFree,
   todayStr,
   typeFieldsOf,
@@ -111,6 +114,12 @@ function isAgentVisible(doc: Pick<Document, "folder" | "type">): boolean {
   if (inPrivateFolder(doc.folder)) return false;
   return !documentTypeSync(doc.type)?.internal;
 }
+
+/** Who an agent is to a Command (ADR 0114): its links name, and its answers tell of, only what an agent may see. */
+const asAgent = (agent: InvokeAgent): InvokeContext => ({ agent, sees: isAgentVisible });
+
+/** A Macro's fixed links, as an agent checks them: among the Documents it may see. */
+const agentLookup = seeingLookup(isAgentVisible);
 
 /**
  * The agent wall (ADR 0114): the keys of a type's Documents an agent never
@@ -215,7 +224,7 @@ async function readFields(def: DocumentTypeDef, raw: Args): Promise<Args> {
   const clears = Object.keys(raw).filter((k) => raw[k] === null);
   for (const k of clears) if (byKey.get(k)!.required) throw new ToolError(`“${byKey.get(k)!.label}” is required`);
   const set = Object.fromEntries(Object.entries(raw).filter(([, v]) => v !== null));
-  const checked = await readCommandArgs(def.fields.filter((f) => f.key in set).map(fieldArg), set).catch((e: Error) => {
+  const checked = await readCommandArgs(def.fields.filter((f) => f.key in set).map(fieldArg), set, isAgentVisible).catch((e: Error) => {
     throw new ToolError(e.message);
   });
   return { ...checked, ...Object.fromEntries(clears.map((k) => [k, null])) };
@@ -323,7 +332,7 @@ async function describedDocument(id: unknown): Promise<Document> {
  * from agents, which a refusal never names.
  */
 function titleRefusal(e: unknown): ToolError {
-  if (e instanceof TitleTaken) return new ToolError(isAgentVisible(e.existing) ? `${e.message} (id ${e.existing.id})` : `“${e.title}” is already taken`);
+  if (e instanceof TitleTaken) return new ToolError(titleTakenText(e, isAgentVisible));
   return new ToolError(e instanceof Error ? e.message : String(e));
 }
 
@@ -377,7 +386,7 @@ function assertMacroOutsideWall(macro: MacroShape): void {
  */
 async function assertFine(macro: MacroShape): Promise<void> {
   assertMacroOutsideWall(macro);
-  const check = await checkMacro(macro, await registry());
+  const check = await checkMacro(macro, await registry(), agentLookup);
   if (!check.ok) throw new ToolError(`“${macro.name}” would be broken: ${check.reasons.map(reasonLine).join("; ")}`);
 }
 
@@ -388,7 +397,7 @@ async function runMacroTool(tool: MacroTool, args: Args, agent: InvokeAgent): Pr
   if (!macro) throw new ToolError(`Macro ${tool.name} is gone`);
   assertMacroOutsideWall(macro);
   try {
-    const report = await runMacroHeadless(macro, await registry(macros), args, { agent });
+    const report = await runMacroHeadless(macro, await registry(macros), args, asAgent(agent));
     return { message: reportMessage(report), report: { name: report.name, steps: report.steps } };
   } catch (e) {
     throw new ToolError((e as Error).message);
@@ -412,7 +421,7 @@ const handlers: Record<string, (a: Args) => Promise<unknown>> = {
     const macros = await allMacros();
     const all = await registry(macros);
     const tools = macroTools(macros, all);
-    const lookup = memoLookup();
+    const lookup = memoLookup(agentLookup);
     const list = await Promise.all(
       macros.map(async (m) => {
         const check = await checkMacro(m, all, lookup);
@@ -621,14 +630,12 @@ const handlers: Record<string, (a: Args) => Promise<unknown>> = {
     if (move) assertNotPrivate(String(a.folder));
     const rename = a.title !== undefined && String(a.title).trim() !== doc.title;
     if (rename && def.titleRule === "derived") throw new ToolError(`${def.label} take their title from their fields`);
-    if (move || rename) {
-      // The same clashes moveDocument and renameDocument refuse, checked up front: per folder, or in every folder for a type whose titles are unique (a Place's).
-      const docs = await allDocuments();
-      const folder = move ? normalizeFolder(String(a.folder)) : doc.folder;
-      const title = String(a.title ?? "").trim();
+    const title = String(a.title ?? "").trim();
+    if (move && rename && title) {
+      // A move then a rename are two writes: the rename's clash in the target folder is checked before the move, so it never
+      // leaves the move behind. A lone move or rename is refused by moveDocument or renameDocument itself (Core's one guard).
       try {
-        if (move) assertTitleFree(docs, doc.type, folder, doc.title, doc.id);
-        if (rename && title) assertTitleFree(docs, doc.type, folder, title, doc.id);
+        assertTitleFree(await allDocuments(), doc.type, normalizeFolder(String(a.folder)), title, doc.id);
       } catch (e) {
         throw titleRefusal(e);
       }
@@ -643,8 +650,8 @@ const handlers: Record<string, (a: Args) => Promise<unknown>> = {
 
     const changed: string[] = [];
     if (move) {
-      await moveDocument(doc, String(a.folder)).catch((e: Error) => {
-        throw new ToolError(e.message);
+      await moveDocument(doc, String(a.folder)).catch((e: unknown) => {
+        throw titleRefusal(e);
       });
       changed.push("folder");
       doc = await visibleDocument(a.id);
@@ -676,7 +683,7 @@ export async function runTool(name: string, args: Args, agent: InvokeAgent = {})
     if (!def) throw new ToolError(`Command ${spec.command} is gone`);
     // No Command takes a walled part, whatever its signature grows (ADR 0114).
     refuseWalled(Object.keys(rest));
-    return invokeCommand(def, rest, { agent }).catch((e: Error) => {
+    return invokeCommand(def, rest, asAgent(agent)).catch((e: Error) => {
       throw new ToolError(e.message);
     });
   }

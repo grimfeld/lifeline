@@ -1,6 +1,6 @@
-import { EVENT_TYPE, PLACE_TYPE, TitleTaken, type DocumentTypeDef } from "@lifeline/core";
+import { EVENT_TYPE, PLACE_TYPE, TitleTaken, todayStr, type DocumentTypeDef } from "@lifeline/core";
 import { KINDS, PLACES_FOLDER } from "./domain/types";
-import { placeCoordsOf, placeSubtitle } from "./domain/place";
+import { placeCoordsOf, placeSubtitle, toTryOnSave } from "./domain/place";
 import { placeHref } from "./constants";
 import { addPlace, afterEventSaved } from "./data/repo";
 
@@ -45,6 +45,8 @@ export const placeTypeDef: DocumentTypeDef = {
   },
   // To try clears once an Event that links here has happened (ADR 0119), however the Event was saved (ADR 0121).
   afterSaveOf: { of: [EVENT_TYPE], run: afterEventSaved },
+  // The day To try was marked, kept by Core on every write (ADR 0123), so a Base cell or an agent re-marks it as the dialog does.
+  beforeSave: (next, was) => toTryOnSave(next, was, todayStr()),
   fields: [
     { key: "aliases", label: "Aliases", kind: "list" },
     { key: "kind", label: "Kind", kind: "select", options: KINDS.map((k) => ({ ...k })), userOptions: true, column: true },
@@ -53,7 +55,7 @@ export const placeTypeDef: DocumentTypeDef = {
     { key: "geo", label: "Coordinates", kind: "geo", guarded: true },
     // Plain marks, so a list, the map and a Base filter them as fields. To try is cleared by Atlas, never derived.
     { key: "toTry", label: "To try", kind: "boolean" },
-    // The day To try was marked: only an Event since then clears it. Atlas writes it with the mark; none on an older mark.
+    // The day To try was marked: only an Event since then clears it. Stamped by `beforeSave` with the mark; none on an older mark.
     { key: "toTrySince", label: "To try since", kind: "date", guarded: true, hidden: true },
     { key: "closed", label: "Closed", kind: "boolean" },
   ],

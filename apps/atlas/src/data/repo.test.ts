@@ -2,6 +2,12 @@ import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DOCUMENT_TYPES, EVENT_TYPE, PLACE_TYPE, TitleTaken, allDocumentTypes, allDocuments, buildLinkIndex, createDocument, db, documentType, documentsOf, documentsTable, getDocument, initApps, patchDocument, putDocument, type DocumentTypeDef } from "@lifeline/core";
 import { placeTypeDef } from "../types";
+
+// Passed through, and counted: a save must not rebuild the whole link index for nothing (F7).
+vi.mock("@lifeline/core", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@lifeline/core")>();
+  return { ...actual, buildLinkIndex: vi.fn(actual.buildLinkIndex) };
+});
 import { kindOptions, lastVisitOf, placeCoordsOf, placesList } from "../domain/place";
 import { addPlace, livePlace, patchPlace, saveKindOptions, settleToTry } from "./repo";
 
@@ -109,6 +115,13 @@ describe("changing a Place", () => {
     const p = await addPlace({ name: "Chez Janou" });
     await expect(patchPlace(p.id, { title: " " })).rejects.toThrow("A Place needs a name");
     await expect(patchPlace(p.id, { kind: "spaceport" })).rejects.toThrow(/No Kind/);
+  });
+
+  it("refuses a taken name before writing any of the other changes", async () => {
+    await addPlace({ name: "Musée d'Orsay" });
+    const p = await addPlace({ name: "Orsay", kind: "museum" });
+    await expect(patchPlace(p.id, { title: "musée d'orsay", kind: "gallery", tags: ["art"], closed: true })).rejects.toBeInstanceOf(TitleTaken);
+    expect(await getDocument(p.id)).toMatchObject({ title: "Orsay", kind: "museum", tags: [], closed: false });
   });
 
   it("clears its Kind", async () => {
@@ -235,7 +248,8 @@ describe("To try (ADR 0119)", () => {
   it("marked before the day was kept, clears for any Event that has happened", async () => {
     // A Place marked by an older build carries no day: any past Event clears it, as before.
     const janou = await addPlace({ name: "Chez Janou" });
-    await patchDocument(janou.id, { toTry: true });
+    // Straight into the store, as an older build or a sync left it: no write hook ran.
+    await documentsTable().put({ ...(await getDocument(janou.id))!, toTry: true, toTrySince: "" });
     await event("Dinner", { date: "2026-01-10", at: janou.id });
     expect(await toTry(janou.id)).toBe(false);
   });
@@ -260,6 +274,28 @@ describe("To try (ADR 0119)", () => {
     const dinner = await event("Dinner", { date: "2026-11-20", at: janou.id });
     await patchDocument(dinner.id, { date: "2026-11-12" });
     expect(await toTry(janou.id)).toBe(false);
+  });
+
+  it("is checked only for the Places a past Event links to, with no link index built for the others", async () => {
+    const janou = await markedOn("2026-11-02", () => addPlace({ name: "Chez Janou", aliases: ["Janou"], toTry: true }));
+    const flore = await addPlace({ name: "Café de Flore" });
+    vi.mocked(buildLinkIndex).mockClear();
+    await event("Coffee", { date: "2026-11-10", at: flore.id, notes: "Then [[Café de Flore]] again, and [[Nowhere]]." });
+    expect(buildLinkIndex).not.toHaveBeenCalled();
+    expect(await toTry(janou.id)).toBe(true);
+    await event("Dinner", { date: "2026-11-10", notes: "At [[janou]]." });
+    expect(await toTry(janou.id)).toBe(false);
+  });
+
+  it("is marked again from a Base or an agent, as by Atlas: its day is kept by every write", async () => {
+    const janou = await addPlace({ name: "Chez Janou" });
+    await event("Dinner", { date: "2026-10-03", at: janou.id });
+    await patchDocument(janou.id, { toTry: true });
+    expect((await getDocument(janou.id))?.toTrySince).toBe("2026-11-15");
+    await settleToTry(janou.id);
+    expect(await toTry(janou.id)).toBe(true);
+    await patchDocument(janou.id, { toTry: false });
+    expect((await getDocument(janou.id))?.toTrySince).toBe("");
   });
 
   it("is not cleared by a Day that only mentions the Place", async () => {

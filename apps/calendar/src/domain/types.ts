@@ -27,6 +27,9 @@ export interface Event extends Document {
 
 /** Document type id. */
 export const EVENT_TYPE = "event";
+
+/** The Event's At field (ADR 0119): where it happens, a Place or a Person's home. */
+export const EVENT_AT_FIELD = "at";
 /** @deprecated old collection name; kept as the type id alias for callers. */
 export const EVENTS = EVENT_TYPE;
 export const EVENTS_HREF = "/app/events";

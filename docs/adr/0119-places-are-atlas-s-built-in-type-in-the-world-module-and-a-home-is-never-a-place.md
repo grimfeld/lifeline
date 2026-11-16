@@ -1,6 +1,6 @@
 ---
 status: accepted
-amends: ADR 0113 (in part — the People Module becomes World, and a place is no longer a user-defined type of the Journal)
+amends: ADR 0113 (in part — the People Module becomes World, and a place is no longer a user-defined type of the Journal), ADR 0112 (in part — an Event's At on a Person never counts as Seen)
 ---
 
 # Places are Atlas's built-in type in the World Module, and a home is never a Place
@@ -29,3 +29,4 @@ So **Place is a built-in type**, owned by a new hand-written App, **Atlas**, and
 - The built-in id is `atlas_place`, not `place`, so a user-defined `place` type, if any account has one, stays the user's own, untouched. Moving its Documents into Place is a later, explicit step.
 - The Event type gains `at`, a Link that may target `PLACE_TYPE` or `PERSON_TYPE`.
 - ADR 0113's "People Module" reads World from here on; the rest of it stands.
+- A Place's title is unique in every folder, Private included, so a title refused to an agent tells it that some Place has that name, though not which (ADR 0114). That yes or no on a guessed name is an accepted cost: two Places with one name would break every `[[link]]` to them, and a Place in Private is rare.

@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { PERSON_TYPE } from "@lifeline/core";
+import { PERSON_TYPE, PLACE_TYPE } from "@lifeline/core";
 import type { Document, DocumentTypeDef, MacroRecord, OwnedCommand, TimedProvider } from "@lifeline/core";
 import { pinsOf } from "@lifeline/core";
 import { contactsApp } from "@lifeline/app-contacts";
 import { calendarApp } from "@lifeline/app-calendar";
+import { atlasApp } from "@lifeline/app-atlas";
 
 /**
  * The agent wall (ADR 0114): no tool answer ever carries a Person's Addresses
@@ -29,6 +30,7 @@ const core = vi.hoisted(() => ({
   renameDocument: vi.fn(),
   patchDocument: vi.fn(),
   saveMacro: vi.fn(),
+  putDocument: vi.fn(),
 }));
 
 vi.mock("@lifeline/core", async (importOriginal) => {
@@ -56,6 +58,12 @@ vi.mock("../../packages/core/src/documents/store", async (importOriginal) => ({
   getDocument: async (id: string) => docs.get(id),
   allDocuments: async () => [...docs.values()],
   documentsOf: async (type: string) => [...docs.values()].filter((d) => d.type === type),
+}));
+
+// …and so is the type registry it reads a link argument's noun ("Place or Person") from.
+vi.mock("../../packages/core/src/documents/registry", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../packages/core/src/documents/registry")>()),
+  documentTypeSync: (id: string) => types.get(id),
 }));
 
 const { runTool, WallRefused } = await import("./handlers");
@@ -275,6 +283,41 @@ describe("the agent wall: what an agent writes of a Person (ADR 0114)", () => {
   it("writes a Field the user added to Person like any other", async () => {
     await runTool("update_document", { id: "p1", fields: { giftIdeas: "oil paints", relationship: "my mum" } });
     expect(core.patchDocument).toHaveBeenCalledWith("p1", { giftIdeas: "oil paints", relationship: "my mum" });
+  });
+});
+
+describe("the agent wall: a Command's link arguments (ADR 0114)", () => {
+  beforeEach(() => {
+    const placeTypeDef = atlasApp.types.find((t) => t.id === PLACE_TYPE)!;
+    types.set(placeTypeDef.id, placeTypeDef);
+    commands.push(...calendarApp.commands.map((c) => ({ ...c, appId: "calendar" })));
+    docs.set("p4", person("p4", "Hidden Qjv", "Private/People", { aliases: ["Qjvie"] }));
+    core.putDocument.mockImplementation(async (input: object) => ({ ...input, id: "new" }));
+  });
+
+  it.each([
+    ["at, by alias", { at: "Qjvie" }, "At: No Place or Person called “Qjvie”"],
+    ["at, by id", { at: "p4" }, "At: No Place or Person called “p4”"],
+    ["with, by alias", { with: ["Qjvie"] }, "With: No Person called “Qjvie”"],
+    ["with, by id", { with: ["p4"] }, "With: No Person called “p4”"],
+  ])("calendar_add_event refuses a Private Person named %s, as no Document at all", async (_, link, refusal) => {
+    const got = await runTool("calendar_add_event", { title: "Lunch", date: "2026-11-22", ...link }).catch((e: Error) => e.message);
+    expect(got).toBe(refusal);
+    expect(got).not.toContain("Hidden Qjv");
+    expect(core.putDocument).not.toHaveBeenCalled();
+  });
+
+  it("refuses an Event's At set to a Private Person through update_document, as no Document at all", async () => {
+    const got = await runTool("update_document", { id: "e1", fields: { at: "Qjvie" } }).catch((e: Error) => e.message);
+    expect(got).toBe("At: No Place or Person called “Qjvie”");
+    expect(core.patchDocument).not.toHaveBeenCalled();
+  });
+
+  it("matches a name a Private Person shares to the one Person an agent sees, naming no other", async () => {
+    docs.set("p6", person("p6", "Qjvie", "People"));
+    const got = await runTool("calendar_add_event", { title: "Lunch", date: "2026-11-22", with: ["Qjvie"] });
+    expect(got).toEqual({ id: "new", message: "Added event “Lunch” on 2026-11-22 with Qjvie" });
+    expect(core.putDocument).toHaveBeenCalledWith(expect.objectContaining({ with: ["p6"] }));
   });
 });
 

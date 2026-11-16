@@ -326,6 +326,13 @@ export interface DocumentTypeDef {
    */
   uniqueTitles?: boolean;
   /**
+   * Links of this type's Fields that do not count their target as Seen (ADR
+   * 0112): an Event's At on a Person (ADR 0119) is where it happens, not who
+   * is seen. Each entry names a Link field and the type it points at; every
+   * other link, a wikilink in the text included, still counts.
+   */
+  seenExcept?: readonly { field: string; type: string }[];
+  /**
    * How the owning App makes one of these from a name alone, by its own rules
    * — so a field elsewhere (an Event's At, ADR 0119) can offer "Create …"
    * without importing the App (ADR 0100). Answers the Document there is when
@@ -343,6 +350,15 @@ export interface DocumentTypeDef {
    * the save it follows stands.
    */
   afterSaveOf?: { of: readonly string[]; run: (saved: Document) => Promise<void> };
+  /**
+   * What the type keeps true of its own Document on every write (ADR 0123): the
+   * keys to set on it before it is stored, given it as about to be written and
+   * as it was (none for a new one). `putDocument` (and so `patchDocument`, a
+   * Base cell and an agent's `update_document`) applies them, so no writer can
+   * skip the rule. *User:* a Place's To try day, stamped when the mark is set
+   * anew and cleared with it. Sync-pulled rows are not asked: their device was.
+   */
+  beforeSave?: (next: Document, was: Document | undefined) => Record<string, unknown> | undefined;
   /**
    * For an internal type (ADR 0098): the Document that speaks for one of its
    * own — a Lane's Project. `get_document` on the internal id answers as if
