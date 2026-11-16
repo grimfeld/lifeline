@@ -10,10 +10,10 @@ So a `DocumentTypeDef` may declare **`afterSaveOf: { of, run }`**. After `putDoc
 
 - Core knows neither meaning: it only matches the saved Document's type against `of`. The App reads the rest (links, dates) through Core, as it would anywhere.
 - `run` writes only its own type's Documents and is **idempotent**: the same save told twice changes nothing. A hook that writes back a type in its own `of` would loop, so none may.
-- A failure is logged and swallowed. The save it follows has already happened, and a broken follower must not make it look as if it had not.
+- A failure is logged and swallowed. The save it follows has already happened, and a broken follower must not make it look as if it had not. The App must therefore have a path that applies the same rule without a save, and that path is the recovery: for Atlas, opening the Place (below) settles its To try again, so a failed hook leaves a stale mark only until the Place is next opened.
 - It runs wherever `putDocument` runs: in the app and in the MCP server alike. It does not run for rows a sync pulls in, which were followed on the device that wrote them.
 
-Atlas declares `afterSaveOf: { of: [EVENT_TYPE] }`. Because a To try Place may also pass its mark while nothing is saved (a dinner booked last week is in the past today), Atlas applies the same rule when the Place is opened.
+Atlas declares `afterSaveOf: { of: [EVENT_TYPE] }`. It checks only the To try Places the saved Event may link to: one whose id the Event holds (its At) or whose name or alias a `[[link]]` in it writes. Because a To try Place may also pass its mark while nothing is saved (a dinner booked last week is in the past today), Atlas applies the same rule when the Place is opened.
 
 ## Considered options
 
@@ -24,4 +24,4 @@ Atlas declares `afterSaveOf: { of: [EVENT_TYPE] }`. Because a To try Place may a
 ## Consequences
 
 - `putDocument` reads the type registry on every write, and calls a hook only for the types some App named.
-- Atlas's hook returns at once unless the Event has happened and some Place is To try, so most Event saves cost nothing more.
+- Atlas's hook returns at once unless the Event has happened and names a Place that is To try, so most Event saves, an import's or a sync's among them, cost one read of the Places and no link index. Only a save that may clear a mark builds the index, so a `[[name]]` resolves as it does everywhere else.

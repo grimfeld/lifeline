@@ -17,7 +17,9 @@ const spot = T("spot", {
   },
 });
 const broken = T("broken", { afterSaveOf: { of: ["trip"], run: () => Promise.reject(new Error("boom")) } });
-initApps([{ id: "t", title: "T", types: [spot, broken, T("trip"), T("note")], screens: [], cards: [], commands: [] }]);
+// A "mark" keeps the title it was first written with, whoever writes it (`beforeSave`, ADR 0123).
+const mark = T("mark", { beforeSave: (next, was) => ({ first: was ? was.first : next.title }) });
+initApps([{ id: "t", title: "T", types: [spot, broken, mark, T("trip"), T("note")], screens: [], cards: [], commands: [] }]);
 
 beforeEach(async () => {
   await documentsTable().clear();
@@ -44,5 +46,14 @@ describe("a type told when another type's Document is saved (ADR 0121)", () => {
     const trip = await putDocument({ type: "trip", title: "Arles", date: "2026-11-01" });
     expect(await getDocument(trip.id)).toMatchObject({ title: "Arles" });
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("broken after saving trip"), expect.any(Error));
+  });
+});
+
+describe("a type's own rule on every write (`beforeSave`, ADR 0123)", () => {
+  it("sets its keys before the row is stored, given the row as it was", async () => {
+    const m = await putDocument({ type: "mark", title: "First" });
+    expect(m).toMatchObject({ first: "First" });
+    await patchDocument(m.id, { title: "Second", first: "Forged" });
+    expect(await getDocument(m.id)).toMatchObject({ title: "Second", first: "First" });
   });
 });

@@ -4,7 +4,7 @@ status: accepted
 
 # A built-in type declares in code what Core cannot guess of it, one hook per need with a user
 
-Places (ADR 0119) asked Core for six things no type had needed: an agent's search should say what and where each hit is; a field in another App (an Event's At) should make one from a name; the user should rename and add a built-in Choice's options; the Seen family should speak in the type's words and skip a link the type names (an Event's At on a Person); and titles should be unique in every folder, not per folder. Core may not import Atlas, and the Apps that use a Place may not either (ADR 0100). So each is a key on `DocumentTypeDef` (or `FieldDef`), declared in code by the owning App, which Core reads without knowing what a Place is.
+Places (ADR 0119) asked Core for seven things no type had needed: an agent's search should say what and where each hit is; a field in another App (an Event's At) should make one from a name; the user should rename and add a built-in Choice's options; the Seen family should speak in the type's words and skip a link the type names (an Event's At on a Person); titles should be unique in every folder, not per folder; and a rule on its own fields (the To try day) should hold whoever writes one. Core may not import Atlas, and the Apps that use a Place may not either (ADR 0100). So each is a key on `DocumentTypeDef` (or `FieldDef`), declared in code by the owning App, which Core reads without knowing what a Place is.
 
 Each hook has one user today, and exists because a second App would need the same thing, not as a guess at one:
 
@@ -13,12 +13,13 @@ Each hook has one user today, and exists because a second App would need the sam
 - **`userOptions`** (Field) with **`saveFieldOptions`**: a built-in Choice whose options the user may rename and add to, kept on the type's override record; an option is never removed, so no value a Document holds is orphaned. *User:* a Place's Kind, through Atlas's Kinds dialog. The rest of a built-in's Fields stay its App's (ADR 0019).
 - **`seenAs`** (type): the type's words for the Seen family of Reports (ADR 0112): `{ verb, one, many }`. Absent, it is "seen", counted in days. *User:* Place, "visited" / "visit" / "visits".
 - **`seenExcept`** (type): the links of the type's Fields that do not count their target as Seen, each a Field key and the type it points at; every other link still counts. Core reads it in the Seen family without naming any App's field. *User:* Event, `[{ field: "at", type: Person }]` — being At Marc's home is not seeing Marc (ADR 0119); At a Place counts as a visit.
+- **`beforeSave`** (type): the keys the type keeps true of its own Document on every write, given it as about to be stored and as it was. Core applies them in `putDocument`, so the App's dialog, a Base cell and an agent's `update_document` follow one rule. Rows a sync pulls in are not asked: the device that wrote them was. *User:* Place, whose To try day (ADR 0119) is stamped when the mark is set anew, kept while it stays, and dropped with it; written only by Atlas's dialog, a mark set from a Base or by Claude carried no day, and any past visit cleared it at once.
 - **`uniqueTitles`** (type): titles unique among the type's Documents in every folder, case and accents aside, where others are unique per folder. Core holds it in `putDocument`, so a rename, the Vault's title field, a Base cell and an agent's `update_document` all refuse a taken title with **`TitleTaken`**, which names and carries the Document that has it. *User:* Place ("Lidl Prado" is one spot, wherever it is filed).
 
 ## Considered options
 
 - **Atlas does it itself, beside Core.** Rejected: the MCP server, the editor and a Base each write or read Places without Atlas's screens; a rule kept only in Atlas's repo (as titles first were) is skipped by every other path.
-- **One general "type behaviour" object.** Rejected: six unrelated needs under one name hide which one a type uses; a key per need is read where it is used.
+- **One general "type behaviour" object.** Rejected: seven unrelated needs under one name hide which one a type uses; a key per need is read where it is used.
 - **Wait for a second user before adding any.** Rejected for these: each is needed now, by a path that may not import the App.
 
 ## Consequences

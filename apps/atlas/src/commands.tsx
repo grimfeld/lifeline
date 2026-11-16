@@ -1,4 +1,4 @@
-import { TitleTaken, type CommandDef } from "@lifeline/core";
+import { TitleTaken, titleTakenText, type CommandDef } from "@lifeline/core";
 import { MapPin, MapPinPlus } from "lucide-react";
 import { AddPlaceDialog } from "./components/AddPlaceDialog";
 import { addPlace } from "./data/repo";
@@ -26,14 +26,14 @@ export const atlasCommands: CommandDef[] = [
       { key: "toTry", label: "To try", kind: "boolean", hint: "Optional: true to put it on the user's To try list, a place they want to go. It clears by itself once an Event there has happened." },
     ],
     returnsDocument: true,
-    async invoke(a) {
+    async invoke(a, ctx) {
       try {
         const p = await addPlace({ name: String(a.name ?? ""), kind: a.kind as string | undefined, aliases: a.aliases as string[] | undefined, tags: a.tags as string[] | undefined, address: a.address as string | undefined, toTry: a.toTry === true });
         const where = p.address ? (p.geo ? ", on the map" : ", but its address was found nowhere: it is off the map") : "";
         return { message: `Added ${p.title} to Places${p.toTry ? ", To try" : ""}${where}`, id: p.id };
       } catch (e) {
-        // The agent can use the Place there is rather than make another.
-        if (e instanceof TitleTaken) throw new Error(`${e.message} (id ${e.existing.id})`);
+        // The agent can use the Place there is rather than make another, unless it is one the agent may not see (ADR 0114).
+        if (e instanceof TitleTaken) throw new Error(titleTakenText(e, ctx?.sees));
         throw e;
       }
     },
