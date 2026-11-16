@@ -42,7 +42,8 @@ import {
 } from "@lifeline/core";
 import { CalendarClock, Check, ChevronDown, Inbox, LayoutTemplate, Plus, Trash2, Zap } from "lucide-react";
 import { usePush } from "./push";
-import { HoursEditor, type HoursEditing, type HoursTarget } from "./HoursEditor";
+import type { HoursTarget } from "./HoursEditor";
+import { useOpenOnHours } from "./openOnHours";
 import { snap, sweptRange, toClock } from "./hours";
 import { DEFAULT_MIN, HOUR_PX, addHours, durationOf, entriesByDay as groupEntries, hourLabel, landingHours, lengthOf, resizedEnd, slotHours, templateLength, weekdayName, type Band, type Entry, type Ghost, type Lifted, type WorkItem } from "./scheduleGrid";
 import type { CalendarCtx } from "./CalendarSurface";
@@ -753,7 +754,6 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
   const [ghosts] = useState(ghostStore);
   // A drag ends with a click on whatever it was released over: that click is not a tap.
   const lastDrag = useRef(0);
-  const [editing, setEditing] = useState<(HoursEditing & { id: number }) | null>(null);
   /** An empty hour or a swept range was chosen: the Event dialog, started there (#539). */
   const [adding, setAdding] = useState<{ prefill: IntakePrefill; id: number } | null>(null);
   /** Start the Event dialog on `date` at `hours`, until `endHours` when a range was swept (an hour on, else); ADR 0090 rolls an end past midnight to the next day. */
@@ -763,11 +763,12 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
     const prefill: IntakePrefill = span ? { date, start, end: span.end, ...(span.endDate !== date ? { endDate: span.endDate } : {}) } : { date, start };
     setAdding({ prefill, id: Date.now() });
   };
+  const { open: openOnHours, editor: hoursEditor } = useOpenOnHours({ defaultDay: anchor, inView: (d) => days.includes(d), onGo: (d) => go(d) });
   const open = useStable((target: HoursTarget, anchor: HTMLElement) => {
     if (Date.now() - lastDrag.current < 350) return;
     // The sheet takes the lower half of a phone: bring what is being edited above it.
     if (isMobile && anchor.closest("[data-col]")) anchor.scrollIntoView({ block: "start", behavior: "smooth" });
-    setEditing({ target, anchor, id: Date.now() });
+    openOnHours(target, anchor);
   });
   const pointer = useRef<{ y: number; grab: number }>({ y: 0, grab: 0 });
   const scroller = useRef<HTMLDivElement>(null);
@@ -1035,16 +1036,7 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
 
       <DragOverlay dropAnimation={null}>{active && <div className="bg-card rounded-md border px-2 py-1 text-xs shadow-md">{active.title}</div>}</DragOverlay>
 
-      {editing && (
-        <HoursEditor
-          key={editing.id}
-          editing={editing}
-          defaultDay={anchor}
-          inView={(d) => days.includes(d)}
-          onGo={(d) => go(d)}
-          onClose={() => setEditing(null)}
-        />
-      )}
+      {hoursEditor}
       {adding && eventIntake && <eventIntake.dialog key={adding.id} open onOpenChange={(o) => !o && setAdding(null)} handoff={NO_HANDOFF} prefill={adding.prefill} />}
     </DndContext>
   );

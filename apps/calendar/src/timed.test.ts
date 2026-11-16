@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { timedItemsOf } from "./timed";
+import { calendarTimed, timedItemsOf } from "./timed";
 import type { Event, TimeBlocker } from "./domain/types";
 
 const event = (p: Partial<Event>) =>
@@ -53,5 +53,17 @@ describe("timedItemsOf", () => {
       ["2026-08-10", null, undefined],
       ["2026-08-11", null, undefined],
     ]);
+  });
+});
+
+describe("calendarTimed.peekOf (#536)", () => {
+  it("peeks the whole Event from any of its pieces", () => {
+    const items = timedItemsOf([event({ endDate: "2026-08-11" })], [], { start: "2026-08-09", end: "2026-08-16" });
+    expect(items.map((i) => calendarTimed.peekOf!(i))).toEqual(["e", "e"]);
+  });
+
+  it("leaves a Time blocker band to the hours editor, for now", () => {
+    const [band] = timedItemsOf([], [blocker({})], { start: "2026-08-10", end: "2026-08-10" });
+    expect(calendarTimed.peekOf!(band!)).toBeNull();
   });
 });

@@ -29,8 +29,9 @@ import {
   toHours,
   unplaceItem,
   type DateStr,
-  type SchedulableItem,
+  type HoursTapped,
   type SurfaceTimedItem,
+  type WorkOnHours,
   type TimedWhen,
 } from "@lifeline/core";
 import { Check, ExternalLink, Minus, Plus, Trash2 } from "lucide-react";
@@ -39,21 +40,17 @@ import { addMinutes, minutesBetween, SNAP_MIN, toClock } from "./hours";
 import { keepFocus } from "./itemKeys";
 
 /** A work item as the hours show it: a Time block (placement + start) or an untimed chip. */
-export type WorkLike = Pick<SchedulableItem, "appId" | "itemId" | "title" | "date" | "completedOn" | "estimateMin"> & {
-  color?: string;
-  displayDate?: DateStr;
-  placementId?: string;
-  start?: string | null;
-  end?: string | null;
-};
+export type WorkLike = WorkOnHours;
 
 /**
  * What was tapped on the hours. A work item that is a block edits that block;
  * an untimed chip is a source (ADR 0028), so giving it a time makes a new
  * block and the chip stays. A Timed item is an Event or a one-off Time
- * blocker, retimed and removed through its App (ADR 0056).
+ * blocker, retimed and removed through its App (ADR 0056). The same as what a
+ * Peek opened from the hours is told (`HoursTapped`): an item whose App names a
+ * Peek opens that instead (`useOpenOnHours`).
  */
-export type HoursTarget = { kind: "work"; item: WorkLike } | { kind: "timed"; item: SurfaceTimedItem };
+export type HoursTarget = HoursTapped;
 
 export interface HoursEditing {
   target: HoursTarget;

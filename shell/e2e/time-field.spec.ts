@@ -5,7 +5,7 @@ import { setTime } from "./support/time-field";
 /**
  * Times typed or picked from the kit's Time field, never the browser's time
  * input: the Time blocker dialog's Start and End, an Event template's usual start
- * and the Hours editor's Start.
+ * and the Start in an Event's Peek.
  */
 
 async function workLocally(page: Page) {
@@ -103,7 +103,7 @@ test("an Event template's usual start is typed into its Time field", async ({ pa
     .toBe("09:15");
 });
 
-test("an Event's start is typed into the Hours editor's Time field and written at once", async ({ page }) => {
+test("an Event's start is typed into the Time field of the Peek it opens from Upcoming, and written", async ({ page }) => {
   const title = `Nudge me ${Date.now()}`;
   await page.goto("/calendar?view=upcoming");
   await workLocally(page);

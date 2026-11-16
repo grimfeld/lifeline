@@ -22,7 +22,7 @@ import {
 } from "@lifeline/core";
 import { ChevronDown, Inbox, Pin } from "lucide-react";
 import { ItemMark, missed } from "./marks";
-import { HoursEditor, type HoursEditing } from "./HoursEditor";
+import { useOpenOnHours } from "./openOnHours";
 import { moveWork, useMoveDialog, WorkMenu, type DayWork } from "./WorkMenu";
 import type { CalendarCtx } from "./CalendarSurface";
 
@@ -190,6 +190,7 @@ export function MonthView({ ctx }: { ctx: CalendarCtx }) {
   const monthEnd = fromParts(y, m, daysInMonth(y, m));
   const gridStart = days[0] ?? monthStart;
   const gridEnd = days.at(-1) ?? monthEnd;
+  const { open, editor } = useOpenOnHours({ defaultDay: anchor, inView: (d) => d >= gridStart && d <= gridEnd, onGo: (d) => ctx.go(d) });
 
   // Day-granular: the item on its own day only — its Time blocks are Schedule detail (ADR 0028).
   // Looking back lets work missed before the grid surface in the pool as Overdue.
@@ -207,7 +208,6 @@ export function MonthView({ ctx }: { ctx: CalendarCtx }) {
   );
   const [active, setActive] = useState<string | null>(null);
   const [menuFor, setMenuFor] = useState<string | null>(null);
-  const [editing, setEditing] = useState<(HoursEditing & { id: number }) | null>(null);
   const drag = useDragGuard();
   const move = useMoveDialog(today);
 
@@ -287,7 +287,7 @@ export function MonthView({ ctx }: { ctx: CalendarCtx }) {
                   {timed
                     .filter((t) => t.date === d)
                     .map((t) => (
-                      <TimedChip key={t.key} item={t} onStep={(st) => stepTimed(t, st)} onOpen={(el) => !drag.recent() && setEditing({ target: { kind: "timed", item: t }, anchor: el, id: Date.now() })} />
+                      <TimedChip key={t.key} item={t} onStep={(st) => stepTimed(t, st)} onOpen={(el) => !drag.recent() && open({ kind: "timed", item: t }, el)} />
                     ))}
                   {inGrid.filter((i) => i.displayDate === d).map(chip)}
                 </DayCell>
@@ -304,16 +304,7 @@ export function MonthView({ ctx }: { ctx: CalendarCtx }) {
 
       <DragOverlay dropAnimation={null}>{active && <div className="bg-card rounded-md border px-2 py-1 text-xs shadow-md">{active}</div>}</DragOverlay>
       {move.dialog}
-      {editing && (
-        <HoursEditor
-          key={editing.id}
-          editing={editing}
-          defaultDay={anchor}
-          inView={(d) => d >= gridStart && d <= gridEnd}
-          onGo={(d) => ctx.go(d)}
-          onClose={() => setEditing(null)}
-        />
-      )}
+      {editor}
     </DndContext>
   );
 }

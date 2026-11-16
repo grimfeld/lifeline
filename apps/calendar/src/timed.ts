@@ -140,6 +140,10 @@ export const calendarTimed: TimedProvider = {
   href(itemId) {
     return vaultDocPath(itemId);
   },
+  // An Event opens its Peek, whichever piece was tapped (#536); a Time blocker band still opens the hours editor.
+  peekOf(item) {
+    return item.background ? null : item.itemId;
+  },
 };
 
 /** The Timed hooks get an item id that is an Event's or a one-off blocker's (ADR 0029): the Document type tells. */

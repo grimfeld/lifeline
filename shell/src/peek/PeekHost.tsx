@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { Button, Sheet, SheetClose, SheetContent, SheetTitle, Tip, cn, usePhone } from "@lifeline/ui";
+import { Button, Sheet, SheetClose, SheetContent, SheetTitle, Tip, cn, toast, usePhone } from "@lifeline/ui";
 import {
   backPeek,
   closePeek,
@@ -10,6 +10,8 @@ import {
   homeModuleOf,
   isModShortcut,
   moduleById,
+  onPeekClosed,
+  peekOrigin,
   singularOf,
   useDocument,
   useDocumentType,
@@ -18,9 +20,11 @@ import {
   vaultDocPath,
   type Document,
   type DocumentTypeDef,
+  type TimingChange,
 } from "@lifeline/core";
 import { ArrowLeft, ArrowUpRight, BookOpen, NotebookPen, Pencil, X } from "lucide-react";
 import { PeekContent } from "./PeekContent";
+import { keepFocus } from "../surfaces/itemKeys";
 
 /**
  * The **Peek** (ADR 0057): one Document opened where the user is — over the
@@ -38,6 +42,10 @@ import { PeekContent } from "./PeekContent";
  * the Document's: it ends when the Peek closes or moves to another one, so a
  * Peek always opens to read. While writing, the panel widens on the desk (the
  * page behind still shows) and the sheet takes the phone's whole height.
+ *
+ * Closing it leaves one Undo for the timing changed while it was open (ADR
+ * 0056, #536), wherever it was opened from, and hands the focus back to the
+ * item it was opened from on the hours (#284).
  *
  * A side panel on the desk, a bottom sheet on the phone. Mounted once.
  */
@@ -57,6 +65,10 @@ export function PeekHost() {
   useEffect(() => {
     closePeek();
   }, [location.pathname]);
+  // Closed (or replaced by another), it leaves one Undo for the timing changed while it was open.
+  useEffect(() => onPeekClosed(offerTimingUndo), []);
+  const content = useRef<HTMLDivElement>(null);
+  const returnFocus = useReturnFocus(content);
   // Closed, it opens to read next time — even on the same Document.
   useEffect(() => {
     if (!id) setWritingId(null);
@@ -65,7 +77,9 @@ export function PeekHost() {
   return (
     <Sheet open={!!id} onOpenChange={(o) => !o && closePeek()}>
       <SheetContent
+        ref={content}
         aria-describedby={undefined}
+        onCloseAutoFocus={returnFocus}
         side={isMobile ? "bottom" : "right"}
         className={
           isMobile
@@ -150,6 +164,38 @@ function PeekBody({ doc, def, writing, onToggleWriting }: { doc: Document; def: 
       </div>
     </div>
   );
+}
+
+export const TIMING_TOAST_ID = "peek-timing";
+
+/** One Undo for every timing a closed Peek changed, put back last first; nothing when none changed. */
+function offerTimingUndo(changes: TimingChange[]) {
+  const [first] = changes;
+  if (!first) return;
+  const undo = async () => {
+    for (const c of [...changes].reverse()) await c.restore();
+  };
+  toast.success(changes.length === 1 ? `${first.label} updated` : `${changes.length} timings changed`, {
+    id: TIMING_TOAST_ID,
+    action: { label: "Undo", onClick: () => void undo().catch((e: unknown) => toast.error(`Could not put the timing back: ${e instanceof Error ? e.message : String(e)}`)) },
+  });
+}
+
+/**
+ * Closing hands the focus back to the item the Peek was opened from on the hours
+ * (#284). An item the edit redrew elsewhere is found again by its
+ * `data-focus-key`; a focus already taken by something outside the Peek stays
+ * where it went. Opened from anywhere else, the Sheet's own return holds.
+ */
+function useReturnFocus(content: React.RefObject<HTMLDivElement | null>) {
+  return (e: Event) => {
+    const { anchor } = peekOrigin();
+    const active = document.activeElement;
+    if (!anchor || (active && active !== document.body && !content.current?.contains(active))) return;
+    e.preventDefault();
+    if (anchor.isConnected) anchor.focus({ preventScroll: true });
+    else if (anchor.dataset.focusKey) keepFocus(anchor.dataset.focusKey);
+  };
 }
 
 /** Back to what the Peek showed before a link was followed in it; only there when there is a before. */
