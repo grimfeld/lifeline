@@ -161,7 +161,10 @@ export async function putDocument<T extends Document = Document>(input: Document
   if (body === undefined) delete (row as Document).body;
   else (row as Document).body = body;
   if (!row.title && def?.titleOf) row.title = def.titleOf(row);
-  if (def?.uniqueTitles) await assertUniqueTitle(row);
+  const was = def?.beforeSave || def?.uniqueTitles ? await documentsTable().get(id) : undefined;
+  const live = was && !was.deleted ? was : undefined;
+  if (def?.beforeSave) Object.assign(row, def.beforeSave(row, live));
+  if (def?.uniqueTitles) await assertUniqueTitle(row, live);
   await put<T>(DOCUMENTS, row);
   await runAfterSave(row);
   return row;
@@ -173,9 +176,8 @@ export async function putDocument<T extends Document = Document>(input: Document
  * field or a Base cell. Checked only when the title is new or changed, so a
  * Document that shares its title from before (a sync, an older build) still saves.
  */
-async function assertUniqueTitle(row: Document): Promise<void> {
-  const was = await documentsTable().get(row.id);
-  if (was && !was.deleted && normalizeName(was.title) === normalizeName(row.title)) return;
+async function assertUniqueTitle(row: Document, was: Document | undefined): Promise<void> {
+  if (was && normalizeName(was.title) === normalizeName(row.title)) return;
   assertTitleFree(await documentsOf(row.type), row.type, row.folder, row.title, row.id);
 }
 
