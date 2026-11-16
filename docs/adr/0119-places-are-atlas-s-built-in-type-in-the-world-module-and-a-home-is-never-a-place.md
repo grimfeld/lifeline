@@ -1,6 +1,6 @@
 ---
 status: accepted
-amends: ADR 0113 (in part — the People Module becomes World, and a place is no longer a user-defined type of the Journal), ADR 0112 (in part — an Event's At on a Person never counts as Seen)
+amends: ADR 0113 (in part — the People Module becomes World, and a place is no longer a user-defined type of the Journal), ADR 0112 (in part — an Event's At on a Person never counts as Seen), ADR 0114 (in part — a hidden Document is never named to an agent, in any field or any type)
 ---
 
 # Places are Atlas's built-in type in the World Module, and a home is never a Place
@@ -29,4 +29,5 @@ So **Place is a built-in type**, owned by a new hand-written App, **Atlas**, and
 - The built-in id is `atlas_place`, not `place`, so a user-defined `place` type, if any account has one, stays the user's own, untouched. Moving its Documents into Place is a later, explicit step.
 - The Event type gains `at`, a Link that may target `PLACE_TYPE` or `PERSON_TYPE`.
 - ADR 0113's "People Module" reads World from here on; the rest of it stands.
+- **A hidden Document is never named to an agent, in any field or any type**, widening ADR 0114's wall past a Person's Addresses. A link Field of any type whose target is hidden from agents (in the Private folder, or internal) reaches an agent blanked: get_document leaves it out and search does not match on it. A Command or Macro run by an agent resolves its link arguments only among the Documents an agent sees (`InvokeContext.sees`), so a hidden one's id, title or alias reads as no Document at all, an ambiguous name lists none, and a refused title (below) names no hidden Document that has it.
 - A Place's title is unique in every folder, Private included, so a title refused to an agent tells it that some Place has that name, though not which (ADR 0114). That yes or no on a guessed name is an accepted cost: two Places with one name would break every `[[link]]` to them, and a Place in Private is rare.

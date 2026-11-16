@@ -12,22 +12,22 @@ import { BLOCKER_TEMPLATE_TYPE, EVENT_TYPE, TIME_BLOCKER_TYPE, type Event, type 
 export const APP_ID = "calendar";
 
 /** The Places and People an Event's At may name, by id (ADR 0119), for `atOf` to judge with Core's `atTarget`. */
-export type AtTitles = ReadonlyMap<string, Document>;
+export type AtTargets = ReadonlyMap<string, Document>;
 
 /** The Documents an Event's At may name: every Place and Person, through Core's types (ADR 0100). */
-export const atTitlesOf = (docs: readonly Document[]): AtTitles => new Map(docs.map((d) => [d.id, d]));
+export const atTargetsOf = (docs: readonly Document[]): AtTargets => new Map(docs.map((d) => [d.id, d]));
 
 /** An Event's At as a Timed item carries it: the id and title only, or nothing. */
-export function atOf(ev: Pick<Event, "at">, titles: AtTitles): TimedItem["at"] {
-  return ev.at ? atTarget(titles.get(ev.at), ev.at) : undefined;
+export function atOf(ev: Pick<Event, "at">, targets: AtTargets): TimedItem["at"] {
+  return ev.at ? atTarget(targets.get(ev.at), ev.at) : undefined;
 }
 
 /**
  * Events and Time blocker bands in range, as Timed items — one per day each
  * occupies. A timed Event's pieces have their own day's hours and carry its
- * whole span (ADR 0090), and its At (ADR 0119) when `titles` knows it.
+ * whole span (ADR 0090), and its At (ADR 0119) when `targets` knows it.
  */
-export function timedItemsOf(events: Event[], blockers: TimeBlocker[], range: { start: DateStr; end: DateStr }, titles: AtTitles = new Map()): TimedItem[] {
+export function timedItemsOf(events: Event[], blockers: TimeBlocker[], range: { start: DateStr; end: DateStr }, targets: AtTargets = new Map()): TimedItem[] {
   const items: TimedItem[] = [];
   // Time blockers (ADR 0027) are painted per day: a weekly rule's bands are fixed, a one-off's (ADR 0029) may be
   // dragged, and each of its bands carries its whole span (ADR 0090) so a drag or resize acts on the whole blocker.
@@ -50,7 +50,7 @@ export function timedItemsOf(events: Event[], blockers: TimeBlocker[], range: { 
     });
   }
   for (const ev of events) {
-    const at = atOf(ev, titles);
+    const at = atOf(ev, targets);
     const item = (date: DateStr, start: string | null, end: string | null): TimedItem => ({
       ...(at && { at }),
       key: `${APP_ID}/${ev.id}@${date}`,
@@ -83,14 +83,14 @@ export const calendarTimed: TimedProvider = {
     const blockers = useTimeBlockers();
     const places = useDocuments(PLACE_TYPE);
     const people = useDocuments(PERSON_TYPE);
-    const titles = useMemo(() => atTitlesOf([...places, ...people]), [places, people]);
+    const targets = useMemo(() => atTargetsOf([...places, ...people]), [places, people]);
     const { start, end } = range;
     // Surfaces call this on every render: expand the Events and blockers again only when one moves.
-    return useMemo(() => timedItemsOf(events, blockers, { start, end }, titles), [events, blockers, start, end, titles]);
+    return useMemo(() => timedItemsOf(events, blockers, { start, end }, targets), [events, blockers, start, end, targets]);
   },
   async itemsIn(range) {
-    const titles = atTitlesOf([...(await documentsOf(PLACE_TYPE)), ...(await documentsOf(PERSON_TYPE))]);
-    return timedItemsOf(await allEvents(), await allTimeBlockers(), range, titles);
+    const targets = atTargetsOf([...(await documentsOf(PLACE_TYPE)), ...(await documentsOf(PERSON_TYPE))]);
+    return timedItemsOf(await allEvents(), await allTimeBlockers(), range, targets);
   },
   async move(itemId, to) {
     if (await isBlocker(itemId)) await rescheduleTimeBlocker(itemId, { date: to, start: null, end: null });

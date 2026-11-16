@@ -1,9 +1,9 @@
 import "fake-indexeddb/auto";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { DOCUMENT_TYPES, db } from "./data/db";
 import { appsOfModule, inhabitedModules, moduleOfApp, moduleOfPath, moduleScreens, navSectionsOf } from "./registry";
 import { initApps } from "./registry";
-import { resetBuiltinType, saveDocumentType, saveFieldOptions, type DocumentTypeRecord } from "./documents/registry";
+import { documentType, resetBuiltinType, saveDocumentType, saveFieldOptions, type DocumentTypeRecord } from "./documents/registry";
 import { MODULES, DASHBOARD_FRAME, VAULT_FRAME, type AppManifest, type AppScreenDef } from "./manifest";
 
 const screen = (id: string, extra: Partial<AppScreenDef> = {}): AppScreenDef => ({
@@ -136,11 +136,33 @@ describe("resetting a built-in type (ADR 0123: an option is never removed)", () 
   const records = () => db().collection<DocumentTypeRecord>(DOCUMENT_TYPES).where("deleted").equals(0).toArray();
   const kinds = async () => (await records()).find((r) => r.typeId === "kinded")?.fields.find((f) => f.key === "kind")?.options?.map((o) => o.value);
 
+  const labels = () => documentType("kinded")?.fields.find((f) => f.key === "kind")?.options?.map((o) => o.label);
+
   it("keeps the Kinds the user added", async () => {
     await saveFieldOptions("kinded", "kind", [{ value: "cafe", label: "Cafe" }, { label: "Bakery" }]);
     const rec = (await records()).find((r) => r.typeId === "kinded")!;
     await resetBuiltinType(rec);
-    expect(await kinds()).toEqual(["cafe", "bakery"]);
+    expect(await kinds()).toEqual(["bakery"]);
+    await vi.waitFor(() => expect(labels()).toEqual(["Cafe", "Bakery"]));
+  });
+
+  it("puts back the App's name of a Kind the user renamed, and keeps the one they added", async () => {
+    await db().table(DOCUMENT_TYPES).clear();
+    await saveFieldOptions("kinded", "kind", [{ value: "cafe", label: "Coffee shop" }, { label: "Bakery" }]);
+    await vi.waitFor(() => expect(labels()).toEqual(["Coffee shop", "Bakery"]));
+    await resetBuiltinType((await records()).find((r) => r.typeId === "kinded")!);
+    await vi.waitFor(() => expect(labels()).toEqual(["Cafe", "Bakery"]));
+  });
+
+  it("leaves the type unedited once reset, though it keeps the Kinds the user added", async () => {
+    await db().table(DOCUMENT_TYPES).clear();
+    await saveDocumentType({ typeId: "kinded", label: "Renamed", icon: "", folder: "", fields: [], order: 0 });
+    await saveFieldOptions("kinded", "kind", [{ value: "cafe", label: "Coffee shop" }, { label: "Bakery" }]);
+    await vi.waitFor(() => expect(documentType("kinded")?.overridden).toBe(true));
+    await resetBuiltinType((await records()).find((r) => r.typeId === "kinded")!);
+    await vi.waitFor(() => expect(labels()).toEqual(["Cafe", "Bakery"]));
+    expect(documentType("kinded")?.label).toBe("Kinded");
+    expect(documentType("kinded")?.overridden).toBeFalsy();
   });
 
   it("drops the override altogether when it holds nothing but the type's own settings", async () => {

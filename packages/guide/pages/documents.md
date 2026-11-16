@@ -31,7 +31,10 @@ book. This page covers what every Document has, whatever its type.
 - Your own type gets everything generic: a Base, a form, a body, the generic Cards.
 - A type of yours can be deleted only once no Document of it is left, in any Workspace. Lifeline
   asks before it deletes one.
-- A built-in type you edited (say, added a Field to) can be **reset to default**.
+- A built-in type you edited (say, added a Field to) can be **reset to default**. The options you
+  added to one of its choices (a Place's Kinds of your own) stay, since a Document may still hold
+  them; the ones it came with take their own names back. Those added options alone don't count as
+  an edit.
 
 ## Fields
 

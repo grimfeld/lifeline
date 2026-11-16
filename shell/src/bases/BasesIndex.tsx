@@ -66,7 +66,8 @@ export function BasesIndex() {
         <Button size="icon-sm" variant="ghost" onClick={() => setEditing({ record: rec ?? null, base: t.builtIn ? t : undefined })} aria-label="Edit type">
           <Pencil className="size-3.5" />
         </Button>
-        {rec && (
+        {/* A built-in holding only the Kinds you added is not edited: a reset would keep them and do nothing (ADR 0123). */}
+        {rec && (!t.builtIn || t.overridden) && (
           <Tip label={t.builtIn ? `Reset ${t.label} to default` : `Delete the type ${t.label}`}>
             <Button size="icon-sm" variant="ghost" onClick={() => void removal.ask(rec, !!t.builtIn)}>
               {t.builtIn ? <RotateCcw /> : <Trash2 />}

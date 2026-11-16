@@ -92,6 +92,33 @@ export function userChoiceOptions(app: readonly FieldOption[], user: readonly Fi
   return [...app.map((o) => (mine.has(o.value) ? { ...o, label: mine.get(o.value)! } : o)), ...[...mine].filter(([v]) => !known.has(v)).map(([value, label]) => ({ value, label }))];
 }
 
+/**
+ * The options the user added to a built-in's `userOptions` Choices, from an
+ * override record's Fields: the App's own options, renamed or not, left out,
+ * and a Choice with none added dropped. What a reset keeps (ADR 0123).
+ */
+function addedOptions(b: DocumentTypeDef | undefined, fields: unknown): FieldDef[] {
+  return (Array.isArray(fields) ? (fields as FieldDef[]) : []).flatMap((f) => {
+    const own = b?.fields.find((x) => x.key === f.key);
+    if (!own?.userOptions) return [];
+    const app = new Set((own.options ?? []).map((o) => o.value));
+    const added = (f.options ?? []).filter((o) => !app.has(o.value));
+    return added.length ? [{ ...f, options: added }] : [];
+  });
+}
+
+/**
+ * Whether an override record holds nothing but options the user added, as a
+ * reset leaves it: not an edit, so the type reads unedited and offers no reset
+ * that would do nothing.
+ */
+function onlyAddedOptions(b: DocumentTypeDef, r: DocumentTypeRecord): boolean {
+  const fields = Array.isArray(r.fields) ? r.fields : [];
+  const added = addedOptions(b, fields);
+  const same = (x: FieldDef, y: FieldDef | undefined) => !!y && (x.options ?? []).length === (y.options ?? []).length;
+  return r.label === b.label && (r.icon ?? "") === (b.iconName ?? "") && (r.folder ?? "") === (b.folder ?? "") && !r.reports && fields.length === added.length && fields.every((f) => same(f, added.find((a) => a.key === f.key)));
+}
+
 /** A built-in's own Fields with the user's options on each `userOptions` Choice, from the override record. */
 function ownFields(b: DocumentTypeDef, r: DocumentTypeRecord): FieldDef[] {
   const saved = new Map((Array.isArray(r.fields) ? r.fields : []).map((f) => [f.key, f]));
@@ -107,7 +134,7 @@ function merge(user: DocumentTypeRecord[]): DocumentTypeDef[] {
     // The built-in's own Fields stay its App's (CONTEXT.md "Field"); the user's sit beside them, a key the App already declares kept as the App's.
     const own = new Set(b.fields.map((f) => f.key));
     const fields = [...ownFields(b, r), ...d.fields.filter((f) => !own.has(f.key))];
-    return { ...b, label: d.label, singular: undefined, icon: d.icon ?? b.icon, iconName: d.iconName, folder: d.folder, fields, reports: d.reports ?? b.reports, builtIn: true, overridden: true };
+    return { ...b, label: d.label, singular: undefined, icon: d.icon ?? b.icon, iconName: d.iconName, folder: d.folder, fields, reports: d.reports ?? b.reports, builtIn: true, overridden: !onlyAddedOptions(b, r) };
   });
   const ids = new Set(builtins.map((t) => t.id));
   const extra = user.filter((r) => !ids.has(r.typeId)).map(toDef);
@@ -230,12 +257,13 @@ export async function deleteDocumentType(id: string): Promise<void> {
  * Reset a built-in type to its default (ADR 0072): its override record goes,
  * except the options the user added to a `userOptions` Choice, which stay on a
  * record of their own — a Place with a Kind of yours must still find it (ADR
- * 0123: an option is never removed).
+ * 0123: an option is never removed). The App's own options, renamed or not,
+ * take their App's names back.
  */
 export async function resetBuiltinType(rec: DocumentTypeRecord): Promise<void> {
-  const kept = (Array.isArray(rec.fields) ? rec.fields : []).filter((f) => builtinType(rec.typeId)?.fields.find((b) => b.key === f.key)?.userOptions && f.options?.length);
-  if (kept.length === 0) return deleteDocumentType(rec.id);
   const b = builtinType(rec.typeId);
+  const kept = addedOptions(b, rec.fields);
+  if (kept.length === 0) return deleteDocumentType(rec.id);
   await put<DocumentTypeRecord>(DOCUMENT_TYPES, { id: rec.id, typeId: rec.typeId, label: b?.label ?? rec.label, icon: b?.iconName ?? "", folder: b?.folder ?? "", fields: kept, order: 0, updatedAt: "", deleted: 0 });
 }
 

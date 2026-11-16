@@ -3,7 +3,8 @@
 The **Guide** (CONTEXT.md, ADR 0089) is Lifeline's manual, read inside the app at `/guide` and
 by Claude through the MCP `guide` tool. Its pages are the Markdown files in `pages/`, listed in
 `src/index.ts`. They describe the app as the user meets it: one page per **Module**, per
-**Surface**, and per Core concept — never per App.
+**Surface**, and per Core concept, never per App — except that a Module with several Apps may
+give one App a page of its own beside the Module's, also `kind: "module"` (ADR 0125).
 
 ## Who reads it
 

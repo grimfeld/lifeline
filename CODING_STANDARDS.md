@@ -39,6 +39,9 @@ nearest existing pattern and don't hand-roll a new one.
   (`ToggleGroupItem` per choice, named with `aria-label`): it looks like `TabsList` and
   becomes a `Select` on a phone by itself. A media App's Shelf is `ShelfControl` from
   `@lifeline/parts`.
+- Toggle chips, where each filter turns on or off by itself (a map's App and To try
+  chips, any multi-toggle filter row), use `FilterChip` (`on` sets `aria-pressed`), never a
+  hand-styled `<button>`.
 - Search-as-you-type pickers use `Combobox` (`Command` + `Popover`), never a
   hand-rolled `role="listbox"`.
 - **(check)** A time of day is `TimeField` (typed, or picked from quarter hours), never

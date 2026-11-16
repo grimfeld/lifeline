@@ -115,3 +115,24 @@ test("an Event At a Place shows where it is in Upcoming and in the Week, beside 
   await page.goto("/calendar?view=week");
   await expect(page.getByText(title).first().locator("..")).toContainText(`At ${placeName}`);
 });
+
+test("an Event At a Place shows where it is on the Agenda card", async ({ page }) => {
+  const stamp = Date.now();
+  const title = `Lunch ${stamp}`;
+  const placeName = `Chez Janou ${stamp}`;
+  await page.goto("/app/events");
+  await workLocally(page);
+  const place = await make(page, "atlas_place", placeName, "Places", []);
+  const screen = `agenda${stamp}`;
+  await inCore(page, async (core, a: { title: string; at: string; screen: string }) => {
+    const d = new Date();
+    const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    await core.createDocument({ type: "event", title: a.title, folder: "Events", fields: { date, endDate: date, start: "12:00", end: "14:00", at: a.at } });
+    const layout = [{ instanceId: "agenda", cardId: "hub.agenda", settings: { startHour: 0, endHour: 24 }, x: 0, y: 0, w: 4, h: 12 }];
+    await core.put("screens", { id: a.screen, name: "Agenda", layout, sort: 0, workspace: core.currentWorkspaceId() } as never);
+  }, { title, at: place, screen });
+
+  await page.goto(`/screen/${screen}`);
+  await workLocally(page);
+  await expect(page.getByRole("button", { name: new RegExp(title) })).toContainText(`At ${placeName}`);
+});

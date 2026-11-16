@@ -95,9 +95,11 @@ The **Events** page has three tabs:
   A name that matches none offers **New place “…”**, which adds the Place and sets At to it (a
   name a Place already has picks that Place). The ✕ on it clears At. An Event is At one place at
   most: several stops are several Events. The Event shows on that Place's or Person's page among
-  its backlinks ("via At"), and its At shows wherever Events are listed ("At Chez Janou"; a phone's narrow Week leaves it to the editor), and in
-  its Peek, where it can be changed. At on a Person never counts as having seen them: feeding
-  Marc's cat while he is away is not seeing Marc. Put him in **With** for that.
+  its backlinks ("via At"), and its At shows wherever Events are listed ("At Chez Janou"), and in
+  its Peek, where it can be changed. Two spots leave it to the Peek: a phone's narrow Week, and
+  a Schedule block too short for a second line (under about 35 minutes). At on a Person never
+  counts as having seen them: feeding Marc's cat while he is away is not seeing Marc. Put him in
+  **With** for that.
   An Event At a Place or a Person stands on the [World](world.md) map and the [Map](map.md) there,
   with its title and day; see World for which home a Person's Event stands at. On World's map,
   an Event At a Place follows that Place through the Kind and To try filters. Claude is never
