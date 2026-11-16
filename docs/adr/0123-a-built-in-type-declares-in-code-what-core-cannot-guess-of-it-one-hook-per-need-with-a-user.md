@@ -1,5 +1,6 @@
 ---
 status: accepted
+amends: ADR 0013 (in part — a type may hold its titles unique in every folder, not per folder)
 ---
 
 # A built-in type declares in code what Core cannot guess of it, one hook per need with a user
@@ -12,7 +13,7 @@ Each hook has one user today, and exists because a second App would need the sam
 - **`createNamed`** (type): how the owning App makes one of its Documents from a name alone, by its own rules, answering the one there is when the name is taken. *User:* Place, for "New place …" in the editor's `AtField`, which imports neither Atlas nor Contacts.
 - **`userOptions`** (Field) with **`saveFieldOptions`**: a built-in Choice whose options the user may rename and add to, kept on the type's override record; an option is never removed, so no value a Document holds is orphaned. *User:* a Place's Kind, through Atlas's Kinds dialog. The rest of a built-in's Fields stay its App's (ADR 0019).
 - **`seenAs`** (type): the type's words for the Seen family of Reports (ADR 0112): `{ verb, one, many }`. Absent, it is "seen", counted in days. *User:* Place, "visited" / "visit" / "visits".
-- **`uniqueTitles`** (type): titles unique among the type's Documents in every folder, case and accents aside, where others are unique per folder. Core holds it in `putDocument`, so a rename, the Vault's title field, a Base cell and an agent's `update_document` all refuse a taken title with **`TitleTaken`**, which names and carries the Document that has it. *User:* Place ("Lidl Prado" is one spot, wherever it is filed).
+- **`uniqueTitles`** (type): titles unique among the type's Documents in every folder, case and accents aside, where others are unique per folder. Core holds it in `putDocument`, the check and the write in one transaction, so a rename, the Vault's title field, a Base cell and an agent's `update_document` all refuse a taken title with **`TitleTaken`**, which names and carries the Document that has it. *User:* Place ("Lidl Prado" is one spot, wherever it is filed).
 
 ## Considered options
 
@@ -23,5 +24,5 @@ Each hook has one user today, and exists because a second App would need the sam
 ## Consequences
 
 - A hook with no user is removed, not kept for later: each one names its user here, and a new hook gets an ADR line of its own.
-- `putDocument` reads the type's Documents only for a type with `uniqueTitles`, and only when the title is new or changed, so a pair that shares a title from before (a sync, an older build) still saves.
+- `putDocument` reads the type's Documents only for a type with `uniqueTitles`, and only when the title is new or changed, so a pair that shares a title from before (a sync, an older build) still saves. A pull from the server writes around the guard: two devices that each made the same Place offline keep both.
 - An agent's refusal names the Place that has the title, with its id, unless that Place is hidden from agents.

@@ -161,22 +161,36 @@ export async function putDocument<T extends Document = Document>(input: Document
   if (body === undefined) delete (row as Document).body;
   else (row as Document).body = body;
   if (!row.title && def?.titleOf) row.title = def.titleOf(row);
-  if (def?.uniqueTitles) await assertUniqueTitle(row);
-  await put<T>(DOCUMENTS, row);
+  if (def?.uniqueTitles) await putUniquelyTitled(row);
+  else await put<T>(DOCUMENTS, row);
   await runAfterSave(row);
   return row;
 }
 
 /**
- * A type whose titles are unique in every folder (`uniqueTitles`, a Place's):
- * the one choke point every title passes, from a rename to a page's title
- * field or a Base cell. Checked only when the title is new or changed, so a
- * Document that shares its title from before (a sync, an older build) still saves.
+ * Write a Document of a type whose titles are unique in every folder
+ * (`uniqueTitles`, a Place's), refusing a taken title with `TitleTaken`: the
+ * one guard that decides, every title passing it, from a rename to a page's
+ * title field, a Base cell or an agent. The check and the write are one
+ * transaction, so two made at once with one title (two tabs, the form and
+ * Claude) leave one and refuse the other. A pull from the server writes
+ * around it, so a title shared on two devices before either synced survives.
+ * Checked only when the title is new or changed, so a Document that shares its
+ * title from before (a sync, an older build) still saves. Among the Documents
+ * of its Workspace that the Private gate lets through, as every read.
  */
-async function assertUniqueTitle(row: Document): Promise<void> {
-  const was = await documentsTable().get(row.id);
-  if (was && !was.deleted && normalizeName(was.title) === normalizeName(row.title)) return;
-  assertTitleFree(await documentsOf(row.type), row.type, row.folder, row.title, row.id);
+async function putUniquelyTitled(row: Document): Promise<void> {
+  const gate = await privateGate();
+  const table = documentsTable();
+  await db().transaction("rw", table, db()._outbox, async () => {
+    const was = await table.get(row.id);
+    if (!was || was.deleted || normalizeName(was.title) !== normalizeName(row.title)) {
+      const rows = await table.where("[type+deleted]").equals([row.type, 0]).toArray();
+      const docs = visibleUnder(rows, gate).filter((r) => inScope(r, row.workspace ?? ""));
+      assertTitleFree(docs, row.type, row.folder, row.title, row.id);
+    }
+    await put(DOCUMENTS, row);
+  });
 }
 
 /** The types that keep their own Documents true when one of this type is saved (`afterSaveOf`, ADR 0121), each told in turn. */

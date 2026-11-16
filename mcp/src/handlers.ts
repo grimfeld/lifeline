@@ -629,14 +629,12 @@ const handlers: Record<string, (a: Args) => Promise<unknown>> = {
     if (move) assertNotPrivate(String(a.folder));
     const rename = a.title !== undefined && String(a.title).trim() !== doc.title;
     if (rename && def.titleRule === "derived") throw new ToolError(`${def.label} take their title from their fields`);
-    if (move || rename) {
-      // The same clashes moveDocument and renameDocument refuse, checked up front: per folder, or in every folder for a type whose titles are unique (a Place's).
-      const docs = await allDocuments();
-      const folder = move ? normalizeFolder(String(a.folder)) : doc.folder;
-      const title = String(a.title ?? "").trim();
+    const title = String(a.title ?? "").trim();
+    if (move && rename && title) {
+      // A move then a rename are two writes: the rename's clash in the target folder is checked before the move, so it never
+      // leaves the move behind. A lone move or rename is refused by moveDocument or renameDocument itself (Core's one guard).
       try {
-        if (move) assertTitleFree(docs, doc.type, folder, doc.title, doc.id);
-        if (rename && title) assertTitleFree(docs, doc.type, folder, title, doc.id);
+        assertTitleFree(await allDocuments(), doc.type, normalizeFolder(String(a.folder)), title, doc.id);
       } catch (e) {
         throw titleRefusal(e);
       }
@@ -651,8 +649,8 @@ const handlers: Record<string, (a: Args) => Promise<unknown>> = {
 
     const changed: string[] = [];
     if (move) {
-      await moveDocument(doc, String(a.folder)).catch((e: Error) => {
-        throw new ToolError(e.message);
+      await moveDocument(doc, String(a.folder)).catch((e: unknown) => {
+        throw titleRefusal(e);
       });
       changed.push("folder");
       doc = await visibleDocument(a.id);
