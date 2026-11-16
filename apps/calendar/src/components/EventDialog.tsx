@@ -7,15 +7,16 @@ import { eventFormErrors, newEventWhen, whenOf, withEnd, withStart, type EventFo
 import { fillFromTemplate } from "../domain/templates";
 import { useEventTemplates } from "../data/templates";
 import { EventForm, type EventDraft } from "./EventForm";
+import { PlaceHere } from "./PlaceHere";
 import { whenIds } from "./WhenFields";
 
 /** Each checked control's id — its input's and the one an error focuses — in the order the dialog shows them. */
 const FIELD_IDS: Record<keyof EventFormErrors, string> = { title: "ev-title", ...whenIds("ev-") };
 
 /**
- * What a new Event starts with, from whoever opens the dialog (the Schedule's
- * quick add's "More…", through the Intake contract): its title, day, start,
- * end day and end. Whatever is left out takes the usual default.
+ * What a new Event starts with, from whoever opens the dialog (an empty hour or
+ * a swept range of the Schedule, through the Intake contract): its title, day,
+ * start, end day and end. Whatever is left out takes the usual default.
  */
 export type EventPrefill = IntakePrefill;
 
@@ -29,8 +30,10 @@ function newDraft(day: DateStr, pre: Partial<Pick<IntakePrefill, "start" | "endD
 }
 
 /**
- * Adds an Event: its title and the Event Form in adding mode (#532). An existing
- * Event is never edited here — that is its Peek's, through the same Form.
+ * Adds an Event: the Event templates (#535), its title and the Event Form in
+ * adding mode (#532), then "Or place here" (#539) — a Blocker template or
+ * unplaced work at the Form's day and start instead. An existing Event is
+ * never edited here — that is its Peek's, through the same Form.
  */
 export function EventDialog({
   open,
@@ -98,7 +101,7 @@ export function EventDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md" onInteractOutside={(e) => {e.preventDefault();}}>
+      <DialogContent className="sm:max-w-md md:max-h-[calc(100dvh-2rem)] md:overflow-y-auto" onInteractOutside={(e) => {e.preventDefault();}}>
         <DialogHeader>
           <DialogTitle>New event</DialogTitle>
         </DialogHeader>
@@ -135,6 +138,7 @@ export function EventDialog({
           </Button>
           <Button onClick={() => void submit()}>Add event</Button>
         </DialogFooter>
+        <PlaceHere date={draft.date || todayStr()} start={draft.allDay ? null : draft.start || null} onPlaced={() => onOpenChange(false)} />
       </DialogContent>
     </Dialog>
   );

@@ -657,9 +657,9 @@ async function timeListOpen(page: Page) {
 }
 
 /**
- * The Schedule's quick add (#225) over an empty hour, a very long title typed:
- * Start, End, the length and More… keep their places, in the bottom sheet on
- * a phone and the popover on the desk.
+ * An empty hour of the Schedule opens the Event dialog there (#539), a very long
+ * title typed: the Form, then "Or place here" with the seeded long-named Blocker
+ * template and unplaced work, full screen on a phone and centred on the desk.
  */
 const QUICK_ADD_DAY = "2031-01-06";
 async function quickAddOpen(page: Page) {
@@ -670,9 +670,11 @@ async function quickAddOpen(page: Page) {
   const position = { x: 20, y: 2 * 56 + 10 };
   if ((page.viewportSize()?.width ?? 1280) < 768) await column.tap({ position });
   else await column.dblclick({ position });
-  const quick = page.getByRole("dialog", { name: /^Add on / });
-  await quick.getByRole("textbox", { name: "Title" }).fill(longText("A new event"));
-  await expect(quick.getByRole("button", { name: "More…" })).toBeVisible();
+  const dialog = page.getByRole("dialog", { name: "New event" });
+  await dialog.getByRole("textbox", { name: "Title" }).fill(longText("A new event"));
+  const place = dialog.getByRole("group", { name: "Or place here" });
+  await expect(place.getByText("Blocker templates", { exact: true })).toBeVisible();
+  await expect(place.getByText("Unplaced work", { exact: true })).toBeVisible();
 }
 
 /** What Android's share sheet would open (the manifest's GET share target): no title, a long text with a long URL buried in it. */
@@ -787,7 +789,7 @@ const SCREENS: ScreenCase[] = [
   // Core destinations.
   { name: "Calendar · Upcoming", path: "/calendar?view=upcoming" },
   { name: "Calendar · Day", path: "/calendar?view=day" },
-  { name: "Calendar · Day · quick add", path: `/calendar?view=day&d=${QUICK_ADD_DAY}`, afterOpen: quickAddOpen },
+  { name: "Calendar · Day · Event dialog at an hour", path: `/calendar?view=day&d=${QUICK_ADD_DAY}`, afterOpen: quickAddOpen },
   { name: "Calendar · 3 Day", path: "/calendar?view=3day" },
   { name: "Calendar · Week", path: "/calendar?view=week" },
   { name: "Calendar · Month", path: "/calendar?view=month" },
@@ -1001,7 +1003,7 @@ const SCREENS: ScreenCase[] = [
     },
   },
   {
-    // The Event dialog with the seeded long-named Event templates listed above the Form, one picked: the long title and notes in the Fields.
+    // The Event dialog with the seeded long-named Event templates listed above the Form, one picked: the long title and notes in the Fields; "Or place here" below.
     name: "Events · Event dialog · templates",
     path: "/app/events",
     afterOpen: async (page) => {
@@ -1012,6 +1014,7 @@ const SCREENS: ScreenCase[] = [
       await expect(templates).toBeVisible();
       await templates.getByRole("button").first().click();
       await expect(dialog.getByRole("textbox", { name: "Title" })).not.toHaveValue("");
+      await expect(dialog.getByRole("group", { name: "Or place here" })).toBeVisible();
     },
   },
   {

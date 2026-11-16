@@ -294,8 +294,8 @@ export interface TimedProvider {
   create?(input: { title: string; date: DateStr; start: TimeStr | null; endDate: DateStr; end: TimeStr | null }): Promise<void>;
   /**
    * The Intake (ADR 0050, its `appId/id` key) whose dialog is the full form
-   * for what `create` makes: the Schedule's quick add opens it, prefilled
-   * with what is typed so far, from "More…".
+   * for what `create` makes: an empty hour of the Schedule opens it,
+   * prefilled with that day and hour (or the range swept).
    */
   createIntake?: string;
   /** React hook. Quick-add templates this App offers planning surfaces (ADR 0027). */
@@ -474,8 +474,8 @@ export function describeSpan(span: TimedSpan): string {
 
 /**
  * The readout beside an End, ahead of its length: "until 18:00", or "until
- * Tue, Aug 25 06:00" style when it ends on another day. The Event form, the
- * Schedule's quick add and the Hours editor show it.
+ * Tue, Aug 25 06:00" style when it ends on another day. The Event form and
+ * the Hours editor show it.
  */
 export function describeEnd(span: Pick<TimedSpan, "date" | "endDate" | "end">): string {
   return `until ${span.endDate !== span.date ? `${formatHuman(span.endDate)} ` : ""}${formatTime(span.end)}`;
