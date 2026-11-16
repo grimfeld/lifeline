@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { errorMessage } from "@lifeline/core";
 import { Link } from "react-router";
 import { Button, Combobox, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Field } from "@lifeline/ui";
 import { Search } from "lucide-react";
@@ -6,7 +7,6 @@ import { householdHref } from "../constants";
 import { type Household, type Person } from "../domain/types";
 import { hasMember, householdsOf } from "../domain/households";
 import { addMember, joinNewHousehold, useHouseholds } from "../data/households";
-import { message } from "./writes";
 
 /** "Add to a household…": an existing Household of this Workspace by name, or a new one made of the name typed. */
 function JoinHouseholdDialog({ person, households, onOpenChange }: { person: Person; households: readonly Household[]; onOpenChange: (open: boolean) => void }) {
@@ -21,7 +21,7 @@ function JoinHouseholdDialog({ person, households, onOpenChange }: { person: Per
       await write();
       onOpenChange(false);
     } catch (e) {
-      setError(message(e));
+      setError(errorMessage(e));
     }
   }
   return (

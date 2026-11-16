@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { placesNearby, type Coords } from "@lifeline/core";
+import { errorMessage, placesNearby, type Coords } from "@lifeline/core";
 import { Button } from "@lifeline/ui";
 import { Loader2, LocateFixed, MapPin, Navigation } from "lucide-react";
 import { Candidate, CandidateList } from "./CandidateList";
@@ -44,21 +44,13 @@ export function HereButton({ onPick, onJustHere }: { onPick: (hit: PlaceHit) => 
     setFound(undefined);
     try {
       const at = await readPosition();
-      try {
-        const hits = await placesNearby(at);
-        setFound({ at, hits: hits.map(toHit), failed: false });
-      } catch {
-        setFound({ at, hits: [], failed: true });
-      }
+      const hits = await placesNearby(at).catch(() => undefined);
+      setFound({ at, hits: hits?.map(toHit) ?? [], failed: !hits });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "No position to be had right now: type its name instead.");
+      setError(errorMessage(e));
     } finally {
       setBusy(false);
     }
-  }
-
-  function done() {
-    setFound(undefined);
   }
 
   const caption = !found ? "" : found.failed ? "The places around you couldn’t be found: use Just here, or type its name." : found.hits.length === 0 ? "No place known around you: use Just here, or type its name." : "Which one are you in?";
@@ -78,7 +70,7 @@ export function HereButton({ onPick, onJustHere }: { onPick: (hit: PlaceHit) => 
           <Candidate
             key={i}
             onPick={() => {
-              done();
+              setFound(undefined);
               onPick(h);
             }}
           >
@@ -94,7 +86,7 @@ export function HereButton({ onPick, onJustHere }: { onPick: (hit: PlaceHit) => 
             className="items-center"
             onPick={() => {
               const at = found.at;
-              done();
+              setFound(undefined);
               onJustHere(at);
             }}
           >

@@ -1,5 +1,5 @@
 import { useMemo, useState, type AriaAttributes } from "react";
-import { PERSON_TYPE, PLACE_TYPE, useDocument, useDocumentTypes, useDocuments } from "@lifeline/core";
+import { PERSON_TYPE, PLACE_TYPE, atTarget, getDocument, useDocumentTypes, useDocuments, useLiveQuery } from "@lifeline/core";
 import { Button, Combobox, toast } from "@lifeline/ui";
 import { MapPin, X } from "lucide-react";
 import { atOptions, typeLine } from "./atChoice";
@@ -32,7 +32,10 @@ export function AtField({
   const defOf = useMemo(() => (type: string) => types.find((t) => t.id === type), [types]);
   const [query, setQuery] = useState("");
   const options = useMemo(() => atOptions([...places, ...people], value, defOf), [places, people, value, defOf]);
-  const chosen = useDocument(value || undefined);
+  // undefined while it loads, null once it is known to be gone: a purged At must not read "…" forever.
+  const chosen = useLiveQuery(async () => (value ? ((await getDocument(value)) ?? null) : null), [value], undefined);
+  const target = chosen ? atTarget(chosen, value) : undefined;
+  const loading = chosen === undefined || (chosen !== null && chosen.id !== value);
   const createPlace = defOf(PLACE_TYPE)?.createNamed;
 
   return (
@@ -41,8 +44,8 @@ export function AtField({
         <div className="flex min-w-0">
           <span className="bg-muted inline-flex max-w-full min-w-0 items-center gap-1 rounded-md pl-1.5 text-xs">
             <MapPin className="text-muted-foreground size-3 shrink-0" />
-            <span className="min-w-0 truncate">{chosen?.title ?? "…"}</span>
-            {chosen && <span className="text-muted-foreground shrink-0">{typeLine(chosen, defOf(chosen.type))}</span>}
+            <span className="min-w-0 truncate">{target ? target.title : loading ? "…" : "Place no longer here"}</span>
+            {target && chosen && <span className="text-muted-foreground shrink-0">{typeLine(chosen, defOf(chosen.type))}</span>}
             <Button size="icon-xs" variant="ghost" className="text-muted-foreground" aria-label="Clear At" onClick={() => onChange("")}>
               <X />
             </Button>

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Button } from "@lifeline/ui";
+import { Button, cn } from "@lifeline/ui";
 
 /**
  * The bordered "which one?" list Here and Locate both offer. The caption is
@@ -14,7 +14,7 @@ export function CandidateList({ label, caption, children }: { label: string; cap
         {caption}
       </p>
       {caption && (
-        <div className="grid min-w-0 gap-0.5 rounded-md border p-1" role="group" aria-label={label}>
+        <div className="grid min-w-0 gap-0.5 rounded-lg border p-1" role="group" aria-label={label}>
           <p className="text-muted-foreground px-1 text-xs" aria-hidden>
             {caption}
           </p>
@@ -28,7 +28,7 @@ export function CandidateList({ label, caption, children }: { label: string; cap
 /** One candidate in a CandidateList: wraps long text rather than clipping it. */
 export function Candidate({ onPick, className = "", children }: { onPick: () => void; className?: string; children: ReactNode }) {
   return (
-    <Button type="button" variant="ghost" size="sm" className={`h-auto min-w-0 justify-start py-1 text-left font-normal whitespace-normal ${className}`} onClick={onPick}>
+    <Button type="button" variant="ghost" size="sm" className={cn("h-auto min-w-0 justify-start py-1 text-left font-normal whitespace-normal", className)} onClick={onPick}>
       {children}
     </Button>
   );

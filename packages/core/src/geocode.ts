@@ -1,3 +1,4 @@
+import { errorMessage } from "./errors";
 /**
  * Address → coordinates through OSM's Nominatim (ADR 0011). One client for
  * every App: identifies itself as their usage policy requires, never fires
@@ -89,7 +90,7 @@ export async function locateAddress(text: string, find: (query: string, limit: n
     const hit = (await find(text, 1))[0];
     return hit ? { kind: "found", at: { lat: hit.lat, lon: hit.lon } } : { kind: "none" };
   } catch (err) {
-    const reason = err instanceof Error ? err.message : String(err);
+    const reason = errorMessage(err);
     console.warn("[geocode] address lookup failed", { reason });
     return { kind: "failed", reason };
   }

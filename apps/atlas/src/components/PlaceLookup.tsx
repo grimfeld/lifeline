@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { geocode, suggestAddresses, type Coords, type GeocodeHit } from "@lifeline/core";
+import { errorMessage, geocode, suggestAddresses, type Coords, type GeocodeHit } from "@lifeline/core";
 import { Button, Combobox, Field, type ComboboxOption } from "@lifeline/ui";
 import { Loader2, LocateFixed, MapPin, Search } from "lucide-react";
 import { Candidate, CandidateList } from "./CandidateList";
@@ -87,7 +87,7 @@ export function LocateButton({ address, onFound }: { address: string; onFound: (
       else if (hits.length === 1) onFound({ lat: hits[0]!.lat, lon: hits[0]!.lon });
       else setCandidates(hits);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "The lookup failed.");
+      setError(errorMessage(e));
     } finally {
       setBusy(false);
     }
@@ -98,7 +98,11 @@ export function LocateButton({ address, onFound }: { address: string; onFound: (
       <Button type="button" variant="outline" size="sm" className="justify-self-start" disabled={busy || !address.trim()} onClick={() => void locate()}>
         {busy ? <Loader2 className="animate-spin" /> : <LocateFixed />} Locate
       </Button>
-      {error && <p className="text-destructive text-xs">{error}</p>}
+      {error && (
+        <p role="alert" className="text-destructive text-xs">
+          {error}
+        </p>
+      )}
       <CandidateList label="Which one?" caption={candidates.length > 0 ? "Which one?" : ""}>
         {candidates.map((c, i) => (
           <Candidate

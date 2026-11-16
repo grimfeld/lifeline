@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { useOpenPeek, type Handoff } from "@lifeline/core";
+import { errorMessage, useOpenPeek, type Handoff } from "@lifeline/core";
 import { Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Field, Input, toast } from "@lifeline/ui";
 import { addPerson, usePeople } from "../data/repo";
 import { addMember, useHouseholds } from "../data/households";
 import { householdsForFamilyName } from "../domain/households";
 import { composeTitle, initialName } from "../domain/person";
-import { message } from "./writes";
 
 /**
  * Add a Person (#404 stories 1, 2, 5): a name, or the two names that make it, and the Households a Family
@@ -58,14 +57,14 @@ export function AddPersonDialog({ open, onOpenChange, handoff, initial, onSaved 
         try {
           await addMember(h.id, p.id);
         } catch (e) {
-          toast.error(`${p.title} could not join ${h.title}.`, { description: message(e) });
+          toast.error(`${p.title} could not join ${h.title}.`, { description: errorMessage(e) });
         }
       }
       onSaved?.(p.id);
       onOpenChange(false);
       if (!handoff) openPeek(p.id);
     } catch (e) {
-      setError(message(e));
+      setError(errorMessage(e));
     } finally {
       setBusy(false);
     }

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
-import { normalizeTag, todayStr, useTagVocabulary, type PeekProps } from "@lifeline/core";
+import { errorMessage, normalizeTag, todayStr, useTagVocabulary, type PeekProps } from "@lifeline/core";
 import { Button, Combobox, DatePicker, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Field, TagInput, Tip } from "@lifeline/ui";
 import { CalendarDays, Search, User, X } from "lucide-react";
 import { personHref } from "../constants";
@@ -11,7 +11,7 @@ import { usePeople } from "../data/repo";
 import { addMember, normalizeHousehold, patchHousehold, removeMember, restoreMember, setMembershipDays } from "../data/households";
 import { AddRow, CardList } from "./Cards";
 import { Section } from "./Section";
-import { message, removeWithUndo } from "./writes";
+import { removeWithUndo } from "./writes";
 
 /** Pick a Person to join `household`: name completion over the People of this Workspace not in it yet. */
 function AddMemberDialog({ household, onOpenChange }: { household: Household; onOpenChange: (open: boolean) => void }) {
@@ -24,7 +24,7 @@ function AddMemberDialog({ household, onOpenChange }: { household: Household; on
       await addMember(household.id, personId);
       onOpenChange(false);
     } catch (e) {
-      setError(message(e));
+      setError(errorMessage(e));
     }
   }
   return (
@@ -52,7 +52,7 @@ function MemberDaysDialog({ household, member, onOpenChange }: { household: Hous
       await setMembershipDays(household.id, member.personId, { since, until });
       onOpenChange(false);
     } catch (e) {
-      setError(message(e));
+      setError(errorMessage(e));
     }
   }
   return (

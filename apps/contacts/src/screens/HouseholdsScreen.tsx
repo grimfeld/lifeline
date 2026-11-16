@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { todayStr } from "@lifeline/core";
+import { errorMessage, todayStr } from "@lifeline/core";
 import { Link, useNavigate } from "react-router";
 import { Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, EmptyState, Field, Input, Page, PageHeader, PhoneDock } from "@lifeline/ui";
 import { Home, Plus } from "lucide-react";
@@ -7,7 +7,6 @@ import { householdHref } from "../constants";
 import { byName, currentMemberNames } from "../domain/households";
 import { usePeople } from "../data/repo";
 import { addHousehold, useHouseholds } from "../data/households";
-import { message } from "../components/writes";
 
 /** Add a Household from its name; its page opens, to choose its members. */
 function AddHouseholdDialog({ onOpenChange }: { onOpenChange: (open: boolean) => void }) {
@@ -20,7 +19,7 @@ function AddHouseholdDialog({ onOpenChange }: { onOpenChange: (open: boolean) =>
       onOpenChange(false);
       navigate(householdHref(h.id));
     } catch (e) {
-      setError(message(e));
+      setError(errorMessage(e));
     }
   }
   return (

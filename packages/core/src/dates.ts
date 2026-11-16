@@ -82,3 +82,8 @@ export function formatHuman(d: DateStr): string {
     timeZone: "UTC",
   });
 }
+
+/** The last day a span covers: its end day, or the day before when it ends at 00:00 — it only reaches midnight (ADR 0090). */
+export function lastDayCovered(span: { date: DateStr; endDate: DateStr; end: string }): DateStr {
+  return span.end === "00:00" && span.endDate > span.date ? addDays(span.endDate, -1) : span.endDate;
+}

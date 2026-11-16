@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { addDays, diffDays, formatHuman, weekdayOf, type DateStr } from "../dates";
+import { addDays, diffDays, formatHuman, lastDayCovered, weekdayOf, type DateStr } from "../dates";
 import { appById, timedProviders } from "../registry";
 import { matchesTagFilter, type TagFilter } from "../tags";
 import { useTagFilter } from "./tagfilter";
@@ -83,11 +83,6 @@ export function momentAfter(date: DateStr, time: TimeStr, minutes: number): Mome
   const total = (clockMinutes(time) ?? 0) + minutes;
   const days = Math.floor(total / DAY_MIN);
   return { date: days ? addDays(date, days) : date, time: clockOf(total - days * DAY_MIN) };
-}
-
-/** The last day a timed span covers: its end day, or the day before when it ends at 00:00 — it only reaches midnight (ADR 0090). */
-export function lastDayCovered(span: Pick<TimedSpan, "date" | "endDate" | "end">): DateStr {
-  return span.end === "00:00" && span.endDate > span.date ? addDays(span.endDate, -1) : span.endDate;
 }
 
 /** The one span rule's refusal (ADR 0090), worded once for every form, Command and tool; null for a valid span. */

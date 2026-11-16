@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
+import { errorMessage } from "@lifeline/core";
 import { Badge, Button, ChoiceField, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Field, Input } from "@lifeline/ui";
 import { AtSign, Mail, Phone } from "lucide-react";
 import { removePart, restorePart, updateContactDetails } from "../data/repo";
 import { CONTACT_KINDS, KIND_LABELS, contactAction, contactDetailsOf, detailLabelProblem, detailValueProblem, markFormer, saveDetail, type DetailInput } from "../domain/contactDetails";
-import { message, removeWithUndo, writeOrSay } from "./writes";
+import { removeWithUndo, writeOrSay } from "./writes";
 import type { ContactDetail, ContactKind, Person } from "../domain/types";
 import { Section } from "./Section";
 import { AddRow, CardList, CardRow, useEditing } from "./Cards";
@@ -99,7 +100,7 @@ function DetailDialog({ input, onClose, onSave }: { input: DetailInput | null; o
     try {
       await onSave(draft);
     } catch (e) {
-      setError(message(e));
+      setError(errorMessage(e));
     } finally {
       setBusy(false);
     }
