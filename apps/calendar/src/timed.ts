@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { PERSON_TYPE, PLACE_TYPE, documentsOf, getDocument, patchDocument, putDocument, removeDocument, useDocuments, vaultDocPath, type DateStr, type DocumentInput, type TimedItem, type TimedProvider, type TimedTemplate } from "@lifeline/core";
+import { PERSON_TYPE, PLACE_TYPE, atTarget, documentsOf, getDocument, patchDocument, putDocument, removeDocument, useDocuments, vaultDocPath, type DateStr, type Document, type DocumentInput, type TimedItem, type TimedProvider, type TimedTemplate } from "@lifeline/core";
 import { daysOf, describeTime, piecesOf, spanOf } from "./domain/events";
 import { bandsIn, blockerSpan, describeBlocker, isOneOff } from "./domain/blockers";
 import { describeTemplate, durationOf, formatDuration } from "./domain/templates";
@@ -11,16 +11,15 @@ import { BLOCKER_TEMPLATE_TYPE, EVENT_TYPE, TIME_BLOCKER_TYPE, type Event, type 
 
 export const APP_ID = "calendar";
 
-/** The title of an Event's At by id (ADR 0119): a Place's or a Person's, nothing for one gone. */
-export type AtTitles = ReadonlyMap<string, string>;
+/** The Places and People an Event's At may name, by id (ADR 0119), for `atOf` to judge with Core's `atTarget`. */
+export type AtTitles = ReadonlyMap<string, Document>;
 
-/** The titles an Event's At may name: every Place and Person, through Core's types (ADR 0100). */
-export const atTitlesOf = (docs: readonly { id: string; title: string }[]): AtTitles => new Map(docs.map((d) => [d.id, d.title]));
+/** The Documents an Event's At may name: every Place and Person, through Core's types (ADR 0100). */
+export const atTitlesOf = (docs: readonly Document[]): AtTitles => new Map(docs.map((d) => [d.id, d]));
 
 /** An Event's At as a Timed item carries it: the id and title only, or nothing. */
 export function atOf(ev: Pick<Event, "at">, titles: AtTitles): TimedItem["at"] {
-  const title = ev.at ? titles.get(ev.at) : undefined;
-  return ev.at && title !== undefined ? { docId: ev.at, title } : undefined;
+  return ev.at ? atTarget(titles.get(ev.at), ev.at) : undefined;
 }
 
 /**
