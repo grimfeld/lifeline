@@ -4,6 +4,7 @@ export { useCommitDraft } from "./lib/useCommitDraft";
 export { lazyChunk, preloadLater, preloadLazyChunks } from "./lib/lazyChunk";
 export * from "./components/ui/alert-dialog";
 export * from "./components/ui/badge";
+export * from "./components/ui/filter-chip";
 export * from "./components/ui/button";
 export * from "./components/ui/card";
 export * from "./components/ui/checkbox";

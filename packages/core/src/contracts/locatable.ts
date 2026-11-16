@@ -114,11 +114,9 @@ function pinsOfDocument(d: Document, def: DocumentTypeDef, appId: string): Surfa
  * Document that stands at another (an Event At a Place, ADR 0122), peeks it
  * where the map is: its own place is the other's, and its href is no page of its own.
  */
-export function openPin(pin: Pick<SurfacePin, "key" | "href">, navigate: (to: string) => void): void {
-  // A map hands back only what it drew: the type and id are read from the key Core made (`${type}/${id}`).
-  const [type = "", rest = ""] = pin.key.split("/", 2);
-  const id = rest.split("#")[0]!;
-  if (documentTypeSync(type)?.locatableVia && id) openPeek(id);
+export function openPin(pin: Pick<SurfacePin, "type" | "itemId" | "href">, navigate: (to: string) => void): void {
+  // The key is opaque: the Pin already carries its Document's type and id.
+  if (documentTypeSync(pin.type)?.locatableVia && pin.itemId) openPeek(pin.itemId);
   else if (pin.href) navigate(pin.href);
 }
 

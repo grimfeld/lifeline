@@ -1,7 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { initApps } from "../registry";
-import { pinsOf } from "./locatable";
+import { openPin, pinsOf } from "./locatable";
+import { closePeek, peekStack } from "../documents/peek";
 import type { Document, DocumentTypeDef } from "../documents/types";
+
+vi.mock("../documents/registry", async (orig) => ({
+  ...(await orig<typeof import("../documents/registry")>()),
+  documentTypeSync: (id: string) => (id === "event" ? { id: "event", locatableVia: "at" } : undefined),
+}));
 
 const T = (id: string, extra: Partial<DocumentTypeDef> = {}): DocumentTypeDef => ({
   id, label: id + "s", titleRule: "name", body: "optional", fields: [], builtIn: true, ...extra,
@@ -95,5 +101,29 @@ describe("pins of Documents that stand at another (locatableVia, #505)", () => {
   it("finds the place it stands at even when the map shows only Events", () => {
     expect(pinsOf([janou, event("e1", "janou")], types, ["event"], []).map((p) => p.key)).toEqual(["event/e1"]);
     expect(pinsOf([janou, event("e1", "janou")], types, undefined, []).map((p) => p.key)).toEqual(["place/janou", "event/e1"]);
+  });
+});
+
+describe("opening a Pin (openPin)", () => {
+  const types = [T("place", { locatable: (d) => (d.spot as { lat: number; lon: number }) ?? null }), T("event", { locatableVia: "at" })];
+  const janou = doc("janou", "place", { title: "Janou", spot: { lat: 1, lon: 2 } });
+
+  it("peeks an Event whose id contains a slash or a hash", () => {
+    for (const id of ["a/b", "x#y"]) {
+      closePeek();
+      const [pin] = pinsOf([janou, doc(id, "event", { at: "janou" })], types, ["event"], []);
+      const navigate = vi.fn();
+      openPin(pin!, navigate);
+      expect(peekStack()).toEqual([id]);
+      expect(navigate).not.toHaveBeenCalled();
+    }
+  });
+
+  it("navigates to the href of a Pin that is no Event", () => {
+    closePeek();
+    const navigate = vi.fn();
+    openPin({ type: "place", itemId: "janou", href: "/places/janou" }, navigate);
+    expect(navigate).toHaveBeenCalledWith("/places/janou");
+    expect(peekStack()).toEqual([]);
   });
 });

@@ -1,4 +1,5 @@
 import { Suspense, type ComponentProps } from "react";
+import type { MapPin } from "./tiles";
 import { cn } from "../../lib/utils";
 import { lazyChunk } from "../../lib/lazyChunk";
 
@@ -12,7 +13,7 @@ export { OSM_ATTRIBUTION, OSM_TILES, type MapPin } from "./tiles";
 const MapViewImpl = lazyChunk(() => import("./MapViewImpl").then((m) => ({ default: m.MapView })));
 const MiniMapImpl = lazyChunk(() => import("./MiniMapImpl").then((m) => ({ default: m.MiniMap })));
 
-export type MapViewProps = ComponentProps<typeof import("./MapViewImpl").MapView>;
+export type MapViewProps<P extends MapPin = MapPin> = Parameters<typeof import("./MapViewImpl").MapView<P>>[0];
 export type MiniMapProps = ComponentProps<typeof import("./MiniMapImpl").MiniMap>;
 
 /**
@@ -20,10 +21,11 @@ export type MiniMapProps = ComponentProps<typeof import("./MiniMapImpl").MiniMap
  * with name/subtitle/Open. Fits to the pins on mount and whenever they
  * change; `focus` centres on one pin instead.
  */
-export function MapView(props: MapViewProps) {
+export function MapView<P extends MapPin = MapPin>(props: MapViewProps<P>) {
+  const Impl = MapViewImpl as unknown as (props: MapViewProps<P>) => React.ReactElement;
   return (
     <Suspense fallback={<div className={cn("bg-muted/40 relative h-full min-h-0 w-full overflow-hidden rounded-md", props.className)} />}>
-      <MapViewImpl {...props} />
+      <Impl {...props} />
     </Suspense>
   );
 }

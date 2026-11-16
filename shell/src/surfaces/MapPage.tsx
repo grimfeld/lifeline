@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { openPin, useLocatablePins, useLocatableTypes } from "@lifeline/core";
-import { cn, MapView, PageHeader, PhoneDock } from "@lifeline/ui";
+import { FilterChip, MapView, PageHeader, PhoneDock } from "@lifeline/ui";
 import { MapPin } from "lucide-react";
 
 /**
@@ -44,20 +44,11 @@ export function MapPage() {
               const on = !hidden.has(p.value);
               const color = all.find((x) => x.type === p.value)?.color;
               return (
-                <button
-                  key={p.value}
-                  type="button"
-                  onClick={() => toggle(p.value)}
-                  aria-pressed={on}
-                  className={cn(
-                    "flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs transition-colors max-md:h-8 max-md:justify-center max-md:px-3",
-                    on ? "bg-accent" : "text-muted-foreground opacity-60",
-                  )}
-                >
+                <FilterChip key={p.value} on={on} onClick={() => toggle(p.value)}>
                   <span className="size-2 rounded-full" style={{ background: color ?? "var(--chart-green)" }} />
                   {p.label}
                   <span className="text-muted-foreground tabular-nums">{counts.get(p.value) ?? 0}</span>
-                </button>
+                </FilterChip>
               );
             })}
           </div>
