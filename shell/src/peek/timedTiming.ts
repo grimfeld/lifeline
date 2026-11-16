@@ -41,3 +41,15 @@ export function timedAllDay(w: WhenTime): WhenTime {
 export function contractWhen(w: WhenTime): TimedWhen {
   return w.start ? w : { date: w.date, start: null, end: null };
 }
+
+/**
+ * What a Timed item's timing section lets the user do, as its App allows
+ * (ADR 0124, ADR 0056): `retime` — day and hours, where the App reschedules;
+ * `day` — another day only, where it only moves (a Deadline); `none` —
+ * read-only, and always for a weekly blocker, which is a rule.
+ */
+export type TimedControls = "retime" | "day" | "none";
+export function timedControls(item: Pick<TimedItem, "fixed">, can: { reschedule: boolean; move: boolean }): TimedControls {
+  if (item.fixed) return "none";
+  return can.reschedule ? "retime" : can.move ? "day" : "none";
+}

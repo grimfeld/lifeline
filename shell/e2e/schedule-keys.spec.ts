@@ -357,6 +357,46 @@ test("another App's Timed item its App does not move opens its Peek with its tim
   await expect(timing.getByRole("button", { name: /^Delete/ })).toHaveCount(0);
 });
 
+test("a Project's Deadline opens the Project's Peek with the day controls its App allows; closing leaves one Undo", async ({ page }) => {
+  const title = `Launch ${Date.now()}`;
+  await page.goto("/calendar?view=week&d=2026-11-09");
+  await workLocally(page);
+  const id: string = await page.evaluate(
+    async ({ coreUrl, title }) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      return (await core.putDocument({ type: "project", title, body: "", stage: "active", start: null, deadline: "2026-11-10" })).id as string;
+    },
+    { coreUrl: CORE_URL, title },
+  );
+  const deadline = () =>
+    page.evaluate(
+      async ({ coreUrl, id }) => {
+        const core = await import(/* @vite-ignore */ coreUrl);
+        return ((await core.getDocument(id)) as { deadline: string | null }).deadline;
+      },
+      { coreUrl: CORE_URL, id },
+    );
+  await page.locator("[data-focus-key]").filter({ hasText: title }).first().click();
+  const peek = page.getByRole("dialog", { name: title, exact: true });
+  const timing = peek.getByRole("region", { name: "Timing" });
+  await expect(timing.getByLabel("Day"), "Projects moves a Deadline to another day").toBeVisible();
+  await expect(timing.getByRole("combobox", { name: "Start" }), "a marker takes no hours").toHaveCount(0);
+  await expect(timing.getByRole("button", { name: "15 minutes later" })).toHaveCount(0);
+  await expect(timing.getByLabel("All day")).toHaveCount(0);
+  await expect(timing.getByText(/can't be moved from here/)).toHaveCount(0);
+
+  const tomorrow = await page.evaluate(async (coreUrl) => {
+    const core = await import(/* @vite-ignore */ coreUrl);
+    return core.addDays(core.todayStr(), 1) as string;
+  }, CORE_URL);
+  await timing.getByRole("button", { name: "Tomorrow" }).click();
+  await expect.poll(deadline).toBe(tomorrow);
+  await page.keyboard.press("Escape");
+  await expect(peek).toBeHidden();
+  await page.locator("[data-sonner-toast]", { hasText: "updated" }).getByRole("button", { name: "Undo" }).click();
+  await expect.poll(deadline).toBe("2026-11-10");
+});
+
 test("an iCal subscription's item shows a read-only card with nothing to edit", async ({ page }) => {
   const title = `Team standup ${Date.now()}`;
   await page.goto("/calendar?view=week&d=2026-11-09");

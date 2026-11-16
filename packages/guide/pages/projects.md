@@ -69,7 +69,8 @@ start and Deadline, Milestones, a Board, and the material that links to it.
 - **Deleting** — in **Edit**. The Project, its Milestones and Lanes go; its Tasks stay as loose
   Tasks. To let a Project go, drop it instead.
 - **Deadlines on the Calendar** — while a Project is Planned, Active or Paused, its Deadline (and
-  each open Milestone's) shows as an all-day flag. Drag it to another day to change the Deadline.
+  each open Milestone's) shows as an all-day flag. Drag it to another day to change the Deadline,
+  or tap it: its Peek opens with the Deadline's day on top, to move it there.
 - **Timeline** — Projects across the months, each a bar from start to Deadline with Milestone
   Deadlines flagged and today as a line. Page with the arrows or **Today**; **Done & dropped**
   shows ended ones. Where: the Timeline place.
