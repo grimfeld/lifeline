@@ -82,7 +82,7 @@ function Tick({ item }: { item: DayWork }) {
  */
 function Row({ color, lead, tick, menu, children, onOpen, faded, late }: { color?: string; lead: React.ReactNode; tick?: React.ReactNode; menu?: React.ReactNode; children: React.ReactNode; onOpen: (el: HTMLElement) => void; faded?: boolean; late?: boolean }) {
   const c = color ?? "var(--muted-foreground)";
-  // The editor's popover sits beside what it is anchored to: the narrow lead, so the row's width is free for it.
+  // A read-only card's popover sits beside what it is anchored to: the narrow lead, so the row's width is free for it.
   const anchor = useRef<HTMLSpanElement>(null);
   return (
     <div
@@ -113,7 +113,7 @@ function Row({ color, lead, tick, menu, children, onOpen, faded, late }: { color
  * one line, today and the day in view aside. Day-granular: no hours, no bands.
  *
  * It only reads and ticks — no drag, nothing added on a tap. A row opens its
- * actions: a work item's menu, or the hours' editor for an Event or a block.
+ * actions: a work item's menu, or the Peek of an Event or a block's work.
  */
 export function UpcomingView({ ctx }: { ctx: CalendarCtx }) {
   const { anchor, today, tags, openDay } = ctx;
@@ -142,7 +142,7 @@ export function UpcomingView({ ctx }: { ctx: CalendarCtx }) {
 
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const move = useMoveDialog(today);
-  const { open: edit, editor } = useOpenOnHours({ defaultDay: anchor, inView: (d) => d >= from && d <= to, onGo: (d) => openDay(d) });
+  const { open: edit, card } = useOpenOnHours({ defaultDay: anchor });
 
   // The end of the list reads further ahead as it comes into view.
   const scroller = useRef<HTMLDivElement>(null);
@@ -283,7 +283,7 @@ export function UpcomingView({ ctx }: { ctx: CalendarCtx }) {
       </div>
 
       {move.dialog}
-      {editor}
+      {card}
     </div>
   );
 }

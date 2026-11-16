@@ -39,6 +39,11 @@ export const choresSchedulable: SchedulableProvider = {
   async complete(itemId, on) {
     await completeChore(itemId, on);
   },
+
+  // A block or chip opens the Chore's Peek, with the block's timing above it (#538, as a Task's #537).
+  peekOf(itemId) {
+    return itemId;
+  },
 };
 
 /** Active chores on their due day, and completions in range as done history — what `useItems` and `itemsIn` both report. */

@@ -41,7 +41,7 @@ function useDragGuard() {
 }
 
 /**
- * An Event (or other Timed item) on its day: opens in the hours' editor, drags to another day where its App allows.
+ * An Event (or other Timed item) on its day: opens its Peek (or a subscription's read-only card), drags to another day where its App allows.
  * One that runs across days shows on each: its first day with its start, later days with "→ its end" (ADR 0090);
  * any of them drags, moving the whole Event by the days between the chip's day and the drop.
  */
@@ -190,7 +190,7 @@ export function MonthView({ ctx }: { ctx: CalendarCtx }) {
   const monthEnd = fromParts(y, m, daysInMonth(y, m));
   const gridStart = days[0] ?? monthStart;
   const gridEnd = days.at(-1) ?? monthEnd;
-  const { open, editor } = useOpenOnHours({ defaultDay: anchor, inView: (d) => d >= gridStart && d <= gridEnd, onGo: (d) => ctx.go(d) });
+  const { open, card } = useOpenOnHours({ defaultDay: anchor });
 
   // Day-granular: the item on its own day only — its Time blocks are Schedule detail (ADR 0028).
   // Looking back lets work missed before the grid surface in the pool as Overdue.
@@ -304,7 +304,7 @@ export function MonthView({ ctx }: { ctx: CalendarCtx }) {
 
       <DragOverlay dropAnimation={null}>{active && <div className="bg-card rounded-md border px-2 py-1 text-xs shadow-md">{active}</div>}</DragOverlay>
       {move.dialog}
-      {editor}
+      {card}
     </DndContext>
   );
 }

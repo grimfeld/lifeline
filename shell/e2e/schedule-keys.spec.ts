@@ -6,7 +6,8 @@ import { setTime } from "./support/time-field";
  * The Schedule and Month by keyboard (#284): an item that takes the focus
  * opens on Enter and moves on the arrow keys, and the focus stays on it.
  * An Event opens its Peek (#536), and closing a Peek that changed its timing
- * leaves one Undo. Mon 9 Nov 2026's week, an Event on the Tuesday at 10:00–11:00.
+ * leaves one Undo; so do a Task's or a Chore's block (#537), a blocker band and
+ * another App's item (#538); an iCal item shows a read-only card. Mon 9 Nov 2026's week, an Event on the Tuesday at 10:00–11:00.
  */
 
 test.skip(({ isMobile }) => isMobile, "keyboard cases: the desk");
@@ -272,4 +273,137 @@ test("a Task peeked from anywhere but the hours shows no timing section", async 
   );
   const { timing } = await expectTaskPeek(page, title);
   await expect(timing).toHaveCount(0);
+});
+
+// --- a Time blocker band and other Apps' Timed items open their Peek; an iCal item, a read-only card (#538) ---
+
+/** A one-off Time blocker on the Tuesday, 08:00–09:00. */
+async function addBlocker(page: Page, title: string): Promise<string> {
+  await page.goto("/calendar?view=week&d=2026-11-09");
+  await workLocally(page);
+  return page.evaluate(
+    async ({ coreUrl, title }) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      return (await core.putDocument({ type: "time_blocker", title, date: "2026-11-10", endDate: "2026-11-10", weekdays: [], start: "08:00", end: "09:00", color: null, active: true, tags: [] })).id as string;
+    },
+    { coreUrl: CORE_URL, title },
+  );
+}
+
+const storedBlocker = (page: Page, title: string) =>
+  page.evaluate(
+    async ({ coreUrl, title }) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      const b = (await core.documentsOf("time_blocker")).find((d: { title: string }) => d.title === title);
+      return b ? { date: b.date, start: b.start, end: b.end } : null;
+    },
+    { coreUrl: CORE_URL, title },
+  );
+
+test("a Time blocker band opens its Peek with its timing; closing leaves one Undo, and the focus on the band", async ({ page }) => {
+  const title = `Deep work ${Date.now()}`;
+  await addBlocker(page, title);
+  const band = page.locator('[data-col="2026-11-10"]').getByLabel(title, { exact: false });
+  await band.focus();
+  await page.keyboard.press("Enter");
+  const peek = page.getByRole("dialog", { name: title, exact: true });
+  const timing = peek.getByRole("region", { name: "Timing" });
+  await expect(timing.getByRole("combobox", { name: "Start" })).toHaveValue("08:00");
+  await expect(timing.getByLabel("All day"), "a band has hours").toHaveCount(0);
+
+  await timing.getByRole("button", { name: "15 minutes later" }).click();
+  await expect.poll(() => storedBlocker(page, title)).toEqual({ date: "2026-11-10", start: "08:15", end: "09:15" });
+  await page.keyboard.press("Escape");
+  await expect(peek).toBeHidden();
+  await expect(band, "the focus is back on the band").toBeFocused();
+
+  const toast = page.locator("[data-sonner-toast]", { hasText: `${title} updated` });
+  await expect(toast, "one Undo for the whole visit").toHaveCount(1);
+  await toast.getByRole("button", { name: "Undo" }).click();
+  await expect.poll(() => storedBlocker(page, title)).toEqual({ date: "2026-11-10", start: "08:00", end: "09:00" });
+});
+
+test("Delete blocker in its Peek acts at once, with its own Undo", async ({ page }) => {
+  const title = `Commute ${Date.now()}`;
+  await addBlocker(page, title);
+  await page.locator('[data-col="2026-11-10"]').getByLabel(title, { exact: false }).click();
+  const peek = page.getByRole("dialog", { name: title, exact: true });
+  await peek.getByRole("region", { name: "Timing" }).getByRole("button", { name: "Delete blocker" }).click();
+  await expect(peek).toBeHidden();
+  await expect.poll(() => storedBlocker(page, title)).toBeNull();
+  await page.locator("[data-sonner-toast]", { hasText: `${title} deleted` }).getByRole("button", { name: "Undo" }).click();
+  await expect.poll(() => storedBlocker(page, title)).toEqual({ date: "2026-11-10", start: "08:00", end: "09:00" });
+});
+
+test("another App's Timed item its App does not move opens its Peek with its timing read-only", async ({ page }) => {
+  const title = `Rowing ${Date.now()}`;
+  await page.goto("/calendar?view=week&d=2026-11-09");
+  await workLocally(page);
+  const sessionTitle = await page.evaluate(
+    async ({ coreUrl, title }) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      const w = await core.putDocument({ type: "workout", title, blocks: [], tallies: [] });
+      const s = await core.putDocument({ type: "workout_session", title: `${title} · 2026-11-10`, workoutId: w.id, startedAt: "2026-11-10T09:00:00.000Z", endedAt: "2026-11-10T09:40:00.000Z", date: "2026-11-10", start: "09:00", end: "09:40", durationMin: 40, results: [], notes: "" });
+      return s.title as string;
+    },
+    { coreUrl: CORE_URL, title },
+  );
+  await page.locator('[data-col="2026-11-10"] [data-focus-key]').filter({ hasText: title }).first().click();
+  const peek = page.getByRole("dialog", { name: sessionTitle, exact: true });
+  const timing = peek.getByRole("region", { name: "Timing" });
+  await expect(timing.getByText(/can't be moved from here/)).toBeVisible();
+  await expect(timing.getByRole("combobox", { name: "Start" })).toHaveCount(0);
+  await expect(timing.getByRole("button", { name: "15 minutes later" })).toHaveCount(0);
+  await expect(timing.getByRole("button", { name: /^Delete/ })).toHaveCount(0);
+});
+
+test("an iCal subscription's item shows a read-only card with nothing to edit", async ({ page }) => {
+  const title = `Team standup ${Date.now()}`;
+  await page.goto("/calendar?view=week&d=2026-11-09");
+  await workLocally(page);
+  await page.evaluate(
+    async ({ coreUrl, title }) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      const id = core.newId() as string;
+      const body = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//e2e//EN", "BEGIN:VEVENT", `UID:${id}@e2e`, "DTSTAMP:20261101T000000", "DTSTART:20261110T110000", "DTEND:20261110T113000", `SUMMARY:${title}`, "LOCATION:Room 4", "END:VEVENT", "END:VCALENDAR"].join("\r\n");
+      const fetchedAt = new Date().toISOString();
+      // Cached first, as if just fetched: the subscription's URL is never reached.
+      await core.db().collection("_source_cache").put({ id, updatedAt: fetchedAt, deleted: 0, fetchedAt, ok: true, status: 200, contentType: "text/calendar", body });
+      await core.putDocument({ id, type: "window", kind: "ical", title: "Work calendar", url: "https://example.invalid/work.ics", refreshMinutes: 1440, color: "blue", tags: [] });
+    },
+    { coreUrl: CORE_URL, title },
+  );
+  const item = page.locator('[data-col="2026-11-10"] [data-focus-key]').filter({ hasText: title }).first();
+  await item.focus();
+  await page.keyboard.press("Enter");
+  const card = page.getByRole("dialog", { name: title, exact: true });
+  await expect(card).toBeVisible();
+  await expect(card.getByText(/11:00/)).toBeVisible();
+  await expect(card.getByText("Room 4")).toBeVisible();
+  await expect(card.getByText(/From Work calendar · read-only/)).toBeVisible();
+  await expect(card.getByRole("textbox")).toHaveCount(0);
+  await expect(card.getByRole("combobox")).toHaveCount(0);
+  await expect(card.getByRole("button")).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await expect(card).toBeHidden();
+  await expect(item, "the focus is back on the item").toBeFocused();
+});
+
+test("a Chore's Time block opens the Chore's Peek with the block's timing", async ({ page }) => {
+  const title = `Mop the floor ${Date.now()}`;
+  await page.goto("/calendar?view=week&d=2026-11-09");
+  await workLocally(page);
+  await page.evaluate(
+    async ({ coreUrl, title }) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      const chore = await core.putDocument({ type: "chore", title, status: "active", schedule: { kind: "weekly", weekdays: [2] }, anchorDate: null, tags: [] });
+      await core.addTimeBlock("chores", chore.id, "2026-11-10", { start: "16:00", end: "16:30" });
+    },
+    { coreUrl: CORE_URL, title },
+  );
+  await page.locator('[data-col="2026-11-10"] [data-focus-key]').filter({ hasText: title }).first().click();
+  const peek = page.getByRole("dialog", { name: title, exact: true });
+  const timing = peek.getByRole("region", { name: "Time block" });
+  await expect(timing.getByRole("combobox", { name: "Start" })).toHaveValue("16:00");
+  await expect(peek.getByRole("combobox", { name: "Schedule" }), "the Chore's own Fields are there").toBeVisible();
 });

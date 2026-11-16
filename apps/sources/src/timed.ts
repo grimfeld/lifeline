@@ -36,6 +36,7 @@ function timedItemsOf(ical: Ical, subs: CalendarSub[], caches: Map<string, Sourc
         end: o.end,
         tags: sub.tags ?? [],
         color: colorVar(sub.color),
+        source: sub.title,
       });
     }
   }
@@ -44,7 +45,8 @@ function timedItemsOf(ical: Ical, subs: CalendarSub[], caches: Map<string, Sourc
 
 /**
  * Calendar subscriptions as read-only Timed items (ADR 0017): no move,
- * reschedule or create — nothing is ever written back or copied.
+ * reschedule or create — nothing is ever written back or copied. No Document
+ * either, so no `peekOf`: a tap on the hours shows a small read-only card (#538).
  */
 export const sourcesTimed: TimedProvider = {
   appId: APP_ID,
