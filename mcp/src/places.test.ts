@@ -87,6 +87,15 @@ describe("places_add", () => {
     expect(core.createDocument).not.toHaveBeenCalled();
   });
 
+  it("refuses a title a Place in Private has, naming neither that Place nor its id (ADR 0114)", async () => {
+    docs.set("px", place("px", "Le Café Qzr", { folder: "Private/Places" }));
+    const refusal = await runTool("places_add", { name: "le cafe qzr" }).catch((e: Error) => e.message);
+    expect(refusal).toBe("“le cafe qzr” is already taken");
+    expect(refusal).not.toContain("Le Café Qzr");
+    expect(refusal).not.toContain("px");
+    expect(core.createDocument).not.toHaveBeenCalled();
+  });
+
   it("refuses a Kind that is none, naming the Kinds", async () => {
     await expect(runTool("places_add", { name: "Spaceport", kind: "spaceport" })).rejects.toThrow(/No Kind “spaceport”: one of Restaurant, Café/);
   });

@@ -3,7 +3,7 @@ import { commandKey, commandNavigates, commandRun, invokeCommand, isInvocable, r
 import { db, MACROS, type SyncedRecord } from "./data/db";
 import { put, remove } from "./data/repo";
 import { newId } from "./ids";
-import { checkMacro, reasonLine, type DocumentLookup } from "./macroCheck";
+import { checkMacro, reasonLine, seeingLookup, type DocumentLookup } from "./macroCheck";
 import type { CommandArg, CommandCtx, InvokeContext } from "./manifest";
 
 /**
@@ -309,8 +309,8 @@ export function macroCommand(macro: MacroShape & { id: string }, commands: reado
  */
 export async function runMacroHeadless(macro: MacroShape, commands: readonly OwnedCommand[], raw: Record<string, unknown>, who?: InvokeContext): Promise<MacroReport> {
   if (!isMacroHeadless(macro, commands)) throw new Error(`“${macro.name}” cannot be run without a dialog`);
-  const asked = await readCommandArgs(macroArgs(macro, commands), raw);
-  const r = await runMacro(macro, commands, { asked, invoke: who });
+  const asked = await readCommandArgs(macroArgs(macro, commands), raw, who?.sees);
+  const r = await runMacro(macro, commands, { asked, invoke: who, lookup: who?.sees && seeingLookup(who.sees) });
   if (r.broken) throw new Error(`“${macro.name}” is broken: ${r.broken.join("; ")}`);
   return r;
 }

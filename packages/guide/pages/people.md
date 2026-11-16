@@ -281,7 +281,7 @@ Two things the wall doesn't cover:
 - **The body is yours.** A street or a number you write in a Person's body is read like any
   body. Lifeline doesn't look for addresses in what you write; keep them in the Person's Addresses
   and Contact details instead.
-- **The Private folder** still hides a whole Person from Claude, name and all.
+- **The Private folder** still hides a whole Person from Claude, name and all: an Event At or With them shows Claude neither, and Claude can't name them in an Event's At or With.
 
 ## Tips
 
