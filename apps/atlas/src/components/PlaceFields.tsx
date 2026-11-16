@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { normalizeTag, useDocumentTypes, useTagVocabulary, type PeekProps } from "@lifeline/core";
+import { errorMessage, normalizeTag, useDocumentTypes, useTagVocabulary, type PeekProps } from "@lifeline/core";
 import { Button, Checkbox, ChoiceField, Field, TagInput, toast } from "@lifeline/ui";
 import type { Place } from "../domain/types";
 import { kindOptions, normalizePlace, placeCoordsOf } from "../domain/place";
@@ -70,7 +70,7 @@ function PlaceAddress({ place }: { place: Place }) {
       if (placed === "none") toast.warning("Address saved, off the map: it was found nowhere.");
       if (placed === "failed") toast.warning("Address saved, off the map: the lookup failed. Locate it later.");
     } catch (e) {
-      toast.error(`Couldn’t save the address: ${e instanceof Error ? e.message : String(e)}`);
+      toast.error(`Couldn’t save the address: ${errorMessage(e)}`);
     } finally {
       setBusy(false);
     }

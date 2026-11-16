@@ -3,7 +3,6 @@ import { addDays, diffDays, formatHuman, type DateStr } from "../dates";
 import { mentionable, type Backlink, type LinkIndex } from "./links";
 import { dayOf, eventSpan, MAX_SPAN } from "./sourceDays";
 import type { Document, DocumentTypeDef, ReportKind, ReportSetting, SeenAs } from "./types";
-import { PERSON_TYPE } from "../people";
 
 /**
  * Reports (CONTEXT.md, ADR 0076): read-only figures about the Documents of one
@@ -107,29 +106,28 @@ export function mentionDays(index: LinkIndex, docId: string): DateStr[] {
  */
 export type DaysSource = (index: LinkIndex, docId: string) => DateStr[];
 
-/** The Event's At field (ADR 0119): where it happens, a Place or a Person's home. */
-export const EVENT_AT_FIELD = "at";
-
 /**
- * Whether an Event's link counts its target as Seen (ADR 0119): every link
- * does, but an At on a Person — being at Marc's home is not seeing Marc. With,
- * and a wikilink in the notes, still count; At on a Place counts (Visited).
+ * Whether a link counts its target as Seen (ADR 0112): every link does, unless
+ * the source's type declares it does not (`seenExcept`, ADR 0119: an Event's
+ * At on a Person).
  */
-export const countsAsSeen = (b: Backlink, target: Document | undefined): boolean => !(b.field === EVENT_AT_FIELD && target?.type === PERSON_TYPE);
+const countsAsSeen = (b: Backlink, source: Document | undefined, target: Document | undefined, index: LinkIndex): boolean =>
+  !index.defOf(source?.type ?? "")?.seenExcept?.some((x) => x.field === b.field && x.type === target?.type);
 
 /**
  * The distinct days (oldest first, none after `today`) on which Events that
  * reach one Document are on: once per day however many Events, each day of a
  * multi-day Event, nothing in the future. Markers and Tasks are not Events,
- * and an Event's At on a Person is no sighting (`countsAsSeen`). Through a
+ * and a link its type declares apart is no sighting (`seenExcept`). Through a
  * Household (ADR 0117), only the days they were a member.
  */
 export function seenDays(index: LinkIndex, docId: string, today: DateStr): DateStr[] {
   const days = new Set<DateStr>();
   const target = index.byId.get(docId);
   for (const b of index.reaches(docId)) {
-    if (!countsAsSeen(b, target)) continue;
-    const span = eventSpan(index.byId.get(b.sourceId));
+    const source = index.byId.get(b.sourceId);
+    if (!countsAsSeen(b, source, target, index)) continue;
+    const span = eventSpan(source);
     if (!span) continue;
     if (b.via) {
       for (const d of b.days ?? []) if (d <= today) days.add(d);

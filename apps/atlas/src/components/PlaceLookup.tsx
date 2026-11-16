@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { geocode, suggestAddresses, type Coords, type GeocodeHit } from "@lifeline/core";
+import { errorMessage, geocode, suggestAddresses, type Coords, type GeocodeHit } from "@lifeline/core";
 import { Button, Combobox, Field, type ComboboxOption } from "@lifeline/ui";
 import { Loader2, LocateFixed, MapPin, Search } from "lucide-react";
+import { Candidate, CandidateList } from "./CandidateList";
 
 /** A real place the typeahead found (Photon): one pick gives its name, its address and its coordinates. */
 export interface PlaceHit {
@@ -14,7 +15,8 @@ interface HitOption extends ComboboxOption {
   hit: PlaceHit;
 }
 
-const toHit = (h: GeocodeHit): PlaceHit => ({ name: h.name, address: h.label, at: { lat: h.lat, lon: h.lon } });
+/** A lookup hit as a PlaceHit: its name, its label as the address, its coordinates. */
+export const toHit = (h: GeocodeHit): PlaceHit => ({ name: h.name, address: h.label, at: { lat: h.lat, lon: h.lon } });
 
 /** The typeahead's search (ADR 0011): Photon, as the user types, never on render. A point of interest leads with its name. */
 async function searchPlaces(query: string): Promise<HitOption[]> {
@@ -85,7 +87,7 @@ export function LocateButton({ address, onFound }: { address: string; onFound: (
       else if (hits.length === 1) onFound({ lat: hits[0]!.lat, lon: hits[0]!.lon });
       else setCandidates(hits);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "The lookup failed.");
+      setError(errorMessage(e));
     } finally {
       setBusy(false);
     }
@@ -96,27 +98,24 @@ export function LocateButton({ address, onFound }: { address: string; onFound: (
       <Button type="button" variant="outline" size="sm" className="justify-self-start" disabled={busy || !address.trim()} onClick={() => void locate()}>
         {busy ? <Loader2 className="animate-spin" /> : <LocateFixed />} Locate
       </Button>
-      {error && <p className="text-destructive text-xs">{error}</p>}
-      {candidates.length > 0 && (
-        <div className="grid min-w-0 gap-0.5 rounded-md border p-1" role="group" aria-label="Which one?">
-          <p className="text-muted-foreground px-1 text-xs">Which one?</p>
-          {candidates.map((c, i) => (
-            <Button
-              key={i}
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-auto min-w-0 justify-start py-1 text-left font-normal whitespace-normal"
-              onClick={() => {
-                setCandidates([]);
-                onFound({ lat: c.lat, lon: c.lon });
-              }}
-            >
-              <span className="min-w-0 break-words">{c.label}</span>
-            </Button>
-          ))}
-        </div>
+      {error && (
+        <p role="alert" className="text-destructive text-xs">
+          {error}
+        </p>
       )}
+      <CandidateList label="Which one?" caption={candidates.length > 0 ? "Which one?" : ""}>
+        {candidates.map((c, i) => (
+          <Candidate
+            key={i}
+            onPick={() => {
+              setCandidates([]);
+              onFound({ lat: c.lat, lon: c.lon });
+            }}
+          >
+            <span className="min-w-0 break-words">{c.label}</span>
+          </Candidate>
+        ))}
+      </CandidateList>
     </div>
   );
 }

@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { placesNearby, type Coords } from "@lifeline/core";
+import { errorMessage, placesNearby, type Coords } from "@lifeline/core";
 import { Button } from "@lifeline/ui";
 import { Loader2, LocateFixed, MapPin, Navigation } from "lucide-react";
-import type { PlaceHit } from "./PlaceLookup";
-
+import { Candidate, CandidateList } from "./CandidateList";
+import { toHit, type PlaceHit } from "./PlaceLookup";
 
 /** Whether this browser can give a position at all: without it, Here is not offered (#501). */
 export const canLocateHere = () => typeof navigator !== "undefined" && !!navigator.geolocation;
@@ -44,22 +44,16 @@ export function HereButton({ onPick, onJustHere }: { onPick: (hit: PlaceHit) => 
     setFound(undefined);
     try {
       const at = await readPosition();
-      try {
-        const hits = await placesNearby(at);
-        setFound({ at, hits: hits.map((h) => ({ name: h.name, address: h.label, at: { lat: h.lat, lon: h.lon } })), failed: false });
-      } catch {
-        setFound({ at, hits: [], failed: true });
-      }
+      const hits = await placesNearby(at).catch(() => undefined);
+      setFound({ at, hits: hits?.map(toHit) ?? [], failed: !hits });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "No position to be had right now: type its name instead.");
+      setError(errorMessage(e));
     } finally {
       setBusy(false);
     }
   }
 
-  function done() {
-    setFound(undefined);
-  }
+  const caption = !found ? "" : found.failed ? "The places around you couldn’t be found: use Just here, or type its name." : found.hits.length === 0 ? "No place known around you: use Just here, or type its name." : "Which one are you in?";
 
   return (
     <div className="grid min-w-0 gap-1">
@@ -71,45 +65,35 @@ export function HereButton({ onPick, onJustHere }: { onPick: (hit: PlaceHit) => 
           {error}
         </p>
       )}
-      {found && (
-        <div className="grid min-w-0 gap-0.5 rounded-md border p-1" role="group" aria-label="Places here">
-          <p className="text-muted-foreground px-1 text-xs">
-            {found.failed ? "The places around you couldn’t be found: use Just here, or type its name." : found.hits.length === 0 ? "No place known around you: use Just here, or type its name." : "Which one are you in?"}
-          </p>
-          {found.hits.map((h, i) => (
-            <Button
-              key={i}
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-auto min-w-0 justify-start py-1 text-left font-normal whitespace-normal"
-              onClick={() => {
-                done();
-                onPick(h);
-              }}
-            >
-              <MapPin className="shrink-0" />
-              <span className="grid min-w-0">
-                <span className="min-w-0 font-medium break-words">{h.name}</span>
-                <span className="text-muted-foreground min-w-0 text-xs break-words">{h.address}</span>
-              </span>
-            </Button>
-          ))}
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="justify-start"
-            onClick={() => {
+      <CandidateList label="Places here" caption={caption}>
+        {found?.hits.map((h, i) => (
+          <Candidate
+            key={i}
+            onPick={() => {
+              setFound(undefined);
+              onPick(h);
+            }}
+          >
+            <MapPin className="shrink-0" />
+            <span className="grid min-w-0">
+              <span className="min-w-0 font-medium break-words">{h.name}</span>
+              <span className="text-muted-foreground min-w-0 text-xs break-words">{h.address}</span>
+            </span>
+          </Candidate>
+        ))}
+        {found && (
+          <Candidate
+            className="items-center"
+            onPick={() => {
               const at = found.at;
-              done();
+              setFound(undefined);
               onJustHere(at);
             }}
           >
             <LocateFixed /> Just here
-          </Button>
-        </div>
-      )}
+          </Candidate>
+        )}
+      </CandidateList>
     </div>
   );
 }

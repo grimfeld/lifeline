@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { errorMessage } from "@lifeline/core";
 import { Link } from "react-router";
 import { Button, Combobox, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Field, Input, type ComboboxOption } from "@lifeline/ui";
 import { Link2, Search } from "lucide-react";
@@ -6,7 +7,7 @@ import { personHref } from "../constants";
 import { type Person } from "../domain/types";
 import { otherNameOf, tieCandidates, tieDraft, tieQuestions, tiesSeenFrom, type TieDraft, type TieRow } from "../domain/ties";
 import { removeTie, restoreTie, saveTieFrom, useTies } from "../data/ties";
-import { message, removeWithUndo } from "../components/writes";
+import { removeWithUndo } from "../components/writes";
 import { usePeople } from "../data/repo";
 import { Section } from "../components/Section";
 import { AddRow, CardList, CardRow, useEditing } from "../components/Cards";
@@ -32,7 +33,7 @@ function TieDialog({ person, row, onOpenChange }: { person: Person; row?: TieRow
       await saveTieFrom(person.id, row, draft);
       onOpenChange(false);
     } catch (e) {
-      setError(message(e));
+      setError(errorMessage(e));
     }
   }
   return (

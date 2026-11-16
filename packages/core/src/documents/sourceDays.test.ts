@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dayOf, isDateStr } from "./sourceDays";
+import { dayOf, eventSpan, isDateStr } from "./sourceDays";
 import type { Document } from "./types";
 
 const doc = (type: string, title: string): Document => ({ id: "d", type, title } as Document);
@@ -23,5 +23,16 @@ describe("dayOf", () => {
     expect(dayOf(doc("daily", "Notes"))).toBeUndefined();
     expect(dayOf(doc("note", "2026-11-15"))).toBeUndefined();
     expect(dayOf(undefined)).toBeUndefined();
+  });
+});
+
+describe("eventSpan", () => {
+  const event = (extra: object) => ({ id: "e", type: "event", title: "Party", date: "2026-11-13", ...extra }) as unknown as Document;
+  it("stops at the day before when the Event ends at 00:00 on the next day", () => {
+    expect(eventSpan(event({ endDate: "2026-11-14", end: "00:00" }))).toEqual({ from: "2026-11-13", to: "2026-11-13" });
+    expect(eventSpan(event({ endDate: "2026-11-15", end: "00:00" }))).toEqual({ from: "2026-11-13", to: "2026-11-14" });
+  });
+  it("covers its end day otherwise", () => {
+    expect(eventSpan(event({ endDate: "2026-11-14", end: "06:00" }))).toEqual({ from: "2026-11-13", to: "2026-11-14" });
   });
 });

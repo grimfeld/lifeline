@@ -1,6 +1,6 @@
 ---
 status: accepted
-amends: ADR 0113 (in part — the People Module becomes World, and a place is no longer a user-defined type of the Journal)
+amends: ADR 0113 (in part — the People Module becomes World, and a place is no longer a user-defined type of the Journal), ADR 0112 (in part — an Event's At on a Person never counts as Seen)
 ---
 
 # Places are Atlas's built-in type in the World Module, and a home is never a Place

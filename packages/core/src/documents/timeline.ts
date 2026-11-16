@@ -1,5 +1,4 @@
-import { lastDayCovered } from "../contracts/timed";
-import { diffDays, todayStr, type DateStr } from "../dates";
+import { diffDays, lastDayCovered, todayStr, type DateStr } from "../dates";
 import type { LinkIndex, Reach } from "./links";
 import { DAY_TYPE, isDateStr } from "./sourceDays";
 

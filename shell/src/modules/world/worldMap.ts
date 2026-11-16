@@ -1,4 +1,5 @@
-import { EVENT_AT_FIELD, EVENT_TYPE, PLACE_TYPE, type Document, type SurfacePin } from "@lifeline/core";
+import { EVENT_AT_FIELD } from "@lifeline/app-calendar/src/domain/types";
+import { EVENT_TYPE, PLACE_TYPE, type Document, type SurfacePin } from "@lifeline/core";
 
 /** The World map's filter: Apps whose Pins are off, one Kind of Place, and To try. */
 export interface WorldFilter {

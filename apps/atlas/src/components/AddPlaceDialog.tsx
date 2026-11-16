@@ -1,11 +1,10 @@
-import { useEffect, useState } from "react";
-import { TitleTaken, initialText, useOpenPeek, type CommandDialogProps, type Coords, type Document } from "@lifeline/core";
+import { useEffect, useRef, useState } from "react";
+import { errorMessage, TitleTaken, initialText, useOpenPeek, type CommandDialogProps, type Coords, type Document } from "@lifeline/core";
 import { Button, ChoiceField, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, toast } from "@lifeline/ui";
 import { addPlace } from "../data/repo";
 import { kindOptions } from "../domain/place";
 import { HereButton } from "./Here";
 import { LocateButton, PlaceSearchField, WhereNote, type PlaceHit } from "./PlaceLookup";
-import { message } from "./message";
 
 /**
  * Add a Place (ADR 0119, #487 stories 1–4): a name, a Kind and an address if
@@ -25,6 +24,7 @@ export function AddPlaceDialog({ open, onOpenChange, initial }: CommandDialogPro
   const [taken, setTaken] = useState<Document>();
   const [busy, setBusy] = useState(false);
   const openPeek = useOpenPeek();
+  const form = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -45,7 +45,7 @@ export function AddPlaceDialog({ open, onOpenChange, initial }: CommandDialogPro
       onOpenChange(false);
       openPeek(p.id);
     } catch (e) {
-      setError(message(e));
+      setError(errorMessage(e));
       setTaken(e instanceof TitleTaken ? e.existing : undefined);
     } finally {
       setBusy(false);
@@ -65,6 +65,11 @@ export function AddPlaceDialog({ open, onOpenChange, initial }: CommandDialogPro
     setAt(hit.at);
   }
 
+  /** The picked button unmounts with its list: focus goes to the Name field (the form's first input), not to the page. */
+  function focusName() {
+    form.current?.querySelector("input")?.focus();
+  }
+
   function openTaken(doc: Document) {
     onOpenChange(false);
     openPeek(doc.id);
@@ -78,6 +83,7 @@ export function AddPlaceDialog({ open, onOpenChange, initial }: CommandDialogPro
           <DialogDescription>Its name, and its Kind and address if you like: pick a match to fill them. Aliases, Tags and notes go on its page.</DialogDescription>
         </DialogHeader>
         <form
+          ref={form}
           className="grid min-w-0 gap-3"
           onSubmit={(e) => {
             e.preventDefault();
@@ -85,7 +91,16 @@ export function AddPlaceDialog({ open, onOpenChange, initial }: CommandDialogPro
           }}
         >
           <PlaceSearchField label="Name" value={name} onChange={changeName} onPick={(hit) => pick(hit, "name")} placeholder="Chez Janou" autoFocus error={error} />
-          <HereButton onPick={(hit) => pick(hit, "name")} onJustHere={setAt} />
+          <HereButton
+            onPick={(hit) => {
+              pick(hit, "name");
+              focusName();
+            }}
+            onJustHere={(here) => {
+              setAt(here);
+              focusName();
+            }}
+          />
           {taken && (
             <Button type="button" variant="secondary" className="min-w-0 justify-start" onClick={() => openTaken(taken)}>
               <span className="min-w-0 truncate">Open {taken.title}</span>

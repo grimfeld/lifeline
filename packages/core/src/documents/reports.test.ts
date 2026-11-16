@@ -163,6 +163,7 @@ describe("Seen (ADR 0112)", () => {
       T(PLACE_TYPE),
       T("event", {
         body: "none",
+        seenExcept: [{ field: "at", type: PERSON_TYPE }],
         linkingText: ["notes"],
         fields: [
           { key: "notes", label: "Notes", kind: "longtext" },
@@ -194,6 +195,12 @@ describe("Seen (ADR 0112)", () => {
     expect(seenDays(atIdx, "janou", on)).toEqual(["2026-11-10"]);
     // The At link is still a backlink: Marc's page lists the Event.
     expect(atIdx.backlinksTo("marc").map((b) => [b.sourceId, b.field ?? "notes"]).sort()).toEqual([["cat", "at"], ["party", "at"], ["party", "notes"]]);
+  });
+  it("counts At on a Person as Seen for a type that does not declare it apart", () => {
+    const types2 = [T(PERSON_TYPE), T("event", { body: "none", fields: [{ key: "at", label: "At", kind: "link", linkType: PERSON_TYPE }] })];
+    const e = { ...doc("cat", "event", "Cat"), body: undefined, date: "2026-11-03", endDate: null, at: "marc" } as unknown as Document;
+    const i = buildLinkIndex([doc("marc", PERSON_TYPE, "Marc"), e], types2);
+    expect(seenDays(i, "marc", "2026-11-15")).toEqual(["2026-11-03"]);
   });
   it("ranks Top seen and Not seen in N days over a window", () => {
     const top = rankingRows(sidx, "person", { kind: "topSeen", n: 5 }, {}, today);

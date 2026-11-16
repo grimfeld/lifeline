@@ -1,7 +1,7 @@
 ---
 status: accepted
 amends: ADR 0076 (in part — a Report counts Events that link, as Seen, beside Days that link)
-amended-by: ADR 0117 (in part — a link to a Household counts toward its members' Seen and Mentioned)
+amended-by: ADR 0117 (in part — a link to a Household counts toward its members' Seen and Mentioned), ADR 0119 (in part — an Event's At on a Person never counts as Seen)
 ---
 
 # Reports count Events that link as Seen, beside Days that link as Mentioned

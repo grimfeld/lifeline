@@ -14,7 +14,11 @@ export const livePlace = (row: Document | undefined): Place | undefined => (row 
 
 const cleanAliases = (aliases: readonly string[] | undefined) => (aliases ?? []).map((a) => a.trim()).filter(Boolean);
 
-/** Throws Core's `TitleTaken` when another Place has this title, in any folder, case and accents aside (ADR 0119). */
+/**
+ * Throws Core's `TitleTaken` when another Place has this title, in any folder, case and accents aside (ADR 0119).
+ * Not the guard: Core's `putDocument` is, and decides. This only refuses early, before an address lookup that a
+ * taken name would waste.
+ */
 async function assertFree(title: string): Promise<void> {
   assertTitleFree(await documentsOf(PLACE_TYPE), PLACE_TYPE, PLACES_FOLDER, title);
 }
@@ -55,12 +59,12 @@ export async function addPlace(
   if (!name) throw new Error("A Place needs a name");
   const kind = kindFrom(input.kind);
   await assertFree(name);
-  const { fields: address } = await resolveAddress({ text: input.address ?? "", at: input.at }, lookup);
+  const { fields: addressFields } = await resolveAddress({ text: input.address ?? "", at: input.at }, lookup);
   const doc = await createDocument({
     type: PLACE_TYPE,
     title: name,
     folder: PLACES_FOLDER,
-    fields: { aliases: cleanAliases(input.aliases), kind, tags: normalizeTags(input.tags ?? []), ...address, toTry: input.toTry === true, closed: false },
+    fields: { aliases: cleanAliases(input.aliases), kind, tags: normalizeTags(input.tags ?? []), ...addressFields, toTry: input.toTry === true, closed: false },
   });
   return normalizePlace(doc);
 }
@@ -99,15 +103,14 @@ export interface PlacePatch {
  * the rename last, so a refused or failed rename never leaves the rest half done.
  */
 export async function patchPlace(id: string, patch: PlacePatch): Promise<void> {
-  const { title, ...rest } = patch;
   const fields: Record<string, unknown> = {};
-  if (rest.kind !== undefined) fields.kind = kindFrom(rest.kind);
-  if (rest.aliases) fields.aliases = cleanAliases(rest.aliases);
-  if (rest.tags) fields.tags = normalizeTags(rest.tags);
+  if (patch.kind !== undefined) fields.kind = kindFrom(patch.kind);
+  if (patch.aliases) fields.aliases = cleanAliases(patch.aliases);
+  if (patch.tags) fields.tags = normalizeTags(patch.tags);
   // Its day is Core's to keep (`beforeSave`): marked anew starts from today, marked again while marked keeps its day.
-  if (rest.toTry !== undefined) fields.toTry = rest.toTry;
-  if (rest.closed !== undefined) fields.closed = rest.closed;
-  const renamed = title !== undefined ? title.trim() : undefined;
+  if (patch.toTry !== undefined) fields.toTry = patch.toTry;
+  if (patch.closed !== undefined) fields.closed = patch.closed;
+  const renamed = patch.title !== undefined ? patch.title.trim() : undefined;
   if (renamed !== undefined) {
     if (!renamed) throw new Error("A Place needs a name");
     // Refused up front, so the fields below are not written for a rename that cannot be.
@@ -117,7 +120,7 @@ export async function patchPlace(id: string, patch: PlacePatch): Promise<void> {
   if (renamed !== undefined) {
     const doc = await getDocument(id);
     // Core holds Places' titles unique in every folder (`uniqueTitles`): a taken one is refused with `TitleTaken`.
-    if (doc) await renameDocument(doc, title!);
+    if (doc) await renameDocument(doc, patch.title!);
   }
 }
 

@@ -1,7 +1,7 @@
 # Map
 
 The **Map** shows every Document that has a place, of every type, as a pin on one OpenStreetMap:
-museums visited, people's homes, places from your Journal.
+museums visited, people's homes, Places and Events.
 
 ## Getting there
 

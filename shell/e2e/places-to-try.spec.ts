@@ -65,6 +65,9 @@ async function showList(page: Page, phone: boolean, name: "All" | "To try" | "Cl
 }
 
 test("To try has its own list, and filters World's map with a Kind; a past Event At it clears it, a future one does not", async ({ page, isMobile }) => {
+  // Marked a week ago: only an Event since the mark clears it (ADR 0119), and every writer stamps the day (ADR 0123).
+  const now = Date.now();
+  await page.clock.setFixedTime(new Date(now - 7 * 86_400_000));
   await page.goto("/app/places");
   await workLocally(page);
   await onlyOurs(page);
@@ -85,7 +88,8 @@ test("To try has its own list, and filters World's map with a Kind; a past Event
   await page.getByRole("option", { name: "Café", exact: true }).click();
   await expect(page.getByText("1 pin", { exact: true })).toBeVisible();
 
-  // Dinner at Chez Janou next week leaves it To try; dinner there yesterday clears it.
+  // Back to today. Dinner at Chez Janou next week leaves it To try; dinner there yesterday, after the mark, clears it.
+  await page.clock.setFixedTime(new Date(now));
   await eventAt(page, janou, 7);
   await eventAt(page, flore, -1);
   await page.goto("/app/places");

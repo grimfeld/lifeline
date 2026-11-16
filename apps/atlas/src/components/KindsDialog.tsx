@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
+import { errorMessage } from "@lifeline/core";
 import { Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Field, Input, toast } from "@lifeline/ui";
 import { Plus } from "lucide-react";
 import { kindOptions } from "../domain/place";
 import { saveKindOptions } from "../data/repo";
-import { message } from "./message";
 
 /** One Kind in the form: a stored one keeps its value through a rename; a new one has none yet. */
 interface Row {
@@ -34,7 +34,7 @@ export function KindsDialog({ open, onOpenChange }: { open: boolean; onOpenChang
       toast.success("Kinds saved");
       onOpenChange(false);
     } catch (e) {
-      setError(message(e));
+      setError(errorMessage(e));
     } finally {
       setBusy(false);
     }
@@ -70,7 +70,11 @@ export function KindsDialog({ open, onOpenChange }: { open: boolean; onOpenChang
               </li>
             ))}
           </ul>
-          {error && <p className="text-destructive text-sm">{error}</p>}
+          {error && (
+            <p role="alert" className="text-destructive text-sm">
+              {error}
+            </p>
+          )}
           <Button type="button" variant="outline" className="justify-self-start" onClick={() => setRows([...rows, { label: "" }])}>
             <Plus /> Add kind
           </Button>

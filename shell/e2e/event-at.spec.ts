@@ -94,3 +94,24 @@ test("an Event At a Person holds one At, which can be changed to a new Place by 
   await expect(edit).toBeHidden();
   expect(await storedAt(page, title)).toBe("");
 });
+
+test("an Event At a Place shows where it is in Upcoming and in the Week, beside its title", async ({ page }) => {
+  const stamp = Date.now();
+  const title = `Brunch ${stamp}`;
+  const placeName = `Chez Janou ${stamp}`;
+  await page.goto("/app/events");
+  await workLocally(page);
+  const place = await make(page, "atlas_place", placeName, "Places", []);
+  await inCore(page, async (core, a: { title: string; at: string }) => {
+    const d = new Date();
+    const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    await core.createDocument({ type: "event", title: a.title, folder: "Events", fields: { date, endDate: date, at: a.at } });
+  }, { title, at: place });
+
+  await page.goto("/calendar?view=upcoming");
+  await expect(page.getByText(title).locator("..")).toContainText(`At ${placeName}`);
+  // A phone's Week is too narrow for the chip's second line (its tap opens the editor, which shows At).
+  if (test.info().project.name === "mobile") return;
+  await page.goto("/calendar?view=week");
+  await expect(page.getByText(title).first().locator("..")).toContainText(`At ${placeName}`);
+});
