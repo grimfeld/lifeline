@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { AtMark } from "./marks";
 import { useNavigate } from "react-router";
 import { appById, formatTime, hourWindow, layoutColumns, todayStr, toHours, useSurfaceItems, useTimedItems, type CardProps, type SurfaceItem, type SurfaceTimedItem } from "@lifeline/core";
 import { cn } from "@lifeline/ui";
@@ -152,6 +153,7 @@ export function AgendaCard({ settings }: CardProps) {
                     }}
                   >
                     <span className="block truncate font-medium">{item.title}</span>
+                    {item.timed && <AtMark item={item.timed} className="block opacity-80" />}
                     <span className="block truncate opacity-80">
                       {formatTime(item.start)}
                       {item.end ? `–${formatTime(item.end)}` : ""}

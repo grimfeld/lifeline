@@ -9,7 +9,7 @@ import {
   useTimedItems,
   allDayLead,
 } from "@lifeline/core";
-import { ItemMark, missed } from "./marks";
+import { AtMark, ItemMark, missed } from "./marks";
 import { Check } from "lucide-react";
 import { PushButton } from "./push";
 
@@ -46,6 +46,7 @@ export function TodayCard() {
             {t.span && t.date > t.span.date ? pieceLead(t) : t.start ? formatTime(t.start) : allDayLead(t)}
           </span>
           <span className={cn("truncate text-sm", missed(t) && "text-destructive font-medium")}>{t.title}</span>
+          <AtMark item={t} className="text-xs" />
           <span
             className="ml-auto size-2 shrink-0 rounded-sm"
             style={{ background: t.color ?? "var(--muted-foreground)" }}

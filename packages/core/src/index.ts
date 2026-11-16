@@ -32,7 +32,7 @@ export * from "./media";
 export * from "./templates";
 export * from "./folders";
 export { PEOPLE_HINT, PERSON_HINT, PERSON_TYPE, peopleArg, peopleIn, peopleNamed } from "./people";
-export { PLACE_TYPE } from "./places";
+export { PLACE_TYPE, atTarget } from "./places";
 export * from "./documents/types";
 export * from "./documents/registry";
 export * from "./documents/typeRules";
