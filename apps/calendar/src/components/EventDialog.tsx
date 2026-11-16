@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
+import { LayoutTemplate } from "lucide-react";
 import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Field, Input, toast } from "@lifeline/ui";
 import { initialList, initialText, todayStr, type DateStr, type Handoff, type IntakePrefill } from "@lifeline/core";
 import { addEvent } from "../data/repo";
 import { eventFormErrors, newEventWhen, whenOf, withEnd, withStart, type EventFormErrors } from "../domain/eventForm";
+import { fillFromTemplate } from "../domain/templates";
+import { useEventTemplates } from "../data/templates";
 import { EventForm, type EventDraft } from "./EventForm";
 import { whenIds } from "./WhenFields";
 
@@ -54,6 +57,7 @@ export function EventDialog({
   const [draft, setDraft] = useState<EventDraft>(() => ({ ...newDraft(todayStr(), {}), notes: "", with: [], tags: [] }));
   /** Errors show once saving has been tried, and clear as each field is fixed. */
   const [tried, setTried] = useState(false);
+  const templates = useEventTemplates();
   const errors = tried ? eventFormErrors({ title, ...draft }) : {};
 
   // The prefill's parts, not the object: a caller passing a fresh one each render must not reset what is typed.
@@ -69,6 +73,14 @@ export function EventDialog({
       tags: initialList(initial, "tags"),
     });
   }, [open, defaultDate, handoff, initial, preTitle, preDate, preStart, preEndDate, preEnd]);
+
+  /** Picking an Event template fills the Form (#535) and saves nothing: the start the dialog was given beats the template's usual one. */
+  function pick(t: (typeof templates)[number]) {
+    const filled = fillFromTemplate(t, { ...draft, title }, preStart);
+    const { title: pickedTitle, ...rest } = filled;
+    setTitle(pickedTitle);
+    setDraft(rest);
+  }
 
   async function submit() {
     const invalid = Object.keys(eventFormErrors({ title, ...draft }));
@@ -91,6 +103,20 @@ export function EventDialog({
           <DialogTitle>New event</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4">
+          {templates.length > 0 && (
+            <div role="group" aria-label="Event templates" className="grid gap-1.5">
+              <span className="text-muted-foreground flex items-center gap-1.5 text-xs">
+                <LayoutTemplate className="size-3.5" /> From a template
+              </span>
+              <div className="flex max-h-24 flex-wrap gap-1.5 overflow-y-auto">
+                {templates.map((t) => (
+                  <Button key={t.id} type="button" size="sm" variant="outline" className="h-auto min-w-0 max-w-full py-1" onClick={() => pick(t)}>
+                    <span className="min-w-0 break-words whitespace-normal text-left [overflow-wrap:anywhere]">{t.title}</span>
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
           <Field label="Title" error={errors.title}>
             <Input
               id={FIELD_IDS.title}
