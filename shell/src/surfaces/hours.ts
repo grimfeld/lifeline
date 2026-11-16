@@ -20,10 +20,6 @@ export function minutesBetween(start: string, end: string | null | undefined, fa
   return Math.max(SNAP_MIN, Math.round((toHours(end) - toHours(start)) * 60));
 }
 
-export function addMinutes(start: string, min: number): string {
-  return toClock(toHours(start) + min / 60);
-}
-
 /**
  * A desk sweep over empty hours (#226): the quarter hour pressed, stretched to
  * the quarter hour the pointer has reached (either way), kept inside the hours
