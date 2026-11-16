@@ -16,3 +16,4 @@ shell/e2e/.auth/
 
 # macOS Finder metadata
 .DS_Store
+*.tsbuildinfo
