@@ -157,3 +157,24 @@ export function withAllDay<F extends Times & Pick<EventForm, "allDay">>(f: F, al
   const last = endDate && f.date ? lastDayCovered({ date: f.date, endDate, end: f.end }) : endDate;
   return { ...f, allDay, endDate: last && last !== f.date ? last : "" };
 }
+
+/** The step the quick Start controls move by, in minutes (the Schedule's snap). */
+export const NUDGE_MIN = 15;
+
+/**
+ * The form with its Start moved `minutes` earlier (negative) or later, within
+ * the day, its End going with it so the length is kept (ADR 0090). A form with
+ * no readable Start is left as it is.
+ */
+export function nudgeStart<F extends Times>(f: F, minutes: number): F {
+  const at = clockMinutes(f.start);
+  if (at === null) return f;
+  const next = Math.max(0, Math.min(DAY_MIN - NUDGE_MIN, at + minutes));
+  return next === at ? f : withStart(f, clockOf(next));
+}
+
+/** The form with its End `minutes` after its Start (into the next day when it runs past midnight); left as it is without a readable Start. */
+export function withLength<F extends Times>(f: F, minutes: number): F {
+  if (clockMinutes(f.start) === null || minutes <= 0) return f;
+  return { ...f, ...endAt(f.date ?? "", f.start, minutes) };
+}

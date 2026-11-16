@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Button, Checkbox, DatePicker, Field, TimeField, formatLength } from "@lifeline/ui";
-import { describeEnd } from "@lifeline/core";
-import { endDayPicked, lengthOf, withAllDay, withDate, withEnd, withStart, type WhenForm, type WhenFormErrors } from "../domain/eventForm";
+import { Button, Checkbox, DatePicker, Field, LengthPicker, TimeField, formatLength } from "@lifeline/ui";
+import { Minus, Plus } from "lucide-react";
+import { addDays, describeEnd, todayStr } from "@lifeline/core";
+import { endDayPicked, lengthOf, NUDGE_MIN, nudgeStart, withAllDay, withDate, withEnd, withLength, withStart, type WhenForm, type WhenFormErrors } from "../domain/eventForm";
 
 /** Each control's id under a prefix — the dialog's and a Peek's must not clash when one sits over the other. */
 export const whenIds = (prefix: string) => ({
@@ -20,7 +21,9 @@ export const whenIds = (prefix: string) => ({
  * moves the End with it, keeping the length. An End earlier than the Start
  * is the next day's (ADR 0090), and the readout names the end day whenever it
  * is another; "Ends another day" shows the end day's own picker, for anything
- * longer. All day asks for a first and a last day instead. Errors are
+ * longer. All day asks for a first and a last day instead. The quick controls
+ * (15 minutes earlier / later, Tomorrow, a length in one tap) sit under the
+ * fields in both modes — the same set whoever draws them. Errors are
  * `whenFormErrors`'s, shown under their control. A one-off Time blocker
  * uses the same controls, without All day.
  */
@@ -39,6 +42,8 @@ export function WhenFields({
   canAllDay?: boolean;
 }) {
   const ids = whenIds(idPrefix);
+  const tomorrow = addDays(todayStr(), 1);
+  const timeOk = !!value.start;
   const set = (patch: Partial<WhenForm>) => onChange({ ...value, ...patch });
   const length = lengthOf(value);
   const readoutId = `${ids.end}-length`;
@@ -86,6 +91,26 @@ export function WhenFields({
             </Button>
           )}
         </div>
+      )}
+      <div role="group" aria-label="Quick timing" className="flex flex-wrap items-center gap-1.5">
+        {!value.allDay && (
+          <>
+            <Button type="button" size="icon" variant="outline" disabled={!timeOk} onClick={() => onChange(nudgeStart(value, -NUDGE_MIN))} aria-label="15 minutes earlier">
+              <Minus />
+            </Button>
+            <Button type="button" size="icon" variant="outline" disabled={!timeOk} onClick={() => onChange(nudgeStart(value, NUDGE_MIN))} aria-label="15 minutes later">
+              <Plus />
+            </Button>
+          </>
+        )}
+        {value.date !== tomorrow && (
+          <Button type="button" size="sm" variant="outline" onClick={() => onChange(withDate(value, tomorrow))}>
+            Tomorrow
+          </Button>
+        )}
+      </div>
+      {!value.allDay && (
+        <LengthPicker value={length} onChange={(m) => m && timeOk && onChange(withLength(value, m))} />
       )}
       {canAllDay && (
         <label className="flex items-center gap-2 text-sm">
