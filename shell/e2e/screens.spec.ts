@@ -1001,6 +1001,20 @@ const SCREENS: ScreenCase[] = [
     },
   },
   {
+    // The Event dialog with the seeded long-named Event templates listed above the Form, one picked: the long title and notes in the Fields.
+    name: "Events · Event dialog · templates",
+    path: "/app/events",
+    afterOpen: async (page) => {
+      await workLocally(page);
+      await page.getByRole("button", { name: "New event" }).click();
+      const dialog = page.getByRole("dialog", { name: "New event" });
+      const templates = dialog.getByRole("group", { name: "Event templates" });
+      await expect(templates).toBeVisible();
+      await templates.getByRole("button").first().click();
+      await expect(dialog.getByRole("textbox", { name: "Title" })).not.toHaveValue("");
+    },
+  },
+  {
     // The Event template dialog: the kit Length picker, holding a custom length of days.
     name: "Events · Event template dialog",
     path: "/app/events?tab=templates",

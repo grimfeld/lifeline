@@ -37,3 +37,32 @@ export function describeTemplate(t: EventTemplate): string {
 export function compareTemplates(a: EventTemplate, b: EventTemplate): number {
   return a.title.localeCompare(b.title);
 }
+
+/** What an Event dialog holds that a template fills: its title, when, notes and Tags. */
+export interface TemplateFillable {
+  title: string;
+  notes: string;
+  tags: string[];
+  date: string;
+  endDate: string;
+  allDay: boolean;
+  start: string;
+  end: string;
+}
+
+/**
+ * The dialog's draft with a template picked into it (#535), nothing saved: the
+ * template's title, all day or its length from the start. The start is the one
+ * given (the hour the dialog was opened from) when there is one, else the
+ * template's usual start, else what the draft had. Its notes join the draft's,
+ * its Tags are added. The day stays the draft's.
+ */
+export function fillFromTemplate<D extends TemplateFillable>(t: EventTemplate, draft: D, givenStart?: string): D {
+  const notes = [draft.notes.trim(), (t.notes ?? "").trim()].filter(Boolean).join("\n");
+  const tags = [...draft.tags, ...(t.tags ?? []).filter((x) => !draft.tags.includes(x))];
+  const common = { ...draft, title: t.title, notes, tags, endDate: "" };
+  if (t.allDay) return { ...common, allDay: true };
+  const start = givenStart || t.defaultStart || draft.start;
+  const { endDate, end } = endOf(t, draft.date, start);
+  return { ...common, allDay: false, start, end, endDate: endDate === draft.date ? "" : endDate };
+}

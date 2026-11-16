@@ -133,4 +133,76 @@ test("the Event dialog's quick controls change its draft: earlier/later, a lengt
   await expect(dialog).toBeHidden();
   await expect.poll(async () => { const e = await storedEvent(page, title); return e && { start: e.start, end: e.end }; }).toEqual({ start: "14:15", end: "15:45" });
   expect((await storedEvent(page, title))!.date).not.toBe("2026-11-10");
+
+const addTemplate = (page: Page, title: string, over: Record<string, unknown> = {}) =>
+  page.evaluate(
+    async ({ coreUrl, title, over }) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      await core.putDocument({ type: "event_template", title, notes: "Bring a towel", defaultStart: "18:00", durationMin: 90, allDay: false, tags: ["health"], ...over });
+    },
+    { coreUrl: CORE_URL, title, over },
+  );
+
+test("the Event dialog lists Event templates above the Form, and picking one fills it without saving (#535)", async ({ page }) => {
+  const template = `Gym ${Date.now()}`;
+  await page.goto("/app/events");
+  await workLocally(page);
+  // A fresh store may come with templates: clear them to see the empty case.
+  await page.evaluate(async (coreUrl) => {
+    const core = await import(/* @vite-ignore */ coreUrl);
+    for (const t of await core.documentsOf("event_template")) await core.removeDocument(t.id);
+  }, CORE_URL);
+
+  await page.getByRole("button", { name: "New event" }).click();
+  const dialog = page.getByRole("dialog", { name: "New event" });
+  await expect(dialog.getByRole("textbox", { name: "Title" })).toBeVisible();
+  await expect(dialog.getByRole("group", { name: "Event templates" }), "none: nothing shown").toHaveCount(0);
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  await expect(dialog).toBeHidden();
+
+  await addTemplate(page, template);
+  await page.getByRole("button", { name: "New event" }).click();
+  const templates = dialog.getByRole("group", { name: "Event templates" });
+  await expect(templates).toBeVisible();
+  const above = await templates.evaluate((el) => el.compareDocumentPosition(el.closest('[role="dialog"]')!.querySelector('[role="group"][aria-label="Event"]')!) & Node.DOCUMENT_POSITION_FOLLOWING);
+  expect(above, "above the Form").toBeTruthy();
+
+  await templates.getByRole("button", { name: template }).click();
+  await expect(dialog.getByLabel("Title")).toHaveValue(template);
+  await expect(dialog.getByRole("combobox", { name: "Start" })).toHaveValue(/^6:00|^18:00/);
+  await expect(dialog.getByText(/· 1h 30m$/)).toBeVisible();
+  await expect(dialog.getByLabel("Notes")).toHaveValue("Bring a towel");
+  expect(await storedEvent(page, template), "nothing saved before Add").toBeNull();
+
+  await setTime(dialog.getByRole("combobox", { name: "Start" }), "19:00");
+  await dialog.getByRole("button", { name: "Add event" }).click();
+  await expect(dialog).toBeHidden();
+  await expect.poll(() => storedEvent(page, template)).toMatchObject({ start: "19:00", end: "20:30" });
+});
+
+test("opened from an empty hour, the dialog shows its day and range, and a template keeps the given start (#535)", async ({ page, isMobile }) => {
+  const day = "2025-11-10";
+  const template = `Yoga ${Date.now()}`;
+  await page.clock.setFixedTime(new Date(`${day}T08:00:00`));
+  await page.goto(`/calendar?view=day&d=${day}`);
+  await workLocally(page);
+  await addTemplate(page, template, { durationMin: 30 });
+  const column = page.locator(`[data-col="${day}"]`);
+  await expect(column).toBeVisible();
+  const position = { x: 40, y: 2 * 56 + 10 };
+  if (isMobile) await column.tap({ position });
+  else await column.dblclick({ position });
+  const quick = page.getByRole("dialog", { name: /^Add on / });
+  await setTime(quick.getByRole("combobox", { name: "Start" }), "12:15");
+  await setTime(quick.getByRole("combobox", { name: "End" }), "13:45");
+  await quick.getByRole("button", { name: "More…" }).click();
+
+  const dialog = page.getByRole("dialog", { name: "New event" });
+  await expect(dialog.getByRole("combobox", { name: "Start" })).toHaveValue(/^12:15/);
+  await expect(dialog.getByText(/· 1h 30m$/)).toBeVisible();
+  await dialog.getByRole("group", { name: "Event templates" }).getByRole("button", { name: template }).click();
+  await expect(dialog.getByRole("combobox", { name: "Start" }), "the given start wins over the usual 18:00").toHaveValue(/^12:15/);
+  await expect(dialog.getByText(/· 30m$/)).toBeVisible();
+  await dialog.getByRole("button", { name: "Add event" }).click();
+  await expect.poll(() => storedEvent(page, template)).toEqual({ date: day, endDate: null, start: "12:15", end: "12:45" });
 });
