@@ -62,7 +62,7 @@ location at all, there is no Here.
 Tick **To try** on a Place's page or in its Peek to keep it on your list of places to go. It drops
 off by itself once you have been: when an Event **At** the Place, or one whose notes link to it,
 has happened since you marked it, meaning its last day is on or after the day you ticked it, and
-before today. An Event from before you ticked it doesn't count, so a Place you have been to can go
+before today. The day counts however you mark it: on its page, in its Peek, in a Base or by Claude. An Event from before you ticked it doesn't count, so a Place you have been to can go
 back on the list ("I want to go again"). An Event still to come, today's included,
 leaves the mark, so booking a table is not counted as going. A Day that only mentions the Place
 leaves it too. The mark is checked when an Event is saved and when you open the Place, so a dinner

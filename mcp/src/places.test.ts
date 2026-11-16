@@ -51,13 +51,13 @@ beforeEach(() => {
 describe("places_add", () => {
   it("adds a Place by its name alone, into Places", async () => {
     const out = await runTool("places_add", { name: "Lidl Prado" });
-    expect(core.createDocument).toHaveBeenCalledWith(expect.objectContaining({ type: PLACE_TYPE, title: "Lidl Prado", folder: "Places", fields: { aliases: [], kind: "", tags: [], address: "", geo: null, toTry: false, toTrySince: "", closed: false } }));
+    expect(core.createDocument).toHaveBeenCalledWith(expect.objectContaining({ type: PLACE_TYPE, title: "Lidl Prado", folder: "Places", fields: { aliases: [], kind: "", tags: [], address: "", geo: null, toTry: false, closed: false } }));
     expect(out).toEqual({ id: "new", message: "Added Lidl Prado to Places" });
   });
 
   it("keeps a Kind, by its name, with aliases and Tags", async () => {
     await runTool("places_add", { name: "Musée d'Orsay", kind: "Museum", aliases: ["the Orsay"], tags: ["art"] });
-    expect(core.createDocument).toHaveBeenCalledWith(expect.objectContaining({ fields: { aliases: ["the Orsay"], kind: "museum", tags: ["art"], address: "", geo: null, toTry: false, toTrySince: "", closed: false } }));
+    expect(core.createDocument).toHaveBeenCalledWith(expect.objectContaining({ fields: { aliases: ["the Orsay"], kind: "museum", tags: ["art"], address: "", geo: null, toTry: false, closed: false } }));
   });
 
   it("looks a postal address up once, and the Place stands on the map", async () => {
