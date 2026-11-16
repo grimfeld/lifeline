@@ -3,20 +3,12 @@ import { Field, TagInput, Textarea, useCommitDraft } from "@lifeline/ui";
 import { noteTiming, normalizeTag, useTagVocabulary } from "@lifeline/core";
 import { PeopleField } from "@lifeline/editor";
 import type { Event } from "../domain/types";
-import { whenFormErrors, whenOf, type WhenForm, type WhenFormErrors } from "../domain/eventForm";
+import { whenFormErrors, whenOf, type EventDraft, type WhenForm, type WhenFormErrors } from "../domain/eventForm";
+
+export type { EventDraft } from "../domain/eventForm";
 import { editEvent, setEventWhen } from "../data/repo";
 import { WhenFields } from "./WhenFields";
 
-/**
- * An Event's own Fields as the Form holds them — everything but its title, which
- * is the add dialog's (or the Peek frame's) own: when it happens, its notes, With
- * (Person ids) and Tags.
- */
-export interface EventDraft extends WhenForm {
-  notes: string;
-  with: string[];
-  tags: string[];
-}
 
 /**
  * The Calendar's one **Form** for an Event (CONTEXT.md, #530): the add dialog and

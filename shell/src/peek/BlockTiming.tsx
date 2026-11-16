@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Button, DatePicker, Field, LengthPicker, Tip, TimeField, toast } from "@lifeline/ui";
+import { Button, DatePicker, Field, QuickTiming, TimeField, toast } from "@lifeline/ui";
 import {
   addDays,
   addTimeBlock,
@@ -9,12 +9,13 @@ import {
   moveTimeBlock,
   noteTiming,
   removeTimeBlock,
+  SNAP_MIN,
   todayStr,
   unplaceItem,
   type WorkOnHours,
 } from "@lifeline/core";
-import { Minus, Plus, Trash2 } from "lucide-react";
-import { SNAP_MIN } from "../surfaces/hours";
+import { Trash2 } from "lucide-react";
+import { useWriteQueue } from "./useWriteQueue";
 import { blockEnd, blockLasting, blockNudged, blockOfTapped, type BlockTime } from "./blockTiming";
 
 /** A Time block's timing as the Peek's Undo knows it. */
@@ -44,13 +45,7 @@ export function BlockTiming({ item }: { item: WorkOnHours }) {
   const done = !!item.completedOn;
 
   // Writes run in order: a quick second nudge must not race the block the first one made.
-  const queue = useRef<Promise<void>>(Promise.resolve());
-  const run = (f: () => Promise<unknown>) => {
-    queue.current = queue.current.then(() => f()).then(
-      () => undefined,
-      (e: unknown) => void toast.error(`Could not save: ${e instanceof Error ? e.message : String(e)}`),
-    );
-  };
+  const { run, settled } = useWriteQueue();
   const timingKey = () => (made.current || !item.placementId ? `block:chip:${item.appId}/${item.itemId}` : `block:${item.placementId}`);
 
   function write(next: BlockTime) {
@@ -76,7 +71,7 @@ export function BlockTiming({ item }: { item: WorkOnHours }) {
       before,
       after: at,
       restore: async () => {
-        await queue.current;
+        await settled();
         const id = blockId.current;
         if (!id) return;
         if (before) await moveTimeBlock(id, before.date, { start: before.start, end: before.end });
@@ -100,7 +95,7 @@ export function BlockTiming({ item }: { item: WorkOnHours }) {
 
   const tomorrow = addDays(todayStr(), 1);
   const removeButton = (
-    <Button variant="ghost" size="sm" className="text-destructive justify-self-start" onClick={remove}>
+    <Button variant="destructive" size="sm" className="justify-self-start" onClick={remove}>
       <Trash2 /> Remove block
     </Button>
   );
@@ -128,26 +123,14 @@ export function BlockTiming({ item }: { item: WorkOnHours }) {
           </div>
           {time.start ? (
             <>
-              <div role="group" aria-label="Quick timing" className="flex flex-wrap items-center gap-1.5">
-                <Tip label="15 minutes earlier">
-                  <Button type="button" size="icon" variant="outline" onClick={() => write(blockNudged(time, -SNAP_MIN))}>
-                    <Minus />
-                  </Button>
-                </Tip>
-                <Tip label="15 minutes later">
-                  <Button type="button" size="icon" variant="outline" onClick={() => write(blockNudged(time, SNAP_MIN))}>
-                    <Plus />
-                  </Button>
-                </Tip>
-                {time.date !== tomorrow && (
-                  <Button type="button" size="sm" variant="outline" onClick={() => write({ ...time, date: tomorrow })}>
-                    Tomorrow
-                  </Button>
-                )}
-              </div>
-              <Field label="Length" hint={`Ends ${formatTime(blockEnd({ ...time, start: time.start }))}`}>
-                <LengthPicker value={time.len} onChange={(m) => m && m !== time.len && write(blockLasting(time, m))} />
-              </Field>
+              <QuickTiming
+                step={SNAP_MIN}
+                onNudge={(m) => write(blockNudged(time, m))}
+                onTomorrow={time.date !== tomorrow ? () => write({ ...time, date: tomorrow }) : undefined}
+                length={time.len}
+                onLength={(m) => write(blockLasting(time, m))}
+                lengthHint={`Ends ${formatTime(blockEnd({ ...time, start: time.start }))}`}
+              />
               {hasBlock && removeButton}
             </>
           ) : (

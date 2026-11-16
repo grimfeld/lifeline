@@ -1,4 +1,4 @@
-import type { KeyboardEvent } from "react";
+import { useRef, type KeyboardEvent } from "react";
 import { SNAP_MIN } from "./hours";
 
 /** How far an arrow key moves an item: by whole days, and on the hours by minutes. */
@@ -50,4 +50,25 @@ export function keepFocus(key: string, ms = 1500) {
     if (performance.now() < until) requestAnimationFrame(tick);
   };
   requestAnimationFrame(tick);
+}
+
+/**
+ * Closing what an item on the hours opened (its Peek, its read-only card)
+ * hands the focus back to the item (#284), as a menu does to its trigger; an
+ * item redrawn elsewhere is found again by its `data-focus-key`. A focus
+ * already taken by something outside the content stays where it went, and with
+ * no item (`anchor()` null) the content's own return holds. Spread the result
+ * on the Sheet's or Popover's content.
+ */
+export function useReturnToItem(anchor: () => HTMLElement | null) {
+  const ref = useRef<HTMLDivElement>(null);
+  const onCloseAutoFocus = (e: Event) => {
+    const item = anchor();
+    const active = document.activeElement;
+    if (!item || (active && active !== document.body && !ref.current?.contains(active))) return;
+    e.preventDefault();
+    if (item.isConnected) item.focus({ preventScroll: true });
+    else if (item.dataset.focusKey) keepFocus(item.dataset.focusKey);
+  };
+  return { ref, onCloseAutoFocus };
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { Button, Sheet, SheetClose, SheetContent, SheetTitle, Tip, cn, toast, usePhone } from "@lifeline/ui";
 import {
@@ -24,7 +24,7 @@ import {
 } from "@lifeline/core";
 import { ArrowLeft, ArrowUpRight, BookOpen, NotebookPen, Pencil, X } from "lucide-react";
 import { PeekContent } from "./PeekContent";
-import { keepFocus } from "../surfaces/itemKeys";
+import { useReturnToItem } from "../surfaces/itemKeys";
 
 /**
  * The **Peek** (ADR 0057): one Document opened where the user is — over the
@@ -67,8 +67,8 @@ export function PeekHost() {
   }, [location.pathname]);
   // Closed (or replaced by another), it leaves one Undo for the timing changed while it was open.
   useEffect(() => onPeekClosed(offerTimingUndo), []);
-  const content = useRef<HTMLDivElement>(null);
-  const returnFocus = useReturnFocus(content);
+  // Closing hands the focus back to the item it was opened from on the hours (#284); opened from anywhere else, the Sheet's own return holds.
+  const returnFocus = useReturnToItem(() => peekOrigin().anchor ?? null);
   // Closed, it opens to read next time — even on the same Document.
   useEffect(() => {
     if (!id) setWritingId(null);
@@ -77,9 +77,8 @@ export function PeekHost() {
   return (
     <Sheet open={!!id} onOpenChange={(o) => !o && closePeek()}>
       <SheetContent
-        ref={content}
+        {...returnFocus}
         aria-describedby={undefined}
-        onCloseAutoFocus={returnFocus}
         side={isMobile ? "bottom" : "right"}
         className={
           isMobile
@@ -179,23 +178,6 @@ function offerTimingUndo(changes: TimingChange[]) {
     id: TIMING_TOAST_ID,
     action: { label: "Undo", onClick: () => void undo().catch((e: unknown) => toast.error(`Could not put the timing back: ${e instanceof Error ? e.message : String(e)}`)) },
   });
-}
-
-/**
- * Closing hands the focus back to the item the Peek was opened from on the hours
- * (#284). An item the edit redrew elsewhere is found again by its
- * `data-focus-key`; a focus already taken by something outside the Peek stays
- * where it went. Opened from anywhere else, the Sheet's own return holds.
- */
-function useReturnFocus(content: React.RefObject<HTMLDivElement | null>) {
-  return (e: Event) => {
-    const { anchor } = peekOrigin();
-    const active = document.activeElement;
-    if (!anchor || (active && active !== document.body && !content.current?.contains(active))) return;
-    e.preventDefault();
-    if (anchor.isConnected) anchor.focus({ preventScroll: true });
-    else if (anchor.dataset.focusKey) keepFocus(anchor.dataset.focusKey);
-  };
 }
 
 /** Back to what the Peek showed before a link was followed in it; only there when there is a before. */

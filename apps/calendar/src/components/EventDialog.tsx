@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { LayoutTemplate } from "lucide-react";
-import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Field, Input, toast } from "@lifeline/ui";
+import { Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Field, Input, toast } from "@lifeline/ui";
 import { initialList, initialText, todayStr, type DateStr, type Handoff, type IntakePrefill } from "@lifeline/core";
 import { addEvent } from "../data/repo";
-import { eventFormErrors, newEventWhen, whenOf, withEnd, withStart, type EventFormErrors } from "../domain/eventForm";
+import { eventFormErrors, newEventWhen, whenOf, withEnd, withStart, type EventFormErrors, type WhenForm } from "../domain/eventForm";
 import { fillFromTemplate } from "../domain/templates";
 import { useEventTemplates } from "../data/templates";
 import { EventForm, type EventDraft } from "./EventForm";
@@ -13,15 +13,8 @@ import { whenIds } from "./WhenFields";
 /** Each checked control's id — its input's and the one an error focuses — in the order the dialog shows them. */
 const FIELD_IDS: Record<keyof EventFormErrors, string> = { title: "ev-title", ...whenIds("ev-") };
 
-/**
- * What a new Event starts with, from whoever opens the dialog (an empty hour or
- * a swept range of the Schedule, through the Intake contract): its title, day,
- * start, end day and end. Whatever is left out takes the usual default.
- */
-export type EventPrefill = IntakePrefill;
-
 /** A new Event's draft: timed, at the next quarter hour today or 09:00 another day, lasting an hour — unless the prefill says otherwise. */
-function newDraft(day: DateStr, pre: Partial<Pick<IntakePrefill, "start" | "endDate" | "end">>): Omit<EventDraft, "notes" | "with" | "tags"> {
+function newDraft(day: DateStr, pre: Partial<Pick<IntakePrefill, "start" | "endDate" | "end">>): WhenForm {
   // A given start keeps its day, and an hour's length (into the next day when late) unless an end is given too.
   const timed = pre.start ? withStart({ date: day, start: "09:00", endDate: "", end: "10:00" }, pre.start) : newEventWhen(day);
   // A given end without its day rolls past midnight as one typed would (ADR 0090).
@@ -49,8 +42,8 @@ export function EventDialog({
   defaultDate?: DateStr;
   /** Intake (ADR 0050): the title and the origin; the day and time are asked here. */
   handoff?: Handoff;
-  /** What is already known of the new Event; it beats `defaultDate` and the Handoff's title. */
-  prefill?: EventPrefill;
+  /** What is already known of the new Event (an empty hour or a swept range of the Schedule, through the Intake contract): its title, day, start, end day and end. It beats `defaultDate` and the Handoff's title; whatever is left out takes the usual default. */
+  prefill?: IntakePrefill;
   /** The palette's inline line (CommandDialogProps.initial): the notes and Tags it understood beside the `prefill`. */
   initial?: Record<string, unknown>;
   /** Called with the new Event once it is saved (the Intake contract). */
@@ -101,14 +94,17 @@ export function EventDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
+      {/* At desk width the kit's dialog grows with what it holds; templates, the Form and "Or place here" can outgrow
+          the window, so it stops 1rem short of each edge (the kit's own side margin) and scrolls. A phone's is full screen already. */}
       <DialogContent className="sm:max-w-md md:max-h-[calc(100dvh-2rem)] md:overflow-y-auto" onInteractOutside={(e) => {e.preventDefault();}}>
         <DialogHeader>
           <DialogTitle>New event</DialogTitle>
+          <DialogDescription className="sr-only">Give it a title and a time, start from a template, or place a Blocker template or unplaced work here instead.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4">
           {templates.length > 0 && (
             <div role="group" aria-label="Event templates" className="grid gap-1.5">
-              <span className="text-muted-foreground flex items-center gap-1.5 text-xs">
+              <span className="text-muted-foreground flex items-center gap-1.5 text-sm font-medium">
                 <LayoutTemplate className="size-3.5" /> From a template
               </span>
               <div className="flex max-h-24 flex-wrap gap-1.5 overflow-y-auto">

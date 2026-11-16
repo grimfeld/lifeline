@@ -1,5 +1,4 @@
-import { addDays, diffDays, NEW_TIMED_MIN, spanLasting, spanMovedTo, spanWithEnd, toHours, type DateStr, type TimedItem, type TimedWhen } from "@lifeline/core";
-import { SNAP_MIN, toClock } from "../surfaces/hours";
+import { addDays, diffDays, NEW_TIMED_MIN, nudgeClock, spanLasting, spanMovedTo, spanWithEnd, type DateStr, type TimedItem, type TimedWhen } from "@lifeline/core";
 
 /** A Timed item's when as the Peek's timing section holds it (#538): always an end day, the end null where the item has none. */
 export type WhenTime = Required<TimedWhen>;
@@ -18,9 +17,8 @@ export function timedStartingAt(w: WhenTime, start: string): WhenTime {
 
 /** The start moved by `min` minutes inside its start day, the length kept. */
 export function timedNudged(w: WhenTime, min: number): WhenTime {
-  if (!w.start) return w;
-  const h = Math.max(0, Math.min(24 - SNAP_MIN / 60, toHours(w.start) + min / 60));
-  return timedStartingAt(w, toClock(h));
+  const start = w.start && nudgeClock(w.start, min);
+  return start ? timedStartingAt(w, start) : w;
 }
 
 /** A new End (ADR 0090): an End earlier than the Start rolls to the next day; an end day rolling would not give is kept. */

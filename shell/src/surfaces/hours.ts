@@ -1,7 +1,7 @@
-import { toHours } from "@lifeline/core";
+import { SNAP_MIN, toHours } from "@lifeline/core";
 
-/** The Schedule's grid: every drag, nudge and new block lands on a quarter hour. */
-export const SNAP_MIN = 15;
+/** The Schedule's grid: every drag, nudge and new block lands on a quarter hour (Core's, shared with the quick timing controls). */
+export { SNAP_MIN };
 
 /** Hours since midnight → "HH:MM", clamped to the day. */
 export function toClock(hours: number): string {

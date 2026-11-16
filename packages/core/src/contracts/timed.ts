@@ -62,6 +62,27 @@ export function clockOf(minutes: number): TimeStr {
   return `${pad2(Math.floor(m / 60))}:${pad2(m % 60)}`;
 }
 
+/** The Schedule's quarter-hour grid: every drag, nudge and new block lands on it, and the quick timing controls move a Start by it. */
+export const SNAP_MIN = 15;
+
+/**
+ * A Start moved `minutes` earlier (negative) or later by the quick timing
+ * controls (ADR 0124), kept inside its day: from midnight to `latest` minutes
+ * past it (by default the last quarter hour; a Time block passes where its
+ * length still fits). null for text that is no time.
+ */
+export function nudgeClock(start: string, minutes: number, latest: number = DAY_MIN - SNAP_MIN): TimeStr | null {
+  const at = clockMinutes(start);
+  if (at === null) return null;
+  return clockOf(Math.max(0, Math.min(latest, at + minutes)));
+}
+
+/** A Time block's end, `min` after its start, kept on its day (a Placement has one date, ADR 0028): "24:00" at the latest. */
+export function blockEndAt(start: TimeStr, min: number): TimeStr {
+  const end = Math.min(DAY_MIN, (clockMinutes(start) ?? 0) + min);
+  return end === DAY_MIN ? "24:00" : clockOf(end);
+}
+
 /** Minutes from one moment to another (negative when the second is earlier); null when either time is no time. */
 function minutesFrom(from: Moment, to: Moment): number | null {
   const [a, b] = [clockMinutes(from.time), clockMinutes(to.time)];

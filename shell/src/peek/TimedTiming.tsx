@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Button, Checkbox, DatePicker, Field, formatLength, Tip, TimeField, toast } from "@lifeline/ui";
+import { Button, Checkbox, DatePicker, Field, formatLength, QuickTiming, TimeField, toast } from "@lifeline/ui";
 import {
   addDays,
   canRemoveTimed,
@@ -12,13 +12,14 @@ import {
   noteTiming,
   removeTimedItem,
   rescheduleTimedItem,
+  SNAP_MIN,
   spanLength,
   todayStr,
   type SurfaceTimedItem,
   type TimedWhen,
 } from "@lifeline/core";
-import { Minus, Plus, Trash2 } from "lucide-react";
-import { SNAP_MIN } from "../surfaces/hours";
+import { Trash2 } from "lucide-react";
+import { useWriteQueue } from "./useWriteQueue";
 import { contractWhen, timedAllDay, timedEndingAt, timedNudged, timedOnDay, timedStartingAt, timedWhenOf, type WhenTime } from "./timedTiming";
 
 /** "Tue, Nov 10 · 10:00 – 11:00", "… · all day", or ending another day. */
@@ -46,13 +47,7 @@ export function TimedTiming({ item }: { item: SurfaceTimedItem }) {
   const editable = canRescheduleTimed(item.appId) && !item.fixed;
   const key = `timed:${item.appId}/${item.itemId}`;
 
-  const queue = useRef<Promise<void>>(Promise.resolve());
-  const run = (f: () => Promise<unknown>) => {
-    queue.current = queue.current.then(() => f()).then(
-      () => undefined,
-      (e: unknown) => void toast.error(`Could not save: ${e instanceof Error ? e.message : String(e)}`),
-    );
-  };
+  const { run, settled } = useWriteQueue();
 
   function write(next: WhenTime) {
     setWhen(next);
@@ -63,7 +58,7 @@ export function TimedTiming({ item }: { item: SurfaceTimedItem }) {
       before: contractWhen(initial),
       after: contractWhen(next),
       restore: async () => {
-        await queue.current;
+        await settled();
         await rescheduleTimedItem(item, contractWhen(initial));
       },
     });
@@ -103,27 +98,11 @@ export function TimedTiming({ item }: { item: SurfaceTimedItem }) {
               <TimeField value={when.end ?? ""} onChange={(e) => e && write(timedEndingAt(when, e))} />
             </Field>
           )}
-          <div role="group" aria-label="Quick timing" className="flex flex-wrap items-center gap-1.5">
-            {when.start && (
-              <>
-                <Tip label="15 minutes earlier">
-                  <Button type="button" size="icon" variant="outline" onClick={() => write(timedNudged(when, -SNAP_MIN))}>
-                    <Minus />
-                  </Button>
-                </Tip>
-                <Tip label="15 minutes later">
-                  <Button type="button" size="icon" variant="outline" onClick={() => write(timedNudged(when, SNAP_MIN))}>
-                    <Plus />
-                  </Button>
-                </Tip>
-              </>
-            )}
-            {when.date !== tomorrow && (
-              <Button type="button" size="sm" variant="outline" onClick={() => write(timedOnDay(when, tomorrow))}>
-                Tomorrow
-              </Button>
-            )}
-          </div>
+          <QuickTiming
+            step={SNAP_MIN}
+            onNudge={when.start ? (m) => write(timedNudged(when, m)) : undefined}
+            onTomorrow={when.date !== tomorrow ? () => write(timedOnDay(when, tomorrow)) : undefined}
+          />
           {/* A band of blocked time is hours, never a whole day. */}
           {!item.background && (
             <label className="flex items-center gap-2 text-sm">
@@ -138,7 +117,7 @@ export function TimedTiming({ item }: { item: SurfaceTimedItem }) {
         </>
       )}
       {removable && (
-        <Button variant="ghost" size="sm" className="text-destructive justify-self-start" onClick={remove}>
+        <Button variant="destructive" size="sm" className="justify-self-start" onClick={remove}>
           <Trash2 /> {item.background ? "Delete blocker" : "Delete"}
         </Button>
       )}

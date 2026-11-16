@@ -1,16 +1,8 @@
 import { Ban, Inbox } from "lucide-react";
 import { Button, toast } from "@lifeline/ui";
-import { addTimeBlock, BLOCK_DEFAULT_MIN, clockMinutes, clockOf, formatHuman, formatTime, unplaceItem, usePoolItems, type DateStr, type PoolItem, type TimeStr } from "@lifeline/core";
+import { addTimeBlock, BLOCK_DEFAULT_MIN, blockEndAt, formatHuman, formatTime, unplaceItem, usePoolItems, type DateStr, type PoolItem, type TimeStr } from "@lifeline/core";
 import { addBlockerFromTemplate, useBlockerTemplates } from "../data/blockerTemplates";
 import { deleteTimeBlocker } from "../data/blockers";
-
-const DAY_MIN = 24 * 60;
-
-/** A Time block's end, `min` after its start, kept on its day (a Placement has one date): at 24:00 at the latest. */
-function blockEnd(start: TimeStr, min: number): TimeStr {
-  const end = Math.min(DAY_MIN, (clockMinutes(start) ?? 0) + min);
-  return end === DAY_MIN ? "24:00" : clockOf(end);
-}
 
 /**
  * The Event dialog's **"Or place here"** (#539): instead of an Event, a
@@ -38,20 +30,20 @@ export function PlaceHere({ date, start, onPlaced }: { date: DateStr; start: Tim
     if (!start) return;
     onPlaced();
     const len = w.estimateMin && w.estimateMin > 0 ? w.estimateMin : BLOCK_DEFAULT_MIN;
-    addTimeBlock(w.appId, w.itemId, date, { start, end: blockEnd(start, len) })
+    addTimeBlock(w.appId, w.itemId, date, { start, end: blockEndAt(start, len) })
       .then((id) => toast.success(`${w.title} at ${formatTime(start)}`, { action: { label: "Undo", onClick: () => void unplaceItem(id).catch(fail) } }))
       .catch(fail);
   }
 
   return (
     <div role="group" aria-label="Or place here" className="grid min-w-0 gap-2 border-t pt-3">
-      <span className="text-muted-foreground min-w-0 text-xs [overflow-wrap:anywhere]">
+      <span className="text-muted-foreground min-w-0 text-sm font-medium [overflow-wrap:anywhere]">
         {start ? `Or place here, ${formatHuman(date)} at ${formatTime(start)}` : "Or place here"}
       </span>
       {!start && <p className="text-muted-foreground text-sm">Give it a start time to place something here.</p>}
       {blockers.length > 0 && (
         <div className="grid min-w-0 gap-1.5">
-          <span className="text-muted-foreground flex items-center gap-1 text-xs">
+          <span className="text-muted-foreground flex items-center gap-1.5 text-sm font-medium">
             <Ban className="size-3.5" /> Blocker templates
           </span>
           <div className="flex max-h-24 min-w-0 flex-wrap gap-1.5 overflow-y-auto">
@@ -65,7 +57,7 @@ export function PlaceHere({ date, start, onPlaced }: { date: DateStr; start: Tim
       )}
       {work.length > 0 && (
         <div className="grid min-w-0 gap-1.5">
-          <span className="text-muted-foreground flex items-center gap-1 text-xs">
+          <span className="text-muted-foreground flex items-center gap-1.5 text-sm font-medium">
             <Inbox className="size-3.5" /> Unplaced work
           </span>
           <div className="grid max-h-40 min-w-0 gap-1 overflow-y-auto">

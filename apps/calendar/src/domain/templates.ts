@@ -1,5 +1,6 @@
 import { formatTime, spanLasting, type DateStr, type TimeStr } from "@lifeline/core";
 import type { EventTemplate } from "./types";
+import type { EventDraft } from "./eventForm";
 
 /** A template with no length of its own lasts an hour. */
 export const DEFAULT_DURATION_MIN = 60;
@@ -38,17 +39,8 @@ export function compareTemplates(a: EventTemplate, b: EventTemplate): number {
   return a.title.localeCompare(b.title);
 }
 
-/** What an Event dialog holds that a template fills: its title, when, notes and Tags. */
-export interface TemplateFillable {
-  title: string;
-  notes: string;
-  tags: string[];
-  date: string;
-  endDate: string;
-  allDay: boolean;
-  start: string;
-  end: string;
-}
+/** What an Event dialog holds that a template fills: its title and the Event Form's draft (when, notes, With, Tags). */
+export type TemplateFillable = EventDraft & { title: string };
 
 /**
  * The dialog's draft with a template picked into it (#535), nothing saved: the

@@ -1,7 +1,7 @@
-import { useMemo, useRef } from "react";
+import { useMemo } from "react";
 import { Popover, PopoverAnchor, PopoverContent, Sheet, SheetContent, SheetTitle, usePhone } from "@lifeline/ui";
 import { appById, describeSpan, formatHuman, formatTime, type HoursTapped } from "@lifeline/core";
-import { keepFocus } from "./itemKeys";
+import { useReturnToItem } from "./itemKeys";
 
 /** Anchors the popover to an element that may re-render away: keep its last box. */
 function useVirtualAnchor(el: HTMLElement | null) {
@@ -16,22 +16,6 @@ function useVirtualAnchor(el: HTMLElement | null) {
       },
     };
   }, [el]);
-}
-
-/**
- * Closing hands the focus back to the item (#284), as a menu does to its
- * trigger; an item redrawn elsewhere is found again by its `data-focus-key`.
- */
-function useReturnFocus(anchor: HTMLElement | null) {
-  const content = useRef<HTMLDivElement>(null);
-  const onCloseAutoFocus = (e: Event) => {
-    const active = document.activeElement;
-    if (!anchor || (active && active !== document.body && !content.current?.contains(active))) return;
-    e.preventDefault();
-    if (anchor.isConnected) anchor.focus({ preventScroll: true });
-    else if (anchor.dataset.focusKey) keepFocus(anchor.dataset.focusKey);
-  };
-  return { ref: content, onCloseAutoFocus };
 }
 
 /** "Tue, Nov 10 · 10:00 – 11:00", or "… · all day": the whole item, from any of its pieces (ADR 0090). */
@@ -59,7 +43,7 @@ function whenOf(tapped: HoursTapped): string {
 export function HoursCard({ tapped, anchor, onClose }: { tapped: HoursTapped; anchor: HTMLElement | null; onClose: () => void }) {
   const isMobile = usePhone();
   const virtual = useVirtualAnchor(anchor);
-  const returnFocus = useReturnFocus(anchor);
+  const returnFocus = useReturnToItem(() => anchor);
   const { item } = tapped;
   const source = (tapped.kind === "timed" ? tapped.item.source : undefined) ?? appById(item.appId)?.title;
   const subtitle = tapped.kind === "timed" ? tapped.item.subtitle : undefined;
