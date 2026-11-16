@@ -1,5 +1,6 @@
 ---
 status: accepted
+amends: ADR 0013 (in part — a type may hold its titles unique in every folder, not per folder)
 ---
 
 # A built-in type declares in code what Core cannot guess of it, one hook per need with a user
@@ -14,7 +15,7 @@ Each hook has one user today, and exists because a second App would need the sam
 - **`seenAs`** (type): the type's words for the Seen family of Reports (ADR 0112): `{ verb, one, many }`. Absent, it is "seen", counted in days. *User:* Place, "visited" / "visit" / "visits".
 - **`seenExcept`** (type): the links of the type's Fields that do not count their target as Seen, each a Field key and the type it points at; every other link still counts. Core reads it in the Seen family without naming any App's field. *User:* Event, `[{ field: "at", type: Person }]` — being At Marc's home is not seeing Marc (ADR 0119); At a Place counts as a visit.
 - **`beforeSave`** (type): the keys the type keeps true of its own Document on every write, given it as about to be stored and as it was. Core applies them in `putDocument`, so the App's dialog, a Base cell and an agent's `update_document` follow one rule. Rows a sync pulls in are not asked: the device that wrote them was. *User:* Place, whose To try day (ADR 0119) is stamped when the mark is set anew, kept while it stays, and dropped with it; written only by Atlas's dialog, a mark set from a Base or by Claude carried no day, and any past visit cleared it at once.
-- **`uniqueTitles`** (type): titles unique among the type's Documents in every folder, case and accents aside, where others are unique per folder. Core holds it in `putDocument`, so a rename, the Vault's title field, a Base cell and an agent's `update_document` all refuse a taken title with **`TitleTaken`**, which names and carries the Document that has it. *User:* Place ("Lidl Prado" is one spot, wherever it is filed).
+- **`uniqueTitles`** (type): titles unique among the type's Documents in every folder, case and accents aside, where others are unique per folder. Core holds it in `putDocument`, the check and the write in one transaction, so a rename, the Vault's title field, a Base cell and an agent's `update_document` all refuse a taken title with **`TitleTaken`**, which names and carries the Document that has it. *User:* Place ("Lidl Prado" is one spot, wherever it is filed).
 
 ## Considered options
 
@@ -25,5 +26,5 @@ Each hook has one user today, and exists because a second App would need the sam
 ## Consequences
 
 - A hook with no user is removed, not kept for later: each one names its user here, and a new hook gets an ADR line of its own.
-- `putDocument` reads the type's Documents only for a type with `uniqueTitles`, and only when the title is new or changed, so a pair that shares a title from before (a sync, an older build) still saves.
+- `putDocument` reads the type's Documents only for a type with `uniqueTitles`, and only when the title is new or changed, so a pair that shares a title from before (a sync, an older build) still saves. A pull from the server writes around the guard: two devices that each made the same Place offline keep both.
 - An agent's refusal names the Place that has the title, with its id, unless that Place is hidden from agents.

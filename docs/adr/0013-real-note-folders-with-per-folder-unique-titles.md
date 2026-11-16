@@ -1,6 +1,7 @@
 ---
 status: accepted
 superseded-by: ADR 0046 (in part — the migration rule "others → root")
+amended-by: ADR 0123 (in part — a type may hold its titles unique in every folder, as a Place does)
 ---
 
 # Real note folders: a `folder` path on the Note, titles unique per folder, shortest-path link resolution

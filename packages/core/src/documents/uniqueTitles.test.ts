@@ -28,6 +28,14 @@ describe("a type whose titles are unique in every folder", () => {
     expect((await getDocument(other.id))?.title).toBe("Le Fermé");
   });
 
+  it("keeps one of two made at once with the same title, and refuses the other", async () => {
+    const results = await Promise.allSettled([createDocument({ type: "spot", title: "Chez Janou", folder: "Places" }), createDocument({ type: "spot", title: "chez janou", folder: "Elsewhere" })]);
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    const refused = results.find((r) => r.status === "rejected");
+    expect(refused?.status === "rejected" && refused.reason).toBeInstanceOf(TitleTaken);
+    expect(await documentsTable().where("type").equals("spot").count()).toBe(1);
+  });
+
   it("refuses one made with the title in another folder, accents aside", async () => {
     await createDocument({ type: "spot", title: "Café de Flore", folder: "Places" });
     expect(await refusal(createDocument({ type: "spot", title: "Cafe de Flore", folder: "Elsewhere" }))).toBeInstanceOf(TitleTaken);
