@@ -20,6 +20,16 @@ export class TitleTaken extends Error {
 }
 
 /**
+ * A taken title refused in words, to a caller that `sees` only some Documents
+ * (an agent, ADR 0114): the Document that has it named with its id, so the
+ * caller can use that one instead, unless the caller cannot see it. Then it is
+ * named not at all; that the title is taken still shows (ADR 0119).
+ */
+export function titleTakenText(e: TitleTaken, sees: (doc: Document) => boolean = () => true): string {
+  return sees(e.existing) ? `${e.message} (id ${e.existing.id})` : `“${e.title}” is already taken`;
+}
+
+/**
  * The live Document of `type` whose title `title` would clash with, but
  * `exceptId`: case and accents aside, in `folder` — or in any folder, for a
  * type whose titles are unique (`uniqueTitles`). None when the title is free.
