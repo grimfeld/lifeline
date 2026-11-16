@@ -10,7 +10,7 @@ import {
   AlertDialogTitle,
   toast,
 } from "@lifeline/ui";
-import { countTypeDocuments, deleteDocumentType, deleteUserDocumentType, typeDeleteRefusal, type DocumentTypeRecord } from "@lifeline/core";
+import { countTypeDocuments, deleteUserDocumentType, resetBuiltinType, typeDeleteRefusal, type DocumentTypeRecord } from "@lifeline/core";
 
 interface Removal {
   record: DocumentTypeRecord;
@@ -42,7 +42,7 @@ export function useTypeRemoval({ onRefused, onRemoved }: { onRefused: (why: stri
 
   async function remove({ record, builtIn }: Removal) {
     if (builtIn) {
-      await deleteDocumentType(record.id);
+      await resetBuiltinType(record);
       toast.success(`“${record.label}” reset to its built-in default`);
       return onRemoved?.();
     }

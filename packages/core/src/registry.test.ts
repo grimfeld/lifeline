@@ -1,6 +1,9 @@
+import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
+import { DOCUMENT_TYPES, db } from "./data/db";
 import { appsOfModule, inhabitedModules, moduleOfApp, moduleOfPath, moduleScreens, navSectionsOf } from "./registry";
 import { initApps } from "./registry";
+import { resetBuiltinType, saveDocumentType, saveFieldOptions, type DocumentTypeRecord } from "./documents/registry";
 import { MODULES, DASHBOARD_FRAME, VAULT_FRAME, type AppManifest, type AppScreenDef } from "./manifest";
 
 const screen = (id: string, extra: Partial<AppScreenDef> = {}): AppScreenDef => ({
@@ -21,7 +24,10 @@ const app = (id: string, module: string | undefined, screens: AppScreenDef[]): A
   commands: [],
 });
 
+const kinded = { id: "kinded", label: "Kinded", titleRule: "name", body: "none", builtIn: true, fields: [{ key: "kind", label: "Kind", kind: "choice", userOptions: true, options: [{ value: "cafe", label: "Cafe" }] }] } as const;
+
 initApps([
+  { ...app("kinded", "tasks", []), types: [kinded as never] },
   app("tasks", "tasks", [screen("tasks")]),
   app("library", "culture", [screen("library"), screen("shelf-detail", { hidden: true, path: "library/shelf/:id" })]),
   app("chores", "house", [screen("chores"), screen("journal", { frame: VAULT_FRAME })]),
@@ -123,5 +129,24 @@ describe("the World Module (ADR 0119)", () => {
   it("is the people Module, retitled: the id stays so stored Workspaces and phone bars keep it", () => {
     expect(MODULES.find((m) => m.id === "people")?.title).toBe("World");
     expect(MODULES.some((m) => m.title === "People")).toBe(false);
+  });
+});
+
+describe("resetting a built-in type (ADR 0123: an option is never removed)", () => {
+  const records = () => db().collection<DocumentTypeRecord>(DOCUMENT_TYPES).where("deleted").equals(0).toArray();
+  const kinds = async () => (await records()).find((r) => r.typeId === "kinded")?.fields.find((f) => f.key === "kind")?.options?.map((o) => o.value);
+
+  it("keeps the Kinds the user added", async () => {
+    await saveFieldOptions("kinded", "kind", [{ value: "cafe", label: "Cafe" }, { label: "Bakery" }]);
+    const rec = (await records()).find((r) => r.typeId === "kinded")!;
+    await resetBuiltinType(rec);
+    expect(await kinds()).toEqual(["cafe", "bakery"]);
+  });
+
+  it("drops the override altogether when it holds nothing but the type's own settings", async () => {
+    await db().table(DOCUMENT_TYPES).clear();
+    const rec = await saveDocumentType({ typeId: "kinded", label: "Renamed", icon: "", folder: "", fields: [], order: 0 });
+    await resetBuiltinType(rec);
+    expect((await records()).some((r) => r.typeId === "kinded")).toBe(false);
   });
 });
