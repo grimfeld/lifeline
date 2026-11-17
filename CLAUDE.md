@@ -63,13 +63,13 @@ alike; `--base <ref>` branches off another ref, say an integration branch), inst
 ready for e2e. Rerun it on a worktree that stopped partway to finish it. The main checkout belongs to whoever opened it.
 `pnpm worktrees:prune` clears the worktrees whose work is on master.
 
-**PRs land in batches (ADR 0096).** A PR runs its CI once. Once green, don't merge master
-into it to refresh CI, and don't merge it alone: `pnpm integrate` (in a worktree of its
-own) merges every green PR into one `integration/<date>` branch and opens one PR. Only that
-PR's CI gates master. It skips a PR that conflicts and renumbers clashing migrations; an ADR
-clash stops it, for `--continue` once fixed. When it goes red, `--drop <pr>` rebuilds it
-without the PR at fault. It never merges itself: the user or the orchestrator merges the
-integration PR, with a merge commit, never squash.
+**PRs land in batches (ADR 0096, 0126); how is in `docs/agents/shipping.md`.** A PR runs its CI
+once. Once green, don't merge master into it to refresh CI, and never merge it yourself: the user
+reviews it and adds the `ship` label, and the Ship workflow batches labelled, green PRs through
+`pnpm integrate` into one `integration/<date>` PR that merges itself when its CI passes. Open a
+PR as a draft and mark it ready only once it's finished and `/ship:pr-review` has run. When an
+integration PR goes red, `pnpm integrate --drop <pr>` (in a worktree of its own) rebuilds it
+without the PR at fault; an ADR clash stops it, for `--continue` once fixed.
 
 Run `pnpm check` in the foreground with a 600000 ms timeout: it takes a few minutes, and a wait keyed on a process
 name can match another agent's run.

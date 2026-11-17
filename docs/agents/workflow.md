@@ -17,20 +17,20 @@ The why is in `CLAUDE.md` and ADR 0096 (batch landing).
 | Checks green locally | Commit as `claude@grimfeld.tech`, push, and open the PR (the `pr` skill writes the body). |
 | PR's CI red | Fix it on the branch and push. A red **nightly** run means master was already broken, not your change. |
 | PR's CI green | **Stop.** Don't merge master into it to refresh CI, and don't merge it alone. It waits for the next batch. |
-| Several PRs green | Land them as a batch (below). |
+| PR finished | Mark it ready once `/ship:pr-review` has written its review section. The user adds `ship`; the Ship workflow lands it (below). |
 | PR merged | `pnpm worktrees:prune` clears the worktrees whose work is on master. |
 
 ## Landing a batch
 
 | You are here | Next |
 | --- | --- |
-| Green PRs waiting | `pnpm worktree:new integrate`, then `pnpm integrate` in it (all green PRs, oldest first) or `pnpm integrate 241 243` (just those). Add `--no-push` for a local preview. |
+| Green PRs labelled `ship` | Nothing to do: the Ship workflow (`ship.yml`, ADR 0126) runs `pnpm integrate` on them every two hours and when a label is added. To land now: Actions → Ship → Run workflow. `pnpm integrate --no-push` in a worktree previews a batch locally. |
 | "skip #N: conflicts" | Leave it. Tell PR #N's owner to rebase on master; it joins the next batch. |
 | "renumbered …" | Nothing to do: migrations were renumbered automatically, and the PR body lists them. |
-| Stopped on an ADR clash | Move the narrower ADR with `pnpm adr:mv`, add `formerly: NNNN`, update its references by meaning (`CLAUDE.md`), commit, then run `pnpm integrate --continue`. |
+| Ship's `land` job failed on an ADR clash | Nothing was pushed. In `pnpm worktree:new integrate`, run `pnpm integrate` with the PR numbers from the job's log: it stops at the same clash. Move the narrower ADR with `pnpm adr:mv`, add `formerly: NNNN`, update its references by meaning (`CLAUDE.md`), commit, then run `pnpm integrate --continue`. |
 | Integration PR running | Wait. It runs the unit checks and the whole e2e suite once, on four runners. |
 | Integration PR red | Read the failing case and find the PR it points at. `pnpm integrate --drop <pr>` rebuilds the branch without it and re-runs CI. Send the failure back to that PR. |
-| Integration PR green | Merge with a merge commit, never squash: `gh api -X PUT repos/grimfeld/lifeline/pulls/<n>/merge -f merge_method=merge`. This deploys, so the user or the orchestrator does it, never the script. |
+| Integration PR green | Nothing to do: it auto-merges with a merge commit, which deploys. |
 | Merged | The original PRs show as merged. Run `pnpm worktrees:prune`. |
 
 ## When stuck
