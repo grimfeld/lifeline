@@ -26,11 +26,6 @@ test("the Calendar jumps to a picked day and shows it", async ({ page }) => {
   await workLocally(page);
   const jump = page.getByRole("button", { name: "Jump to date" });
   await expect(jump).toBeVisible();
-  if ((page.viewportSize()?.width ?? 0) < 768) {
-    // In the Phone dock, below the calendar it pages.
-    const box = (await jump.boundingBox())!;
-    expect(box.y, "the button sits low on the screen").toBeGreaterThan((page.viewportSize()!.height * 2) / 3);
-  }
   await pickDate(page, jump, "2027-02-14");
   await expect(page).toHaveURL(/[?&]d=2027-02-14/);
   await expect(page.getByText("February 2027").first()).toBeVisible();
@@ -85,13 +80,8 @@ test("a Part is marked read on a day picked before today, and no later day can b
   // The work opens on a page of its own, not a dialog.
   await expect(page).toHaveURL(new RegExp(`/app/library/works/${id}$`));
   const work = page;
-  // A tap opens the Part rather than marking it: a switch on the desk, a Select on a phone (ADR 0064).
-  if ((page.viewportSize()?.width ?? 0) < 768) {
-    await work.getByRole("combobox", { name: "A tap" }).click();
-    await page.getByRole("option", { name: "Tap opens" }).click();
-  } else {
-    await work.getByRole("radio", { name: "Tap opens" }).click();
-  }
+  // A tap opens the Part rather than marking it.
+  await work.getByRole("radio", { name: "Tap opens" }).click();
   await work.locator('[title^="Chapter 2"]').click();
   const another = page.getByRole("button", { name: "Read on another day" });
 

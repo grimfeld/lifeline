@@ -84,7 +84,7 @@ test("a Task's Estimate is picked, typed and cleared back to none in its Peek", 
   await expect(other).toHaveValue("");
 });
 
-test("a Task is moved by tapping a day in the Move dialog, and Cancel backs out", async ({ page }) => {
+test("a Task is moved by tapping a day in the Move dialog, and Cancel backs out", { tag: "@also-phone" }, async ({ page }) => {
   const stamp = Date.now();
   const title = `Renew the passport ${stamp}`;
   await page.goto("/app/tasks");
@@ -120,7 +120,7 @@ test("a Task is moved by tapping a day in the Move dialog, and Cancel backs out"
   await expect.poll(async () => (await field(page, id)).date).toBe("2026-03-09");
 });
 
-test("an Event peeked from the Vault gets a time there; an end before its start is the next day's, one equal to it refused", async ({ page }) => {
+test("an Event peeked from the Vault gets a time there; an end before its start is the next day's, one equal to it refused", { tag: "@also-phone" }, async ({ page }) => {
   const stamp = Date.now();
   await page.goto("/vault");
   await workLocally(page);
@@ -266,9 +266,7 @@ test("an Event's Peek nudges the Start, sets a length and moves to Tomorrow, wri
 
 // --- On a phone the Peek is a bottom sheet, and what was tapped is scrolled above it (ADR 0124) ---
 
-test.describe("on a phone, what was tapped on the hours is scrolled above the Peek's sheet", () => {
-  test.skip(({ isMobile }) => !isMobile, "the bottom sheet is the phone's");
-
+test.describe("on a phone, what was tapped on the hours is scrolled above the Peek's sheet", { tag: "@phone" }, () => {
   /** Events titled `title` on each day from `from` for `days` days, 10:00–11:00. */
   const addEvents = (page: Page, title: string, from: string, days: number) =>
     inCore(
@@ -334,9 +332,7 @@ test.describe("on a phone, what was tapped on the hours is scrolled above the Pe
 
 // --- a work chip's actions (Push, Move to day…, Unplace) reach a phone through its Peek ---
 
-test.describe("on a phone, a Task on the Month is pushed, moved or unplaced from its Peek", () => {
-  test.skip(({ isMobile }) => !isMobile, "the phone has no right-click menu");
-
+test.describe("on a phone, a Task on the Month is pushed, moved or unplaced from its Peek", { tag: "@phone" }, () => {
   test("Move to day… and Unplace in the Peek's Time block section", async ({ page }) => {
     const title = `Month chip ${Date.now()}`;
     await page.goto("/calendar?view=month&d=2026-11-09");

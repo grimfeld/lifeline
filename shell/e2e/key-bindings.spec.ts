@@ -23,8 +23,7 @@ async function bind(page: Page, command: string, key: string) {
   await expect(dialog).toBeHidden();
 }
 
-test("a bound key runs its Command, and opens the dialog of one that asks", async ({ page, isMobile }) => {
-  test.skip(isMobile, "Key bindings are desk only");
+test("a bound key runs its Command, and opens the dialog of one that asks", async ({ page }) => {
   await page.goto("/settings/keys");
   await workLocally(page);
 
@@ -45,8 +44,7 @@ test("a bound key runs its Command, and opens the dialog of one that asks", asyn
   await expect(page.getByRole("option", { name: /Go to Arcade/ }).first()).toContainText(/Y/);
 });
 
-test("a key Lifeline or the browser uses is refused, and one already bound is taken", async ({ page, isMobile }) => {
-  test.skip(isMobile, "Key bindings are desk only");
+test("a key Lifeline or the browser uses is refused, and one already bound is taken", async ({ page }) => {
   await page.goto("/settings/keys");
   await workLocally(page);
   await bind(page, "Go to Arcade", "Control+Shift+Y");
@@ -65,8 +63,7 @@ test("a key Lifeline or the browser uses is refused, and one already bound is ta
   await expect(dialog.getByRole("button", { name: "Bind", exact: true })).toBeDisabled();
 });
 
-test("a Command that needs values and has no dialog to ask them cannot be given a key", async ({ page, isMobile }) => {
-  test.skip(isMobile, "Key bindings are desk only");
+test("a Command that needs values and has no dialog to ask them cannot be given a key", async ({ page }) => {
   await page.goto("/settings/keys");
   await workLocally(page);
   await page.getByRole("button", { name: "Bind a key" }).click();
@@ -78,8 +75,7 @@ test("a Command that needs values and has no dialog to ask them cannot be given 
   await expect(dialog.getByRole("button", { name: "Bind", exact: true })).toBeDisabled();
 });
 
-test("a binding whose Command no longer exists is shown dead and can be cleared", async ({ page, isMobile }) => {
-  test.skip(isMobile, "Key bindings are desk only");
+test("a binding whose Command no longer exists is shown dead and can be cleared", async ({ page }) => {
   await page.goto("/settings/keys");
   await workLocally(page);
   await page.evaluate(async (coreUrl) => {
@@ -92,8 +88,7 @@ test("a binding whose Command no longer exists is shown dead and can be cleared"
   await expect(row).toBeHidden();
 });
 
-test("on the phone no key runs anything", async ({ page, isMobile }) => {
-  test.skip(!isMobile, "the phone's case");
+test("on the phone no key runs anything", { tag: "@phone" }, async ({ page }) => {
   await page.goto("/settings/keys");
   await workLocally(page);
   await page.evaluate(async (coreUrl) => {

@@ -24,7 +24,7 @@ const put = (page: Page, doc: Record<string, unknown>) =>
 const read = (page: Page, id: string) => inCore(page, async (core, i: string) => (await core.getDocument(i)) as never as Record<string, unknown>, id);
 const ready = (page: Page, type: string) => expect.poll(() => inCore(page, async (core, t: string) => !!core.documentType(t), type)).toBe(true);
 
-test("Library: an Author is turned into a Person from the Author page, and stays the Author of their works", async ({ page }) => {
+test("Library: an Author is turned into a Person from the Author page, and stays the Author of their works", { tag: "@also-phone" }, async ({ page }) => {
   await page.goto("/app/library");
   await workLocally(page);
   await ready(page, "author");
@@ -51,7 +51,7 @@ test("Library: an Author is turned into a Person from the Author page, and stays
   await expect(page.getByRole("heading", { level: 1, name })).toBeVisible();
 });
 
-test("Museum: an Artist is turned into a Person from the Vault, after a confirmation that can be declined", async ({ page }) => {
+test("Museum: an Artist is turned into a Person from the Vault, after a confirmation that can be declined", { tag: "@also-phone" }, async ({ page }) => {
   await page.goto("/vault");
   await workLocally(page);
   await ready(page, "artist");

@@ -181,7 +181,7 @@ test("the Event dialog lists Event templates above the Form, and picking one fil
   await expect.poll(() => storedEvent(page, template)).toMatchObject({ start: "19:00", end: "20:30" });
 });
 
-test("opened from an empty hour, the dialog shows its day and range, and a template keeps the given start (#535)", async ({ page, isMobile }) => {
+test("opened from an empty hour, the dialog shows its day and range, and a template keeps the given start (#535)", async ({ page }) => {
   const day = "2025-11-10";
   const template = `Yoga ${Date.now()}`;
   await page.clock.setFixedTime(new Date(`${day}T08:00:00`));
@@ -191,8 +191,7 @@ test("opened from an empty hour, the dialog shows its day and range, and a templ
   const column = page.locator(`[data-col="${day}"]`);
   await expect(column).toBeVisible();
   const position = { x: 40, y: 2 * 56 + 10 };
-  if (isMobile) await column.tap({ position });
-  else await column.dblclick({ position });
+  await column.dblclick({ position });
   // The hour opens the dialog itself (#539), at that day and hour.
   const dialog = page.getByRole("dialog", { name: "New event" });
   const start = dialog.getByRole("combobox", { name: "Start" });

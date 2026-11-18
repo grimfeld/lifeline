@@ -51,8 +51,7 @@ async function openAdd(page: Page) {
   return page.getByRole("dialog");
 }
 
-test("on the phone, a scanned ISBN fills the Add dialog's search and finds the work; another barcode is reported", async ({ page, isMobile }) => {
-  test.skip(!isMobile, "scanning is the phone's");
+test("on the phone, a scanned ISBN fills the Add dialog's search and finds the work; another barcode is reported", { tag: "@phone" }, async ({ page }) => {
   await fakeCamera(page);
   const dialog = await openAdd(page);
   await dialog.getByRole("button", { name: "Scan barcode" }).click();
@@ -68,16 +67,14 @@ test("on the phone, a scanned ISBN fills the Add dialog's search and finds the w
   await expect(dialog.getByRole("button", { name: /^Dune/ })).toBeVisible();
 });
 
-test("the desk is not offered a scan, even with a camera", async ({ page, isMobile }) => {
-  test.skip(isMobile, "the desk's case");
+test("the desk is not offered a scan, even with a camera", async ({ page }) => {
   await fakeCamera(page);
   const dialog = await openAdd(page);
   await expect(dialog.getByLabel("Title")).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Scan barcode" })).toHaveCount(0);
 });
 
-test("a phone whose browser cannot read barcodes is not offered a scan", async ({ page, isMobile }) => {
-  test.skip(!isMobile, "the phone's case");
+test("a phone whose browser cannot read barcodes is not offered a scan", { tag: "@phone" }, async ({ page }) => {
   await fakeCamera(page);
   await page.addInitScript(() => delete (window as unknown as { BarcodeDetector?: unknown }).BarcodeDetector);
   const dialog = await openAdd(page);

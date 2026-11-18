@@ -11,8 +11,6 @@ import { pickDate } from "./support/date-picker";
  * another App's item (#538); an iCal item shows a read-only card. Mon 9 Nov 2026's week, an Event on the Tuesday at 10:00–11:00.
  */
 
-test.skip(({ isMobile }) => isMobile, "keyboard cases: the desk");
-
 async function workLocally(page: Page) {
   const local = page.getByRole("button", { name: "Work locally" });
   await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});

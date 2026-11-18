@@ -23,8 +23,7 @@ async function addStep(page: Page, command: string, field: string, value: string
   await step.getByLabel(field).fill(value);
 }
 
-test("a Macro made in Settings runs from the palette, stops at a refusal and reports each step", async ({ page, isMobile }) => {
-  test.skip(isMobile, "the palette is not opened on a phone");
+test("a Macro made in Settings runs from the palette, stops at a refusal and reports each step", async ({ page }) => {
   const need = `Oat milk ${Date.now()}`;
   await page.goto("/settings/macros");
   await workLocally(page);
@@ -83,8 +82,7 @@ async function runFromPalette(page: Page, name: string) {
   await page.getByRole("option", { name: new RegExp(name) }).click();
 }
 
-test("a Macro asks its asked arguments in one form, skips a step refused when it may be, and goes somewhere last", async ({ page, isMobile }) => {
-  test.skip(isMobile, "the palette is not opened on a phone");
+test("a Macro asks its asked arguments in one form, skips a step refused when it may be, and goes somewhere last", async ({ page }) => {
   const title = `Water the plants ${Date.now()}`;
   await page.goto("/settings/macros");
   await workLocally(page);
@@ -165,8 +163,7 @@ test("the built-in morning Macro is given once: reset puts it back as it shipped
   await expect(page.getByRole("button", { name: "Delete Morning" })).toHaveCount(0);
 });
 
-test("a Macro typed inline runs when its asked arguments are complete and opens its asked form pre-filled when not (#242)", async ({ page, isMobile }) => {
-  test.skip(isMobile, "the palette is not opened on a phone");
+test("a Macro typed inline runs when its asked arguments are complete and opens its asked form pre-filled when not (#242)", async ({ page }) => {
   const stamp = Date.now();
   await page.goto("/settings/macros");
   await workLocally(page);
@@ -207,7 +204,7 @@ test("a Macro typed inline runs when its asked arguments are complete and opens 
   expect(titles).toEqual(expect.arrayContaining([`Call mum ${stamp}`, `Pick up ${stamp}`]));
 });
 
-test("a broken Macro is marked in Settings with why, and refuses to start", async ({ page, isMobile }) => {
+test("a broken Macro is marked in Settings with why, and refuses to start", async ({ page }) => {
   await page.goto("/settings/macros");
   await workLocally(page);
   await page.evaluate(async (coreUrl) => {
@@ -217,8 +214,6 @@ test("a broken Macro is marked in Settings with why, and refuses to start", asyn
   const row = page.getByRole("list", { name: "Macros" }).getByRole("listitem").filter({ hasText: "Half gone" });
   await expect(row).toContainText("Broken");
   await expect(row.getByRole("list", { name: "Why Half gone is broken" })).toContainText("Step 2: “gone/away” no longer exists");
-
-  test.skip(isMobile, "the palette is not opened on a phone");
   await runFromPalette(page, "Half gone");
   const report = page.getByRole("dialog", { name: "Half gone" });
   await expect(report).toContainText("Broken, so nothing was run");
@@ -230,8 +225,7 @@ test("a broken Macro is marked in Settings with why, and refuses to start", asyn
   expect(titles).not.toContain("Never written either");
 });
 
-test("a dialog step closed without saving stops the Macro there, reported cancelled", async ({ page, isMobile }) => {
-  test.skip(isMobile, "the palette is not opened on a phone");
+test("a dialog step closed without saving stops the Macro there, reported cancelled", async ({ page }) => {
   await page.goto("/settings/macros");
   await workLocally(page);
   await page.evaluate(async (coreUrl) => {
@@ -260,8 +254,7 @@ test("a dialog step closed without saving stops the Macro there, reported cancel
   expect(titles).not.toContain("Never after a cancel");
 });
 
-test("a Macro's Add event step fixed With someone, picked by alias, runs from the palette and puts the Event on their Timeline", async ({ page, isMobile }) => {
-  test.skip(isMobile, "the palette is not opened on a phone");
+test("a Macro's Add event step fixed With someone, picked by alias, runs from the palette and puts the Event on their Timeline", async ({ page }) => {
   const stamp = Date.now();
   const title = `Thursday dinner ${stamp}`;
   const name = `Zoé Martin ${stamp}`;

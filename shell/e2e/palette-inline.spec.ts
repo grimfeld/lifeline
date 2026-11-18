@@ -8,7 +8,6 @@ import { CORE_URL } from "./support/seed";
  */
 test.describe("Palette · inline arguments (#232)", () => {
   // The palette is opened with Mod+K, on the desk only (ADR 0021).
-  test.skip(({ isMobile }) => isMobile, "the palette is not opened on a phone");
 
   async function workLocally(page: Page) {
     const local = page.getByRole("button", { name: "Work locally" });

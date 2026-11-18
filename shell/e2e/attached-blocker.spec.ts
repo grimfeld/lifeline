@@ -39,8 +39,7 @@ const attached = (page: Page, eventId: string) =>
     eventId,
   );
 
-test("Travel 30 attached before an Event from its Peek follows the Event when it is dragged on the Schedule", async ({ page, isMobile }) => {
-  test.skip(isMobile, "a mouse drag; a phone drags after a long press, through the same drop");
+test("Travel 30 attached before an Event from its Peek follows the Event when it is dragged on the Schedule", async ({ page }) => {
   const stamp = Date.now();
   const title = `Dentist ${stamp}`;
   const travel = `Travel 30 ${stamp}`;

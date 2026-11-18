@@ -60,7 +60,7 @@ test("Drifting ranks the People not seen lately, and leaving one out removes the
   await expect(page.getByRole("region", { name: "Drifting" }).getByText("Drift Older")).toBeVisible();
 });
 
-test("Not mentioned counts the Days that link instead, and Everyone's drifting badges follow the switch", async ({ page }) => {
+test("Not mentioned counts the Days that link instead, and Everyone's drifting badges follow the switch", { tag: "@also-phone" }, async ({ page }) => {
   await page.goto("/app/people");
   await workLocally(page);
   await inCore(

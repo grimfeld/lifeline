@@ -75,7 +75,7 @@ test("a Provision is counted up and given a unit in its Peek", async ({ page }) 
   await expect.poll(() => field(page, id, "expires")).toBe("2026-12-01");
 });
 
-test("a Provision's date is picked from the keyboard in its Peek, and Escape backs out", async ({ page }) => {
+test("a Provision's date is picked from the keyboard in its Peek, and Escape backs out", { tag: "@also-phone" }, async ({ page }) => {
   const { id, dialog } = await peekNew(page, {
     type: "provision",
     title: `Beans ${Date.now()}`,
