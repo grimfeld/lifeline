@@ -1,8 +1,8 @@
 import { Button, toast } from "@lifeline/ui";
 import { useDocument, type PeekProps } from "@lifeline/core";
-import { attachmentOf, SIDE_LABELS } from "../domain/attached";
+import { attachmentOf, liveAttachmentTo, SIDE_LABELS } from "../domain/attached";
 import { detachBlocker } from "../data/attached";
-import { EVENT_TYPE, type Event, type TimeBlocker } from "../domain/types";
+import type { Event, TimeBlocker } from "../domain/types";
 import { PeekLink } from "./PeekLink";
 
 /**
@@ -13,10 +13,10 @@ import { PeekLink } from "./PeekLink";
  */
 export function BlockerAttachment({ doc }: PeekProps) {
   const b = doc as TimeBlocker;
-  const attachment = attachmentOf(b);
-  // Live, as `liveAttachment` reads it: gone, the Event takes the line with it.
-  const event = useDocument<Event>(attachment?.eventId);
-  if (!attachment || !event || event.type !== EVENT_TYPE) return null;
+  // Live, by the same rule as `liveAttachment`: gone, the Event takes the line with it.
+  const event = useDocument<Event>(attachmentOf(b)?.eventId);
+  const attachment = liveAttachmentTo(attachmentOf(b), event);
+  if (!attachment || !event) return null;
 
   const detach = async () => {
     try {

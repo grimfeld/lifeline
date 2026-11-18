@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { formatTime, type TimedSpan } from "@lifeline/core";
-import { describeBeside, followedSpan } from "./attached";
+import { attachmentOf, describeBeside, followedSpan, liveAttachmentTo } from "./attached";
 
 const span = (date: string, start: string, endDate: string, end: string): TimedSpan => ({ date, start, endDate, end });
 
@@ -119,5 +119,37 @@ describe("describeBeside", () => {
 
   it("names the end day of an after band that runs past midnight", () => {
     expect(describeBeside(span("2026-08-24", "23:45", "2026-08-25", "00:15"), "2026-08-24")).toBe(`${formatTime("23:45")} – Tue ${formatTime("00:15")}`);
+  });
+});
+
+describe("attachmentOf", () => {
+  const one = { date: "2026-08-24", attachedTo: "ev1", side: "before" as const };
+  it("reads a one-off blocker with a link and a side", () => {
+    expect(attachmentOf(one)).toEqual({ eventId: "ev1", side: "before" });
+  });
+  it.each([
+    { case: "a weekly blocker", b: { ...one, date: null } },
+    { case: "a blocker with no link", b: { ...one, attachedTo: null } },
+    { case: "a side that is neither before nor after", b: { ...one, side: "x" as never } },
+    { case: "no side", b: { ...one, side: null } },
+  ])("reads $case as plain", ({ b }) => {
+    expect(attachmentOf(b)).toBeNull();
+  });
+});
+
+describe("liveAttachmentTo", () => {
+  const at = { eventId: "ev1", side: "after" as const };
+  it("keeps the attachment while its Event is there", () => {
+    expect(liveAttachmentTo(at, { type: "event" })).toEqual(at);
+  });
+  it.each([
+    { case: "missing", event: undefined },
+    { case: "null", event: null },
+    { case: "another type of Document", event: { type: "note" } },
+  ])("reads as plain when the Event is $case", ({ event }) => {
+    expect(liveAttachmentTo(at, event)).toBeNull();
+  });
+  it("reads a plain blocker as plain", () => {
+    expect(liveAttachmentTo(null, { type: "event" })).toBeNull();
   });
 });

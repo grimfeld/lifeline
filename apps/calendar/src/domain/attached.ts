@@ -1,5 +1,5 @@
 import { endReadOn, formatTime, momentAfter, spanLasting, spanLength, WEEKDAY_NAMES, weekdayOf, type DateStr, type TimedSpan, type TimeStr } from "@lifeline/core";
-import type { Attachment, BlockerSide, TimeBlocker } from "./types";
+import { EVENT_TYPE, type Attachment, type BlockerSide, type TimeBlocker } from "./types";
 
 /** Each side as a person reads it: "Before Dentist", the Before… menu, a Base's Side. */
 export const SIDE_LABELS: Record<BlockerSide, string> = { before: "Before", after: "After" };
@@ -46,6 +46,15 @@ export function flushSpan(event: TimedSpan, minutes: number, side: BlockerSide):
 export function attachmentOf(b: Pick<TimeBlocker, "date" | "attachedTo" | "side">): Attachment | null {
   if (!b.date || !b.attachedTo || (b.side !== "before" && b.side !== "after")) return null;
   return { eventId: b.attachedTo, side: b.side };
+}
+
+/**
+ * The one rule for a band whose Event is gone: `attachment` stands only while
+ * `event` (what its id reads now) is still an Event, else the band reads as
+ * plain (#519). The data layer and the blocker's Peek both ask this.
+ */
+export function liveAttachmentTo(attachment: Attachment | null, event: { type: string } | null | undefined): Attachment | null {
+  return attachment && event?.type === EVENT_TYPE ? attachment : null;
 }
 
 /** Whether a blocker is attached to the Event `eventId` (`attachmentOf`'s rule). */

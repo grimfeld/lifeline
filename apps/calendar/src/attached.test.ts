@@ -226,6 +226,26 @@ describe("an Event's time edited in its dialog or Peek takes its attached blocke
   });
 });
 
+describe("a stray row never follows an Event", () => {
+  const stray = async (ev: string, patch: Record<string, unknown>) => {
+    const id = await addTimeBlocker({ title: "Stray", date: "2026-08-24", start: "08:30", end: "09:00", weekdays: [] });
+    await documentsTable().update(id, { attachedTo: ev, ...patch });
+    return id;
+  };
+
+  it.each([
+    { case: "a weekly blocker", patch: { date: null, weekdays: [1] } },
+    { case: "a one-off with an invalid side", patch: { side: "x" } },
+  ])("$case carrying attachedTo is neither listed nor moved", async ({ patch }) => {
+    const ev = await dentist();
+    const id = await stray(ev, patch);
+    const before = await band(id);
+    expect(await attachedBlockersOf(ev)).toEqual([]);
+    await setEventWhen(ev, { date: "2026-08-25", endDate: null, start: "10:00", end: "12:00" });
+    expect(await band(id)).toEqual(before);
+  });
+});
+
 describe("an attached blocker's life ends or changes with its Event (#519)", () => {
   it("is deleted with the Event through Core's generic delete, and no other blocker is", async () => {
     const ev = await dentist();
@@ -323,6 +343,15 @@ describe("a new Event made with blockers attached (its dialog's Beforeâ€¦/Afterâ
     const ev = await dentist();
     const row = (await allEvents()).find((e) => e.id === ev)!;
     await updateEvent({ ...row, start: "13:00", end: "14:00" }, [{ templateId: await travel(), side: "before" }]);
+    expect((await attachedBlockersOf(ev)).map((b) => [b.start, b.end])).toEqual([["12:30", "13:00"]]);
+  });
+
+  it("keeps the picks when the Event's row has vanished before the save", async () => {
+    const ev = await dentist();
+    const row = (await allEvents()).find((e) => e.id === ev)!;
+    await removeDocument(ev);
+    await updateEvent({ ...row, start: "13:00", end: "14:00" }, [{ templateId: await travel(), side: "before" }]);
+    expect(await event(ev)).toMatchObject({ start: "13:00", end: "14:00" });
     expect((await attachedBlockersOf(ev)).map((b) => [b.start, b.end])).toEqual([["12:30", "13:00"]]);
   });
 });
