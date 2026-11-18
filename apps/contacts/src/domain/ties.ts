@@ -233,6 +233,14 @@ const RULES: ((x: string, of: (y: string, k: TieKind) => string[]) => [string, T
   (x, of) => of(x, "parent").flatMap((p) => of(p, "child").map((c): [string, TieKind] => [c, "sibling"])),
   // 2. A parent's parent is a grandparent.
   (x, of) => of(x, "parent").flatMap((p) => of(p, "parent").map((g): [string, TieKind] => [g, "grandparent"])),
+  // 3. A parent's sibling is an aunt or uncle.
+  (x, of) => of(x, "parent").flatMap((p) => of(p, "sibling").map((s): [string, TieKind] => [s, "auntUncle"])),
+  // 4. A parent's sibling's child is a cousin.
+  (x, of) => of(x, "parent").flatMap((p) => of(p, "sibling").flatMap((s) => of(s, "child").map((c): [string, TieKind] => [c, "cousin"]))),
+  // 5. A sibling's parent is a parent.
+  (x, of) => of(x, "sibling").flatMap((s) => of(s, "parent").map((p): [string, TieKind] => [p, "parent"])),
+  // 6. A parent's partner is a parent (a step-parent is rare: Dismiss it).
+  (x, of) => of(x, "parent").flatMap((p) => of(p, "partner").map((q): [string, TieKind] => [q, "parent"])),
 ];
 
 const pairKey = (x: string, y: string) => (x < y ? `${x} ${y}` : `${y} ${x}`);

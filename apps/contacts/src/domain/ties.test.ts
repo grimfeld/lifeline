@@ -187,3 +187,45 @@ describe("Suggested Ties (#613)", () => {
     expect(suggestedTies("tom", ties, [paul, { ...tom, dismissedTies: [{ otherId: "lily", kind: "cousin" }, { otherId: "paul", kind: "sibling" }, "junk"] }, lily])).toHaveLength(1);
   });
 });
+
+describe("The other suggestion rules, and their order (#614)", () => {
+  const paul = person("paul", "Paul");
+  const tom = person("tom", "Tom");
+  const lily = person("lily", "Lily");
+  const alice = person("alice", "Alice");
+  const mia = person("mia", "Mia");
+  const zoe = person("zoe", "Zoé");
+  const fatherOfTom = tie("t1", "paul", "tom", "father", "son");
+  const fatherOfLily = tie("t2", "paul", "lily", "father", "daughter");
+  const miaSisterOfPaul = tie("t3", "mia", "paul", "sister", "brother");
+  const miaMotherOfZoe = tie("t4", "mia", "zoe", "mother", "daughter");
+  const everyone = [paul, tom, lily, alice, mia, zoe];
+  const on = (id: string, ties: Tie[]) => suggestedTies(id, ties, everyone).map((s) => `${s.otherName} is ${everyone.find((p) => p.id === id)!.title}'s ${s.label}`);
+
+  it("suggests a parent's sibling as aunt or uncle, and the niece or nephew back", () => {
+    expect(on("lily", [fatherOfLily, miaSisterOfPaul])).toEqual(["Mia is Lily's aunt"]);
+    expect(on("mia", [fatherOfLily, miaSisterOfPaul])).toEqual(["Lily is Mia's niece"]);
+  });
+
+  it("suggests a parent's sibling's child as cousin", () => {
+    expect(on("lily", [fatherOfLily, miaSisterOfPaul, miaMotherOfZoe])).toEqual(["Mia is Lily's aunt", "Zoé is Lily's cousin"]);
+    expect(on("zoe", [fatherOfLily, miaSisterOfPaul, miaMotherOfZoe])).toContain("Lily is Zoé's cousin");
+  });
+
+  it("suggests a sibling's parent as parent", () => {
+    expect(on("lily", [fatherOfTom, tie("t5", "tom", "lily", "brother", "sister")])).toEqual(["Paul is Lily's father"]);
+    expect(on("paul", [fatherOfTom, tie("t5", "tom", "lily", "brother", "sister")])).toEqual(["Lily is Paul's daughter"]);
+  });
+
+  it("suggests a parent's partner as parent: Alice is Lily's mother", () => {
+    const aliceWifeOfPaul = tie("t6", "alice", "paul", "wife", "husband");
+    expect(on("lily", [fatherOfLily, aliceWifeOfPaul])).toEqual(["Alice is Lily's mother"]);
+    expect(on("alice", [fatherOfLily, aliceWifeOfPaul])).toEqual(["Lily is Alice's daughter"]);
+  });
+
+  it("shows one suggestion for a pair, by rule order", () => {
+    // Tom and Lily share Paul (rule 1, siblings), and Tom is also Mia's son while Mia is Paul's sister (rule 4 would say cousins).
+    const suggestions = suggestedTies("lily", [fatherOfTom, fatherOfLily, miaSisterOfPaul, tie("t7", "mia", "tom", "mother", "son")], everyone);
+    expect(suggestions.filter((s) => s.otherId === "tom")).toEqual([{ otherId: "tom", otherName: "Tom", kind: "sibling", label: "brother", ownLabel: "sister" }]);
+  });
+});
