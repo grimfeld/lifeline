@@ -7,7 +7,8 @@ import { setTime } from "./support/time-field";
 /**
  * A timed Event runs from a start to an end on any day (ADR 0090): an End
  * earlier than the Start is the next day's, and the Event shows on every day
- * it covers.
+ * it covers. The first case is also the "Add event…" dialog's typed Start and
+ * End; an old "24:00" end is `span.test.ts`'s (midnightNextDay).
  */
 
 // The week of Mon 10 Nov 2025, a year before any run's seed: the seed dates its
@@ -42,9 +43,12 @@ async function openAddEvent(page: Page) {
   return page.getByRole("dialog", { name: "New event" });
 }
 
-test("the dialog rolls 22:00 → 06:00 to the next day, and the Event shows on both days in the Week view and in Upcoming", async ({ page }) => {
+test('"Add event…" takes a typed Start and End; 22:00 → 06:00 rolls to the next day, and the Event shows on both days in the Week view and in Upcoming', async ({ page }) => {
   const title = `Night flight ${Date.now()}`;
   const dialog = await openAddEvent(page);
+  // It opens timed, the kit's Time fields in place of the browser's.
+  await expect(dialog.getByRole("checkbox", { name: "All day" })).not.toBeChecked();
+  await expect(dialog.locator('input[type="time"]'), "no native time input").toHaveCount(0);
   await dialog.getByLabel("Title").fill(title);
   // Mon 10 Nov 2025.
   await pickDate(page, dialog.getByLabel("Day", { exact: true }), "2025-11-10");
@@ -160,15 +164,6 @@ test("an Event tapped on the hours gets a Start and an End in its Peek, rolling 
   // Moving the Start keeps the length.
   await setTime(peek.getByRole("combobox", { name: "Start" }), "19:00");
   await expect.poll(() => storedEvent(page, title)).toEqual({ date: "2025-11-10", endDate: "2025-11-11", start: "19:00", end: "01:00" });
-});
-
-test('an Event stored before as ending at "24:00" still ends at midnight on its own day (#224)', async ({ page }) => {
-  const title = `Old late show ${Date.now()}`;
-  await page.goto("/calendar?view=week&d=2025-11-10");
-  await workLocally(page);
-  await seedEvent(page, { title, date: "2025-11-10", endDate: null, start: "22:00", end: "24:00" });
-  await expect(page.locator('[data-col="2025-11-10"]').getByTitle(title, { exact: false })).toBeVisible();
-  await expect(page.locator('[data-col="2025-11-11"]').getByTitle(title, { exact: false }), "midnight leaves no piece on the next day").toHaveCount(0);
 });
 
 test("a Time block of work's Peek keeps a Start and a Length, never an End (#537)", async ({ page }) => {
