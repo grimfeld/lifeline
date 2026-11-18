@@ -346,19 +346,24 @@ async function placementsOf(appId: string, itemId: string): Promise<Placement[]>
 /**
  * Complete via a surface: delegate to the owning App, then clear the day pin
  * and every Time block still ahead — the past ones stay as record (ADR 0028).
+ * Hands back the ids of the Placements it cleared.
  */
 export async function completeSurfaceItem(
   item: Pick<SurfaceItem, "appId" | "itemId">,
   on?: DateStr,
-): Promise<void> {
+): Promise<string[]> {
   const provider = schedulableProviders().find((p) => p.appId === item.appId);
   if (!provider) throw new Error(`No Schedulable provider for app ${item.appId}`);
   await provider.complete(item.itemId, on ?? todayStr());
   const today = todayStr();
   const now = nowClock();
+  const unplaced: string[] = [];
   for (const pl of await placementsOf(item.appId, item.itemId)) {
-    if (!isBlock(pl) || blockAhead(pl, today, now)) await unplaceItem(pl.id);
+    if (isBlock(pl) && !blockAhead(pl, today, now)) continue;
+    await unplaceItem(pl.id);
+    unplaced.push(pl.id);
   }
+  return unplaced;
 }
 
 /**

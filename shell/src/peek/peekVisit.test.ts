@@ -9,7 +9,7 @@ function fakeOps() {
     add: vi.fn(async () => `block-${++n}`),
     move: vi.fn(async () => undefined),
     unplace: vi.fn(async () => undefined),
-    complete: vi.fn(async () => undefined),
+    complete: vi.fn(async (): Promise<readonly string[]> => []),
     remove: vi.fn(async () => async () => undefined),
     failed: vi.fn(),
   } satisfies BlockOps;
@@ -138,5 +138,35 @@ describe("a Peek visit completes its item by id (F2)", () => {
     const visit = blockVisit(tapped, "2026-11-09", ops);
     expect(await visit.complete()).toBe(false);
     expect(visit.completed).toBe(false);
+  });
+});
+
+describe("after Complete, a visit holds only what is still placed (completing unplaces the blocks still ahead)", () => {
+  const chip: WorkOnHours = { appId: "tasks", itemId: "t1", title: "Write", date: "2026-11-10", displayDate: "2026-11-10", estimateMin: 30 };
+
+  it("a block this visit made, unplaced by Complete, is gone from the visit and from the Peek's Undo", async () => {
+    const ops = fakeOps();
+    ops.complete.mockResolvedValueOnce(["block-1"]);
+    const tapped: HoursTapped = { kind: "work", item: chip };
+    openPeek("task-doc", { tapped });
+    const visit = blockVisit(tapped, "2026-11-09", ops);
+    visit.write({ ...visit.time, start: "10:00" });
+    expect(await visit.complete()).toBe(true);
+
+    expect(visit.hasBlock).toBe(false);
+    expect(visit.time.start).toBeNull();
+    expect(closeForUndo(), "nothing left to put back").toEqual([]);
+  });
+
+  it("a block already behind, kept by Complete as record, stays the visit's", async () => {
+    const ops = fakeOps();
+    ops.complete.mockResolvedValueOnce([]);
+    const block: WorkOnHours = { ...chip, placementId: "p1", start: "09:00", end: "10:00" };
+    const tapped: HoursTapped = { kind: "work", item: block };
+    openPeek("task-doc", { tapped });
+    const visit = blockVisit(tapped, "2026-11-09", ops);
+    expect(await visit.complete()).toBe(true);
+    expect(visit.hasBlock).toBe(true);
+    expect(visit.time.start).toBe("09:00");
   });
 });

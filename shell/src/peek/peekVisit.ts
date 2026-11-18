@@ -18,8 +18,8 @@ export interface BlockOps {
   add: (appId: string, itemId: string, date: string, span: { start: string; end: string }) => Promise<string>;
   move: (placementId: string, date: string, span: { start: string; end: string }) => Promise<unknown>;
   unplace: (placementId: string) => Promise<unknown>;
-  /** Complete the item (by its item id, so an Occurrence of a recurring Task is the one done). */
-  complete: (appId: string, itemId: string) => Promise<unknown>;
+  /** Complete the item (by its item id, so an Occurrence of a recurring Task is the one done); the placements it cleared. */
+  complete: (appId: string, itemId: string) => Promise<readonly string[]>;
   remove: (placementId: string) => Promise<() => Promise<unknown>>;
   /** A write that failed: the queue carries on. */
   failed: (e: unknown) => void;
@@ -78,9 +78,16 @@ function newBlockVisit(item: WorkOnHours, initial: BlockTime, ops: BlockOps): Bl
     },
     settled: queue.settled,
     async complete() {
-      const ok = await queued(queue, () => ops.complete(item.appId, item.itemId));
-      if (ok === null) return false;
+      const unplaced = await queued(queue, () => ops.complete(item.appId, item.itemId));
+      if (unplaced === null) return false;
       completed = true;
+      // Completing clears the blocks still ahead: the visit no longer has one to time or put back.
+      if (blockId && unplaced.includes(blockId)) {
+        forgetTiming(timingKey());
+        blockId = null;
+        hasBlock = false;
+        time = { ...time, start: null };
+      }
       return true;
     },
     write(next) {
