@@ -41,6 +41,35 @@ describe("Ties (#412)", () => {
     expect((await tiesOf(lea.id)).map((x) => x.id)).toEqual([t.id]);
   });
 
+  it("stores a kind read from the one who adds it, and none when none is given", async () => {
+    const { anne, lea } = await pair();
+    const kinded = await addTie({ from: anne.id, to: lea.id, label: "mum", toLabel: "daughter", kind: "parent" });
+    expect(await getDocument(kinded.id)).toMatchObject({ labelA: "mum", kind: "parent" });
+    const free = await addTie({ from: anne.id, to: lea.id, label: "godmother", toLabel: "goddaughter" });
+    expect(await getDocument(free.id)).not.toHaveProperty("kind");
+  });
+
+  it("keeps or clears the kind when words are edited, read from the page's own side", async () => {
+    const { anne, lea } = await pair();
+    const t = await addTie({ from: anne.id, to: lea.id, label: "mother", toLabel: "daughter", kind: "parent" });
+    await updateTie(t.id, anne.id, { label: "girl", ownLabel: "mum", kind: "parent" });
+    expect(await getDocument(t.id)).toMatchObject({ labelA: "mum", labelB: "girl", kind: "parent" });
+    // From Léa's page the same Tie reads as child.
+    await updateTie(t.id, lea.id, { label: "mum", ownLabel: "daughter", kind: "child" });
+    expect(await getDocument(t.id)).toMatchObject({ kind: "parent" });
+    await updateTie(t.id, lea.id, { label: "mum", ownLabel: "daughter" });
+    expect(await getDocument(t.id)).not.toHaveProperty("kind");
+  });
+
+  it("saves the dialog's kind on a new Tie and on an edit", async () => {
+    const { anne, lea } = await pair();
+    await saveTieFrom(anne.id, undefined, { otherId: lea.id, label: "daughter", ownLabel: "mother", kind: "parent" });
+    const [t] = await tiesOf(anne.id);
+    expect(t).toMatchObject({ a: anne.id, kind: "parent" });
+    await saveTieFrom(lea.id, { id: t!.id }, { otherId: anne.id, label: "mum", ownLabel: "daughter", kind: "child" });
+    expect(await getDocument(t!.id)).toMatchObject({ kind: "parent", labelA: "mum" });
+  });
+
   it("refuses a Tie to oneself, to a non-Person, or with no word", async () => {
     const { anne, lea } = await pair();
     await expect(addTie({ from: anne.id, to: anne.id, label: "x", toLabel: "y" })).rejects.toThrow("themselves");
