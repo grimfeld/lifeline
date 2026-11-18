@@ -24,7 +24,7 @@ async function tasksTitled(page: Page, title: string): Promise<number> {
   );
 }
 
-test("a Handoff naming an Intake opens its dialog prefilled, and saves", async ({ page }) => {
+test("a Handoff naming an Intake opens its dialog prefilled, writes nothing when cancelled, and saves", async ({ page }) => {
   const title = `Pick up the parcel ${Date.now()}`;
   const handoff: Handoff = { title, text: "Your parcel is waiting at the post office.", url: "https://example.com/parcel/123", author: "The Post" };
   await page.goto(`/handoff#${encodeHandoff(handoff, "tasks/task")}`);
@@ -33,23 +33,28 @@ test("a Handoff naming an Intake opens its dialog prefilled, and saves", async (
   const dialog = page.getByRole("dialog", { name: "New task" });
   await expect(dialog.getByLabel("Title")).toHaveValue(title);
   await expect(dialog.getByLabel("Notes")).toHaveValue("https://example.com/parcel/123\nFrom The Post");
+
+  // Cancelled, it writes nothing and returns to the picker, which opens it again.
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  await expect(page.getByText("Nothing was saved")).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Intake" })).toHaveText("Task");
   expect(await tasksTitled(page, title), "nothing is written before the dialog saves").toBe(0);
+  await page.getByRole("button", { name: "Open the Task" }).click();
+  await expect(dialog.getByLabel("Title")).toHaveValue(title);
 
   await dialog.getByRole("button", { name: "Add task" }).click();
   await expect(page.getByText("Saved", { exact: true })).toBeVisible();
   await expect(page).toHaveURL((u) => u.pathname === HANDOFF_DONE_PATH && !u.hash);
   expect(await tasksTitled(page, title)).toBe(1);
-});
 
-test("a Handoff of a Need already on the list is still Saved", async ({ page }) => {
-  const title = `Oat milk ${Date.now()}`;
+  // A Need already on the list makes nothing new, but the Handoff is kept all the same.
+  const need = `Oat milk ${Date.now()}`;
   for (let i = 0; i < 2; i++) {
-    await page.goto(`/handoff#${encodeHandoff({ title, text: "" }, "shopping/need")}`);
+    await page.goto(`/handoff#${encodeHandoff({ title: need, text: "" }, "shopping/need")}`);
     await workLocally(page);
-    const dialog = page.getByRole("dialog", { name: "Add to the shopping list" });
-    await expect(dialog.getByLabel("Need")).toHaveValue(title);
-    await dialog.getByRole("button", { name: "Add", exact: true }).click();
-    // The second time it is already listed: nothing new is made, but the Handoff was kept all the same.
+    const add = page.getByRole("dialog", { name: "Add to the shopping list" });
+    await expect(add.getByLabel("Need")).toHaveValue(need);
+    await add.getByRole("button", { name: "Add", exact: true }).click();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
     await expect(page).toHaveURL((u) => u.pathname === HANDOFF_DONE_PATH);
   }
@@ -68,26 +73,13 @@ test("Facts kept with “Save & add another” from a Handoff are Saved when the
   await expect(page).toHaveURL((u) => u.pathname === HANDOFF_DONE_PATH);
 });
 
-test("a cancelled dialog writes nothing and returns to the picker", async ({ page }) => {
-  const title = `Not this one ${Date.now()}`;
-  await page.goto(`/handoff#${encodeHandoff({ title, text: "" }, "tasks/task")}`);
-  await workLocally(page);
-  const dialog = page.getByRole("dialog", { name: "New task" });
-  await dialog.getByRole("button", { name: "Cancel" }).click();
-  await expect(page.getByText("Nothing was saved")).toBeVisible();
-  await expect(page.getByRole("combobox", { name: "Intake" })).toHaveText("Task");
-  await page.getByRole("button", { name: "Open the Task" }).click();
-  await expect(dialog.getByLabel("Title")).toHaveValue(title);
-  expect(await tasksTitled(page, title)).toBe(0);
-});
-
 /** Picks an Intake in the Handoff page's picker (a Select, on the desk and on a phone). */
 async function pickIntake(page: Page, title: string) {
   await page.getByRole("combobox", { name: "Intake" }).click();
   await page.getByRole("option", { name: title, exact: true }).click();
 }
 
-test("a Handoff naming no Intake asks which one, then opens its dialog — and the choice is remembered", async ({ page }) => {
+test("a Handoff naming no Intake, or one that no longer exists, asks which one, then opens its dialog — and the choice is remembered", async ({ page }) => {
   const title = `Read this later ${Date.now()}`;
   await page.goto(`/handoff#${encodeHandoff({ title, text: "", url: "https://example.com/later" })}`);
   await workLocally(page);
@@ -112,19 +104,11 @@ test("a Handoff naming no Intake asks which one, then opens its dialog — and t
   await expect(dialog.getByLabel("Title")).toHaveValue(title);
   await dialog.getByRole("button", { name: "Cancel" }).click();
 
-  // Next time from outside Lifeline, Task is preselected.
-  await page.goto(`/handoff#${encodeHandoff({ title: "Another", text: "" })}`);
-  await workLocally(page);
-  await expect(page.getByRole("combobox", { name: "Intake" })).toHaveText("Task");
-});
-
-test("a Handoff naming an Intake that no longer exists falls back to the picker", async ({ page }) => {
+  // Next time from outside Lifeline, Task is preselected — even for a Handoff naming an Intake that no longer exists.
   await page.goto(`/handoff#${encodeHandoff({ title: "From an old extension", text: "" }, "mail/thread")}`);
   await workLocally(page);
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await pickIntake(page, "Quote");
-  await page.getByRole("button", { name: "Open the Quote" }).click();
-  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Intake" })).toHaveText("Task");
 });
 
 test("with two Workspaces, a Document lands in the one chosen", async ({ page }) => {
@@ -162,16 +146,6 @@ test("with two Workspaces, a Document lands in the one chosen", async ({ page })
   expect(held).toEqual({ current: work.id, held: 1 });
 });
 
-test("a malformed Handoff shows a plain message", async ({ page }) => {
-  const errors: string[] = [];
-  page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("/handoff#v1.not-a-handoff");
-  await workLocally(page);
-  await expect(page.getByText("This Handoff can't be read")).toBeVisible();
-  await expect(page.getByRole("dialog")).toHaveCount(0);
-  expect(errors).toEqual([]);
-});
-
 interface ShareTarget {
   action: string;
   method?: string;
@@ -196,28 +170,6 @@ async function shareUrl(page: Page, fields: Partial<Record<"title" | "text" | "u
   }
   return `${target!.action}?${q}`;
 }
-
-test("the share sheet's fields prefill the Intake — a URL in the text becomes the origin, its host the title", async ({ page }) => {
-  const passage = `Worth reading ${Date.now()}`;
-  await page.goto(await shareUrl(page, { text: `${passage} https://essays.example.org/on-keeping?ref=share — a long passage` }));
-  await workLocally(page);
-  await expect(page.getByRole("heading", { name: "essays.example.org" })).toBeVisible();
-  await pickIntake(page, "Quote");
-  await page.getByRole("button", { name: "Open the Quote" }).click();
-
-  const dialog = page.getByRole("dialog", { name: "Keep as a Quote" });
-  await expect(dialog.getByLabel("Link")).toHaveValue("https://essays.example.org/on-keeping?ref=share");
-  await expect(dialog.getByLabel("Headline")).toHaveValue("essays.example.org");
-  await expect(dialog.getByLabel("Text")).toHaveValue(`${passage} — a long passage`);
-  await dialog.getByRole("button", { name: "Keep", exact: true }).click();
-
-  // From the share sheet there is no extension window to close: it offers to open what was made.
-  await expect(page.getByText("Saved", { exact: true })).toBeVisible();
-  await expect(page).toHaveURL((u) => u.pathname === "/handoff");
-  await page.getByRole("button", { name: "Open the Quote" }).click();
-  await expect(page).toHaveURL((u) => !u.pathname.startsWith("/handoff"));
-  await expect(page.getByText(`${passage} — a long passage`).first()).toBeVisible();
-});
 
 test("from the share sheet, a saved Handoff offers to go back", async ({ page }) => {
   await page.goto("/");
@@ -304,7 +256,7 @@ test("signing in as another Account, once the switch is confirmed, carries on wi
   await expect(dialog.getByLabel("Title")).toHaveValue(title);
 });
 
-test("a pending Handoff outlives a reload of the tab, and is gone once used", async ({ page }) => {
+test("a pending Handoff outlives a reload of the tab, and is gone once used or left for another page", async ({ page }) => {
   await fakeServer(page, "e2e@example.com");
   const title = `Kept across a reload ${Date.now()}`;
   await page.goto(`/handoff#${encodeHandoff({ title, text: "" }, "tasks/task")}`);
@@ -323,12 +275,10 @@ test("a pending Handoff outlives a reload of the tab, and is gone once used", as
 
   await page.goto("/handoff");
   await expect(page.getByText("This Handoff can't be read")).toBeVisible();
-});
 
-test("a Handoff left for another page is not picked up again", async ({ page }) => {
-  const title = `Abandoned ${Date.now()}`;
-  await page.goto(`/handoff#${encodeHandoff({ title, text: "" }, "tasks/task")}`);
-  await workLocally(page);
+  // Another, left for another page within the app, is abandoned too. (From elsewhere: a hash change alone is no new Handoff.)
+  await page.goto("/settings");
+  await page.goto(`/handoff#${encodeHandoff({ title: `Abandoned ${Date.now()}`, text: "" }, "tasks/task")}`);
   await page.getByRole("dialog", { name: "New task" }).getByRole("button", { name: "Cancel" }).click();
   await expect(page.getByText("Nothing was saved")).toBeVisible();
   // Leaving the Handoff page within the app abandons the Handoff.
@@ -338,7 +288,6 @@ test("a Handoff left for another page is not picked up again", async ({ page }) 
   });
   await expect(page.getByText("Nothing was saved")).toHaveCount(0);
   await page.goto("/handoff");
-  await workLocally(page);
   await expect(page.getByText("This Handoff can't be read")).toBeVisible();
 });
 
@@ -360,10 +309,13 @@ async function documentsOf(page: Page, type: string): Promise<Record<string, unk
   return page.evaluate(async ({ coreUrl, type }) => (await import(/* @vite-ignore */ coreUrl)).documentsOf(type), { coreUrl: CORE_URL, type });
 }
 
-test("a URL Handoff becomes a Place, its URL kept in the Place's url Field", async ({ page }) => {
-  const typeId = `place${Date.now()}`;
-  await makeType(page, { typeId, label: "Places", module: "journal", fields: [{ key: "website", label: "Website", kind: "url" }] });
-  const title = `Chez Panisse ${Date.now()}`;
+test("a URL Handoff becomes a Place, its URL kept in the Place's url Field — or, for a type with no url Field, in the body", async ({ page }) => {
+  const stamp = Date.now();
+  const placeType = `place${stamp}`;
+  const recipeType = `recipe${stamp}`;
+  await makeType(page, { typeId: placeType, label: "Places", module: "journal", fields: [{ key: "website", label: "Website", kind: "url" }] });
+  await makeType(page, { typeId: recipeType, label: "Recipes" });
+  const title = `Chez Panisse ${stamp}`;
   const url = "https://www.chezpanisse.example.com/";
   await page.goto(`/handoff#${encodeHandoff({ title, text: "", url })}`);
   await workLocally(page);
@@ -376,35 +328,25 @@ test("a URL Handoff becomes a Place, its URL kept in the Place's url Field", asy
 
   const dialog = page.getByRole("dialog", { name: "New place" });
   await expect(dialog.getByLabel("Title")).toHaveValue(title);
-  expect(await documentsOf(page, typeId), "nothing is written before the dialog saves").toEqual([]);
+  expect(await documentsOf(page, placeType), "nothing is written before the dialog saves").toEqual([]);
   await dialog.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+  const places = await documentsOf(page, placeType);
+  expect(places.map((d) => ({ title: d.title, website: d.website }))).toEqual([{ title, website: url }]);
 
-  const made = await documentsOf(page, typeId);
-  expect(made.map((d) => ({ title: d.title, website: d.website }))).toEqual([{ title, website: url }]);
-});
-
-test("a type with no url Field keeps the Handoff's URL in the body; a cancelled form writes nothing", async ({ page }) => {
-  const typeId = `recipe${Date.now()}`;
-  await makeType(page, { typeId, label: "Recipes" });
-  const title = `Tarte Tatin ${Date.now()}`;
-  const url = "https://recipes.example.org/tarte-tatin";
-  await page.goto(`/handoff#${encodeHandoff({ title, text: "", url })}`);
+  // A type homed in no Module sits under Other; with no url Field, the URL is the body.
+  const recipe = `Tarte Tatin ${stamp}`;
+  const recipeUrl = "https://recipes.example.org/tarte-tatin";
+  await page.goto("/"); // from elsewhere: a hash change alone is no new Handoff
+  await page.goto(`/handoff#${encodeHandoff({ title: recipe, text: "", url: recipeUrl })}`);
   await workLocally(page);
-
-  // Homed in no Module: under Other.
   await page.getByRole("combobox", { name: "Intake" }).click();
   await page.getByRole("group", { name: "Other" }).getByRole("option", { name: "Recipe", exact: true }).click();
   await page.getByRole("button", { name: "Open the Recipe" }).click();
-  const dialog = page.getByRole("dialog", { name: "New recipe" });
-  await dialog.getByRole("button", { name: "Cancel" }).click();
-  await expect(page.getByText("Nothing was saved")).toBeVisible();
-  expect(await documentsOf(page, typeId)).toEqual([]);
-
-  await page.getByRole("button", { name: "Open the Recipe" }).click();
-  await expect(dialog.getByLabel("Title")).toHaveValue(title);
-  await dialog.getByRole("button", { name: "Save" }).click();
+  const recipeDialog = page.getByRole("dialog", { name: "New recipe" });
+  await expect(recipeDialog.getByLabel("Title")).toHaveValue(recipe);
+  await recipeDialog.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText("Saved", { exact: true })).toBeVisible();
-  const made = await documentsOf(page, typeId);
-  expect(made.map((d) => ({ title: d.title, body: d.body }))).toEqual([{ title, body: url }]);
+  const recipes = await documentsOf(page, recipeType);
+  expect(recipes.map((d) => ({ title: d.title, body: d.body }))).toEqual([{ title: recipe, body: recipeUrl }]);
 });

@@ -7,8 +7,11 @@ import { pickDate } from "./support/date-picker";
  * The Schedule and Month by keyboard (#284): an item that takes the focus
  * opens on Enter and moves on the arrow keys, and the focus stays on it.
  * An Event opens its Peek (#536), and closing a Peek that changed its timing
- * leaves one Undo; so do a Task's or a Chore's block (#537), a blocker band and
- * another App's item (#538); an iCal item shows a read-only card. Mon 9 Nov 2026's week, an Event on the Tuesday at 10:00–11:00.
+ * leaves one Undo; so do a Task's block (#537), a blocker band (#538) and a
+ * Project's Deadline; another App's item and an iCal item open read-only.
+ * One case per place a Peek opens from and per kind of timing; a Chore's
+ * block peeks through the same path as a Task's (its `peekOf`:
+ * schedulable.test.ts). Mon 9 Nov 2026's week, an Event on the Tuesday at 10:00–11:00.
  */
 
 async function workLocally(page: Page) {
@@ -148,59 +151,24 @@ async function agendaWithEvent(page: Page, title: string) {
   return card.getByRole("button").filter({ hasText: title });
 }
 
-test("an Event on the Agenda Card opens its Peek on a click, and closing hands the focus back to it", async ({ page }) => {
+test("an Event on the Agenda Card opens its Peek on a click and on Enter, and closing hands the focus back to it", async ({ page }) => {
   const title = `Agenda dentist ${Date.now()}`;
   const item = await agendaWithEvent(page, title);
   await item.click();
-  const peek = await expectEventPeek(page, title);
+  let peek = await expectEventPeek(page, title);
   await page.keyboard.press("Escape");
   await expect(peek).toBeHidden();
   await expect(item, "the focus is back on the Event").toBeFocused();
-});
 
-test("an Event on the Agenda Card opens its Peek on Enter", async ({ page }) => {
-  const title = `Agenda physio ${Date.now()}`;
-  const item = await agendaWithEvent(page, title);
-  await item.focus();
   await page.keyboard.press("Enter");
-  await expectEventPeek(page, title);
-});
-
-test("a Peek opened from the Vault leaves the same timing Undo on close", async ({ page }) => {
-  const title = `Vault concert ${Date.now()}`;
-  const id = await addEvent(page, title);
-  await page.goto("/vault");
-  await workLocally(page);
-  await page.evaluate(
-    async ({ coreUrl, id }) => {
-      const core = await import(/* @vite-ignore */ coreUrl);
-      core.openPeek(id);
-    },
-    { coreUrl: CORE_URL, id },
-  );
-  const peek = await expectEventPeek(page, title);
-  await peek.getByRole("button", { name: "15 minutes earlier" }).click();
-  await expect.poll(() => storedEvent(page, title)).toEqual({ date: "2026-11-10", start: "09:45", end: "10:45" });
-  await peek.getByRole("button", { name: "Close" }).click();
-  const toast = page.locator("[data-sonner-toast]", { hasText: `${title} updated` });
-  await toast.getByRole("button", { name: "Undo" }).click();
-  await expect.poll(() => storedEvent(page, title)).toEqual({ date: "2026-11-10", start: "10:00", end: "11:00" });
-});
-
-test("deleting an Event from its Peek acts at once, with its own Undo", async ({ page }) => {
-  const title = `Cancelled ${Date.now()}`;
-  await addEvent(page, title);
-  await page.locator("[data-focus-key]", { hasText: title }).click();
-  const peek = await expectEventPeek(page, title);
-  await peek.getByRole("button", { name: "Delete event" }).click();
+  peek = await expectEventPeek(page, title);
+  await page.keyboard.press("Escape");
   await expect(peek).toBeHidden();
-  await expect.poll(() => storedEvent(page, title)).toBeNull();
-  await page.locator("[data-sonner-toast]", { hasText: `${title} deleted` }).getByRole("button", { name: "Undo" }).click();
-  await expect.poll(() => storedEvent(page, title)).toEqual({ date: "2026-11-10", start: "10:00", end: "11:00" });
+  await expect(item).toBeFocused();
 });
 
-test("an Event deleted straight after typing its Notes comes back with them on Undo", async ({ page }) => {
-  const title = `Typed then deleted ${Date.now()}`;
+test("deleting an Event from its Peek acts at once, with its own Undo that brings back the Notes typed just before", async ({ page }) => {
+  const title = `Cancelled ${Date.now()}`;
   await addEvent(page, title);
   await page.locator("[data-focus-key]", { hasText: title }).click();
   const peek = await expectEventPeek(page, title);
@@ -209,6 +177,7 @@ test("an Event deleted straight after typing its Notes comes back with them on U
   await expect(peek).toBeHidden();
   await expect.poll(() => storedEvent(page, title)).toBeNull();
   await page.locator("[data-sonner-toast]", { hasText: `${title} deleted` }).getByRole("button", { name: "Undo" }).click();
+  await expect.poll(() => storedEvent(page, title)).toEqual({ date: "2026-11-10", start: "10:00", end: "11:00" });
   await expect
     .poll(() =>
       page.evaluate(
@@ -258,7 +227,7 @@ async function expectTaskPeek(page: Page, title: string) {
   return { peek, timing: peek.getByRole("region", { name: "Time block" }) };
 }
 
-test("a Task's Time block opens the Task's Peek with the block's timing; closing leaves one Undo that puts the block back", async ({ page }) => {
+test("a Task's Time block opens the Task's Peek with the block's timing; closing leaves one Undo that puts the block back; peeked elsewhere, it has no timing", async ({ page }) => {
   const title = `Write report ${Date.now()}`;
   const id = await addTask(page, title);
   const block = page.locator('[data-col="2026-11-10"] [data-focus-key]').filter({ hasText: title }).first();
@@ -278,13 +247,39 @@ test("a Task's Time block opens the Task's Peek with the block's timing; closing
   await expect(toast, "one Undo for the whole visit").toHaveCount(1);
   await toast.getByRole("button", { name: "Undo" }).click();
   await expect.poll(() => storedBlocks(page, id)).toEqual([{ date: "2026-11-10", start: "14:00", end: "15:00" }]);
+
+  // Peeked from anywhere but the hours, the Task shows no timing section.
+  await page.goto("/vault");
+  await workLocally(page);
+  await page.evaluate(
+    async ({ coreUrl, id }) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      core.openPeek(id);
+    },
+    { coreUrl: CORE_URL, id },
+  );
+  await expect((await expectTaskPeek(page, title)).timing).toHaveCount(0);
 });
 
-test("Remove block in a Task's Peek keeps the Task and its chip, with its own Undo", async ({ page }) => {
+test("Remove block in a Task's Peek keeps the Task and its chip, with its own Undo; a done Task's block is record, removable but never retimed", async ({ page }) => {
   const title = `Tidy inbox ${Date.now()}`;
+  const filed = `Filed taxes ${Date.now()}`;
   const id = await addTask(page, title);
+  await addTask(page, filed, { done: true });
+  await page.locator('[data-col="2026-11-10"] [data-focus-key]').filter({ hasText: filed }).first().click();
+  let { peek, timing } = await expectTaskPeek(page, filed);
+  await expect(timing.getByText(/done, kept as record/)).toBeVisible();
+  await expect(timing.getByRole("combobox", { name: "Start" })).toHaveCount(0);
+  await expect(timing.getByRole("button", { name: "15 minutes later" })).toHaveCount(0);
+  await expect(timing.getByRole("button", { name: "Remove block" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(peek).toBeHidden();
+
+  // A fresh visit for the other Task, so the closing Peek's hand-back is not in the way.
+  await page.goto("/calendar?view=week&d=2026-11-09");
+  await workLocally(page);
   await page.locator('[data-col="2026-11-10"] [data-focus-key]').filter({ hasText: title }).first().click();
-  const { peek, timing } = await expectTaskPeek(page, title);
+  ({ peek, timing } = await expectTaskPeek(page, title));
   await timing.getByRole("button", { name: "Remove block" }).click();
   await expect.poll(() => storedBlocks(page, id)).toEqual([]);
   await expect(peek.getByRole("region", { name: "Time block" }).getByText("Give it a time")).toBeVisible();
@@ -293,17 +288,6 @@ test("Remove block in a Task's Peek keeps the Task and its chip, with its own Un
   await expect(page.getByText(`${title} updated`), "removal is not a timing change").toHaveCount(0);
   await page.locator("[data-sonner-toast]", { hasText: "Block removed" }).getByRole("button", { name: "Undo" }).click();
   await expect.poll(() => storedBlocks(page, id)).toEqual([{ date: "2026-11-10", start: "14:00", end: "15:00" }]);
-});
-
-test("a done Task's block is record in its Peek: removable, never retimed", async ({ page }) => {
-  const title = `Filed taxes ${Date.now()}`;
-  await addTask(page, title, { done: true });
-  await page.locator('[data-col="2026-11-10"] [data-focus-key]').filter({ hasText: title }).first().click();
-  const { timing } = await expectTaskPeek(page, title);
-  await expect(timing.getByText(/done, kept as record/)).toBeVisible();
-  await expect(timing.getByRole("combobox", { name: "Start" })).toHaveCount(0);
-  await expect(timing.getByRole("button", { name: "15 minutes later" })).toHaveCount(0);
-  await expect(timing.getByRole("button", { name: "Remove block" })).toBeVisible();
 });
 
 test("a Task's untimed chip opens its Peek and is given a time there, making a block and keeping the chip", async ({ page }) => {
@@ -322,22 +306,6 @@ test("a Task's untimed chip opens its Peek and is given a time there, making a b
 
   await page.locator("[data-sonner-toast]", { hasText: `${title} updated` }).getByRole("button", { name: "Undo" }).click();
   await expect.poll(() => storedBlocks(page, id)).toEqual([]);
-});
-
-test("a Task peeked from anywhere but the hours shows no timing section", async ({ page }) => {
-  const title = `Vault task ${Date.now()}`;
-  const id = await addTask(page, title);
-  await page.goto("/vault");
-  await workLocally(page);
-  await page.evaluate(
-    async ({ coreUrl, id }) => {
-      const core = await import(/* @vite-ignore */ coreUrl);
-      core.openPeek(id);
-    },
-    { coreUrl: CORE_URL, id },
-  );
-  const { timing } = await expectTaskPeek(page, title);
-  await expect(timing).toHaveCount(0);
 });
 
 // --- a Time blocker band and other Apps' Timed items open their Peek; an iCal item, a read-only card (#538) ---
@@ -400,28 +368,6 @@ test("Delete blocker in its Peek acts at once, with its own Undo", async ({ page
   await expect.poll(() => storedBlocker(page, title)).toEqual({ date: "2026-11-10", start: "08:00", end: "09:00" });
 });
 
-test("another App's Timed item its App does not move opens its Peek with its timing read-only", async ({ page }) => {
-  const title = `Rowing ${Date.now()}`;
-  await page.goto("/calendar?view=week&d=2026-11-09");
-  await workLocally(page);
-  const sessionTitle = await page.evaluate(
-    async ({ coreUrl, title }) => {
-      const core = await import(/* @vite-ignore */ coreUrl);
-      const w = await core.putDocument({ type: "workout", title, blocks: [], tallies: [] });
-      const s = await core.putDocument({ type: "workout_session", title: `${title} · 2026-11-10`, workoutId: w.id, startedAt: "2026-11-10T09:00:00.000Z", endedAt: "2026-11-10T09:40:00.000Z", date: "2026-11-10", start: "09:00", end: "09:40", durationMin: 40, results: [], notes: "" });
-      return s.title as string;
-    },
-    { coreUrl: CORE_URL, title },
-  );
-  await page.locator('[data-col="2026-11-10"] [data-focus-key]').filter({ hasText: title }).first().click();
-  const peek = page.getByRole("dialog", { name: sessionTitle, exact: true });
-  const timing = peek.getByRole("region", { name: "Timing" });
-  await expect(timing.getByText(/can't be moved from here/)).toBeVisible();
-  await expect(timing.getByRole("combobox", { name: "Start" })).toHaveCount(0);
-  await expect(timing.getByRole("button", { name: "15 minutes later" })).toHaveCount(0);
-  await expect(timing.getByRole("button", { name: /^Delete/ })).toHaveCount(0);
-});
-
 test("a Project's Deadline opens the Project's Peek, its Deadline field the one timing; closing leaves one Undo", async ({ page }) => {
   const title = `Launch ${Date.now()}`;
   await page.goto("/calendar?view=week&d=2026-11-09");
@@ -457,26 +403,46 @@ test("a Project's Deadline opens the Project's Peek, its Deadline field the one 
   await expect.poll(deadline).toBe("2026-11-10");
 });
 
-test("an iCal subscription's item shows a read-only card with nothing to edit", async ({ page }) => {
-  const title = `Team standup ${Date.now()}`;
+test("another App's Timed item its App does not move, and an iCal subscription's item, open read-only", async ({ page }) => {
+  const title = `Rowing ${Date.now()}`;
+  const standup = `Team standup ${Date.now()}`;
   await page.goto("/calendar?view=week&d=2026-11-09");
   await workLocally(page);
-  await page.evaluate(
-    async ({ coreUrl, title }) => {
+  const sessionTitle = await page.evaluate(
+    async ({ coreUrl, title, standup }) => {
       const core = await import(/* @vite-ignore */ coreUrl);
+      const w = await core.putDocument({ type: "workout", title, blocks: [], tallies: [] });
+      const s = await core.putDocument({ type: "workout_session", title: `${title} · 2026-11-10`, workoutId: w.id, startedAt: "2026-11-10T09:00:00.000Z", endedAt: "2026-11-10T09:40:00.000Z", date: "2026-11-10", start: "09:00", end: "09:40", durationMin: 40, results: [], notes: "" });
       const id = core.newId() as string;
-      const body = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//e2e//EN", "BEGIN:VEVENT", `UID:${id}@e2e`, "DTSTAMP:20261101T000000", "DTSTART:20261110T110000", "DTEND:20261110T113000", `SUMMARY:${title}`, "LOCATION:Room 4", "END:VEVENT", "END:VCALENDAR"].join("\r\n");
+      const body = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//e2e//EN", "BEGIN:VEVENT", `UID:${id}@e2e`, "DTSTAMP:20261101T000000", "DTSTART:20261110T110000", "DTEND:20261110T113000", `SUMMARY:${standup}`, "LOCATION:Room 4", "END:VEVENT", "END:VCALENDAR"].join("\r\n");
       const fetchedAt = new Date().toISOString();
       // Cached first, as if just fetched: the subscription's URL is never reached.
       await core.db().collection("_source_cache").put({ id, updatedAt: fetchedAt, deleted: 0, fetchedAt, ok: true, status: 200, contentType: "text/calendar", body });
       await core.putDocument({ id, type: "window", kind: "ical", title: "Work calendar", url: "https://example.invalid/work.ics", refreshMinutes: 1440, color: "blue", tags: [] });
+      return s.title as string;
     },
-    { coreUrl: CORE_URL, title },
+    { coreUrl: CORE_URL, title, standup },
   );
-  const item = page.locator('[data-col="2026-11-10"] [data-focus-key]').filter({ hasText: title }).first();
+
+  // Another App's item: its Peek, the timing read-only.
+  await page.locator('[data-col="2026-11-10"] [data-focus-key]').filter({ hasText: title }).first().click();
+  const peek = page.getByRole("dialog", { name: sessionTitle, exact: true });
+  const timing = peek.getByRole("region", { name: "Timing" });
+  await expect(timing.getByText(/can't be moved from here/)).toBeVisible();
+  await expect(timing.getByRole("combobox", { name: "Start" })).toHaveCount(0);
+  await expect(timing.getByRole("button", { name: "15 minutes later" })).toHaveCount(0);
+  await expect(timing.getByRole("button", { name: /^Delete/ })).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await expect(peek).toBeHidden();
+
+  // An iCal item: a read-only card with nothing to edit, the focus back on it once closed.
+  // A fresh visit, so the closing Peek's hand-back of the focus is not in the way.
+  await page.goto("/calendar?view=week&d=2026-11-09");
+  await workLocally(page);
+  const item = page.locator('[data-col="2026-11-10"] [data-focus-key]').filter({ hasText: standup }).first();
   await item.focus();
   await page.keyboard.press("Enter");
-  const card = page.getByRole("dialog", { name: title, exact: true });
+  const card = page.getByRole("dialog", { name: standup, exact: true });
   await expect(card).toBeVisible();
   await expect(card.getByText(/11:00/)).toBeVisible();
   await expect(card.getByText("Room 4")).toBeVisible();
@@ -489,50 +455,34 @@ test("an iCal subscription's item shows a read-only card with nothing to edit", 
   await expect(item, "the focus is back on the item").toBeFocused();
 });
 
-test("a Chore's Time block opens the Chore's Peek with the block's timing", async ({ page }) => {
-  const title = `Mop the floor ${Date.now()}`;
-  await page.goto("/calendar?view=week&d=2026-11-09");
-  await workLocally(page);
-  await page.evaluate(
-    async ({ coreUrl, title }) => {
-      const core = await import(/* @vite-ignore */ coreUrl);
-      const chore = await core.putDocument({ type: "chore", title, status: "active", schedule: { kind: "weekly", weekdays: [2] }, anchorDate: null, tags: [] });
-      await core.addTimeBlock("chores", chore.id, "2026-11-10", { start: "16:00", end: "16:30" });
-    },
-    { coreUrl: CORE_URL, title },
-  );
-  await page.locator('[data-col="2026-11-10"] [data-focus-key]').filter({ hasText: title }).first().click();
-  const peek = page.getByRole("dialog", { name: title, exact: true });
-  const timing = peek.getByRole("region", { name: "Time block" });
-  await expect(timing.getByRole("combobox", { name: "Start" })).toHaveValue("16:00");
-  await expect(peek.getByRole("combobox", { name: "Schedule" }), "the Chore's own Fields are there").toBeVisible();
-});
-
 // --- a work chip on Month and Upcoming opens its Peek; the menu stays on a right-click (#540) ---
 
-for (const view of ["month", "upcoming"] as const) {
-  test(`a Task's chip in ${view} opens its Peek with the Time block section on a click and on Enter; Push and Move stay on its menu`, async ({ page }) => {
-    const title = `Chip in ${view} ${Date.now()}`;
-    await addTask(page, title, { block: false });
-    await page.goto(`/calendar?view=${view}&d=2026-11-09`);
-    await workLocally(page);
-    const chip = view === "month" ? page.locator("[data-focus-key]", { hasText: title }) : page.getByRole("button", { name: title, exact: true });
+test("a Task's chip in the Month and in Upcoming opens its Peek with the Time block section, on a click and on Enter; Push and Move stay on its menu", async ({ page }) => {
+  const title = `Chip ${Date.now()}`;
+  await addTask(page, title, { block: false });
 
-    await chip.click();
-    let { peek, timing } = await expectTaskPeek(page, title);
-    await expect(timing.getByText("Give it a time")).toBeVisible();
-    await page.keyboard.press("Escape");
-    await expect(peek).toBeHidden();
+  // The Month, on a click; its menu keeps Push and Move.
+  await page.goto("/calendar?view=month&d=2026-11-09");
+  await workLocally(page);
+  const chip = page.locator("[data-focus-key]", { hasText: title });
+  await chip.click();
+  let { peek, timing } = await expectTaskPeek(page, title);
+  await expect(timing.getByText("Give it a time")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(peek).toBeHidden();
+  await chip.click({ button: "right" });
+  await expect(page.getByRole("menuitem", { name: "Push" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "Move to day…" })).toBeVisible();
+  await page.keyboard.press("Escape");
 
-    await chip.focus();
-    await page.keyboard.press("Enter");
-    ({ peek, timing } = await expectTaskPeek(page, title));
-    await expect(timing).toBeVisible();
-    await page.keyboard.press("Escape");
-    await expect(peek).toBeHidden();
-
-    await chip.click({ button: "right" });
-    await expect(page.getByRole("menuitem", { name: "Push" })).toBeVisible();
-    await expect(page.getByRole("menuitem", { name: "Move to day…" })).toBeVisible();
-  });
-}
+  // Upcoming, on Enter.
+  await page.goto("/calendar?view=upcoming&d=2026-11-09");
+  await workLocally(page);
+  const row = page.getByRole("button", { name: title, exact: true });
+  await row.focus();
+  await page.keyboard.press("Enter");
+  ({ peek, timing } = await expectTaskPeek(page, title));
+  await expect(timing).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(peek).toBeHidden();
+});

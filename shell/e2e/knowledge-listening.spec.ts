@@ -3,7 +3,9 @@ import { inCore } from "./support/core";
 
 /**
  * The listening Prompt (ADR 0116): an item with a clip yields it in Practice, played as it
- * appears, replayable, typeable, and kept like any other Recall.
+ * appears, replayable, typeable, and kept like any other Recall. This is the e2e cover of a
+ * clip being heard and of a typed attempt; a Sentence's whole-sentence Prompt is
+ * promptText.test.ts's and recallable.test.ts's, and a new clip playing afresh, ClipPlayer.test.tsx's.
  */
 
 async function workLocally(page: Page) {
@@ -67,7 +69,6 @@ async function practise(page: Page, name: string) {
 
 const played = (page: Page) => expect.poll(() => page.getByTestId("clip-audio").evaluate((a: HTMLAudioElement) => a.currentTime > 0 || a.ended || !a.paused));
 
-
 test("an item with a clip produces a listening Prompt: it plays at once, takes a typed attempt, and the Recall keeps it", async ({ page }) => {
   const name = `Listening ${Date.now()}`;
   await newTopic(page, name);
@@ -93,16 +94,21 @@ test("an item with a clip produces a listening Prompt: it plays at once, takes a
 
   await practise(page, name);
   await expect(page.getByText("What did you hear?")).toBeVisible();
-  // Heard before any reveal, and replayable.
+  const field = page.getByLabel("Your answer");
+  await expect(field).toBeFocused(); // no click needed before typing
+  // Heard before any reveal, and replayable: the replay is a second play (the clip is a quarter-second long).
   await expect(page.getByTestId("clip-replay")).toBeEnabled();
   await played(page);
-  const field = page.getByLabel("Your answer");
+  await expect.poll(() => page.getByTestId("clip-audio").evaluate((a: HTMLAudioElement) => a.ended)).toBe(true);
+  await page.getByTestId("clip-replay").click();
+  await expect.poll(() => page.getByTestId("clip-replay").getAttribute("data-plays")).toBe("2");
   await field.fill("nono");
   await field.press("Enter");
   const both = page.getByTestId("attempt-vs-answer");
   await expect(both).toContainText("nono");
   await expect(both).toContainText("nonno");
   await expect(page.getByText("grandfather")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Fail" })).toBeFocused(); // focus follows the reveal
   await page.getByRole("button", { name: "Fail" }).click();
 
   const kept = await inCore(page, async (core, name: string) => {
@@ -110,70 +116,4 @@ test("an item with a clip produces a listening Prompt: it plays at once, takes a
     return (await core.documentsOf("language_recall")).filter((r) => (r as { slot?: string }).slot === "listen" && (r as { languageId?: string }).languageId === t.id).map((r) => (r as { typed?: string }).typed);
   }, name);
   expect(kept).toEqual(["nono"]);
-});
-
-test("two listening Prompts in a row: the second clip plays as it appears too", async ({ page }) => {
-  const name = `Listening twice ${Date.now()}`;
-  await newTopic(page, name);
-  for (const { term, meaning } of [{ term: "nonno", meaning: "grandfather" }, { term: "nonna", meaning: "grandmother" }]) {
-    await openAdd(page, "Word");
-    await page.getByLabel("Word", { exact: true }).fill(term);
-    await page.getByLabel("Meaning").fill(meaning);
-    await attach(page);
-    await page.getByRole("button", { name: "Add", exact: true }).click();
-  }
-  // Meet the written Prompts just now, so the two listening ones are all that is left.
-  await inCore(
-    page,
-    async (core, name: string) => {
-      const t = (await core.documentsOf("language")).find((d) => (d as { name?: string }).name === name) as { id: string };
-      const words = (await core.documentsOf("language_word")).filter((d) => (d as { languageId?: string }).languageId === t.id) as { id: string }[];
-      const at = new Date().toISOString();
-      for (const w of words) for (const slot of ["forward", "reverse"]) await core.putDocument({ type: "language_recall", title: "", languageId: t.id, itemId: w.id, slot, grade: "pass", at, folder: "", tags: [] });
-    },
-    name,
-  );
-  await page.reload();
-  await workLocally(page);
-
-  await practise(page, name);
-  await expect(page.getByText("What did you hear?")).toBeVisible();
-  await played(page);
-  const firstClip = await page.getByTestId("clip-audio").getAttribute("src");
-  const field = page.getByLabel("Your answer");
-  await field.fill("x");
-  await field.press("Enter");
-  await page.getByRole("button", { name: "Pass" }).click();
-
-  // The next Prompt is a fresh one (unrevealed, empty field), and its own clip plays.
-  await expect(page.getByLabel("Your answer")).toHaveValue("");
-  await expect(page.getByTestId("attempt-vs-answer")).toHaveCount(0);
-  await expect(page.getByTestId("clip-audio")).not.toHaveAttribute("src", firstClip ?? "");
-  await played(page);
-});
-
-test("a Sentence with a clip is heard and recalled whole", async ({ page }) => {
-  const name = `Listening sentence ${Date.now()}`;
-  await newTopic(page, name);
-  await openAdd(page, "Sentence");
-  await page.getByLabel("Sentence", { exact: true }).fill("Mio {{nonno}} dorme");
-  await attach(page);
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-  await inCore(
-    page,
-    async (core, name: string) => {
-      const t = (await core.documentsOf("language")).find((d) => (d as { name?: string }).name === name) as { id: string };
-      const s = (await core.documentsOf("language_sentence")).find((d) => (d as { languageId?: string }).languageId === t.id) as { id: string };
-      await core.putDocument({ type: "language_recall", title: "", languageId: t.id, itemId: s.id, slot: "blank:nonno", grade: "pass", at: new Date().toISOString(), folder: "", tags: [] });
-    },
-    name,
-  );
-  await page.reload();
-  await workLocally(page);
-  await practise(page, name);
-  await expect(page.getByText("What did you hear?")).toBeVisible();
-  await played(page);
-  await page.getByRole("button", { name: "Show answer" }).click();
-  await expect(page.getByText("Mio nonno dorme")).toBeVisible();
-  await page.getByRole("button", { name: "Pass" }).click();
 });
