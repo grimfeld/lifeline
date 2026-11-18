@@ -143,6 +143,9 @@ export function noteTiming<T>(change: TimingChange<T>): void {
   timing.set(change.key, first ? { ...first, label: change.label, after: change.after } : change);
 }
 
+/** What the timing Undo knows a Timed item by, whether the shell's timing section or its App's own Field notes it. */
+export const timedTimingKey = (item: { appId: string; itemId: string }) => `timed:${item.appId}/${item.itemId}`;
+
 /** Drop what was noted for a key: the thing was deleted, with an Undo of its own. */
 export function forgetTiming(key: string): void {
   timing.delete(key);

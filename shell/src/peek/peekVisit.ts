@@ -1,4 +1,4 @@
-import { addTimeBlock, completeSurfaceItem, forgetTiming, moveTimeBlock, noteTiming, onPeekClosed, removeTimeBlock, unplaceItem, type HoursTapped, type TimedWhen, type WorkOnHours } from "@lifeline/core";
+import { addTimeBlock, completeSurfaceItem, forgetTiming, moveTimeBlock, noteTiming, onPeekClosed, removeTimeBlock, timedTimingKey, unplaceItem, type HoursTapped, type TimedWhen, type WorkOnHours } from "@lifeline/core";
 import { blockEnd, blockOfTapped, type BlockTime } from "./blockTiming";
 import { contractWhen, timedWhenOf, type WhenTime } from "./timedTiming";
 import { toastWriteFailed, writeQueue, type WriteQueue } from "./writeQueue";
@@ -161,7 +161,7 @@ export function timedVisit(tapped: HoursTapped & { kind: "timed" }, failed: (e: 
   const initial = timedWhenOf(item);
   const queue = writeQueue(failed);
   let when = initial;
-  const key = `timed:${item.appId}/${item.itemId}`;
+  const key = timedTimingKey(item);
   const visit: TimedVisit = {
     get when() {
       return when;

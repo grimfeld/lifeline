@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { CORE_URL } from "./support/seed";
 import { setTime } from "./support/time-field";
+import { pickDate } from "./support/date-picker";
 
 /**
  * The Schedule and Month by keyboard (#284): an item that takes the focus
@@ -423,7 +424,7 @@ test("another App's Timed item its App does not move opens its Peek with its tim
   await expect(timing.getByRole("button", { name: /^Delete/ })).toHaveCount(0);
 });
 
-test("a Project's Deadline opens the Project's Peek with the day controls its App allows; closing leaves one Undo", async ({ page }) => {
+test("a Project's Deadline opens the Project's Peek, its Deadline field the one timing; closing leaves one Undo", async ({ page }) => {
   const title = `Launch ${Date.now()}`;
   await page.goto("/calendar?view=week&d=2026-11-09");
   await workLocally(page);
@@ -444,22 +445,17 @@ test("a Project's Deadline opens the Project's Peek with the day controls its Ap
     );
   await page.locator("[data-focus-key]").filter({ hasText: title }).first().click();
   const peek = page.getByRole("dialog", { name: title, exact: true });
-  const timing = peek.getByRole("region", { name: "Timing" });
-  await expect(timing.getByLabel("Day"), "Projects moves a Deadline to another day").toBeVisible();
-  await expect(timing.getByRole("combobox", { name: "Start" }), "a marker takes no hours").toHaveCount(0);
-  await expect(timing.getByRole("button", { name: "15 minutes later" })).toHaveCount(0);
-  await expect(timing.getByLabel("All day")).toHaveCount(0);
-  await expect(timing.getByText(/can't be moved from here/)).toHaveCount(0);
+  await expect(peek.getByRole("region", { name: "Timing" }), "the Project's own Deadline field is its timing (ADR 0124)").toHaveCount(0);
 
-  const tomorrow = await page.evaluate(async (coreUrl) => {
-    const core = await import(/* @vite-ignore */ coreUrl);
-    return core.addDays(core.todayStr(), 1) as string;
-  }, CORE_URL);
-  await timing.getByRole("button", { name: "Tomorrow" }).click();
-  await expect.poll(deadline).toBe(tomorrow);
+  await pickDate(page, peek.getByRole("button", { name: "Deadline", exact: true }), "2026-11-12");
+  await expect.poll(deadline).toBe("2026-11-12");
+  await pickDate(page, peek.getByRole("button", { name: "Deadline", exact: true }), "2026-11-13");
+  await expect.poll(deadline).toBe("2026-11-13");
   await page.keyboard.press("Escape");
   await expect(peek).toBeHidden();
-  await page.locator("[data-sonner-toast]", { hasText: "updated" }).getByRole("button", { name: "Undo" }).click();
+  const undo = page.locator("[data-sonner-toast]").getByRole("button", { name: "Undo" });
+  await expect(undo, "one Undo for the visit").toHaveCount(1);
+  await undo.click();
   await expect.poll(deadline).toBe("2026-11-10");
 });
 
