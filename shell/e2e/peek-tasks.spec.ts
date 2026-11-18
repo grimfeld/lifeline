@@ -402,3 +402,43 @@ test("a Time blocker moved in its Peek, then left by a link and come back to, sh
     .poll(() => inCore(page, async (core, title: string) => (await core.documentsOf("time_blocker")).find((d) => d.title === title)?.start, title))
     .toBe("08:30");
 });
+
+// --- Complete, and focus after Remove block, in the Time block section (F2, F10) ---
+
+test("a recurring Task's chip on the phone's Week is completed from its Peek: that occurrence is done, the next is not", async ({ page }) => {
+  const title = `Water plants ${Date.now()}`;
+  await page.goto("/calendar?view=week&d=2026-11-09");
+  await workLocally(page);
+  const id = await inCore(
+    page,
+    async (core, title: string) => (await core.putDocument({ type: "task", title, status: "active", date: null, createdAt: "2026-11-01", completedOn: null, recurrence: { kind: "weekly", weekdays: [2] }, notes: "", tags: [], estimate: 30 })).id as string,
+    title,
+  );
+  await page.locator("[data-focus-key]").filter({ hasText: title }).first().click();
+  const timing = page.getByRole("dialog", { name: title, exact: true }).getByRole("region", { name: "Time block" });
+  await timing.getByRole("button", { name: "Complete", exact: true }).click();
+  const done = () =>
+    inCore(
+      page,
+      async (core, taskId: string) =>
+        (await core.documentsOf("task_occurrence")).filter((o) => o.taskId === taskId && o.completedOn).map((o) => o.sourceDate as string),
+      id,
+    );
+  await expect.poll(done).toEqual(["2026-11-10"]);
+  await expect(timing.getByRole("button", { name: "Complete", exact: true }), "a done item offers no Complete").toHaveCount(0);
+});
+
+test("Remove block by keyboard leaves focus inside the Peek", async ({ page }) => {
+  const title = `Pay rent ${Date.now()}`;
+  await addChipTask(page, title);
+  await page.locator("[data-focus-key]").filter({ hasText: title }).first().click();
+  const peek = page.getByRole("dialog", { name: title, exact: true });
+  const timing = peek.getByRole("region", { name: "Time block" });
+  await setTime(timing.getByRole("combobox", { name: "Start" }), "09:30");
+  const remove = timing.getByRole("button", { name: "Remove block" });
+  await remove.focus();
+  await page.keyboard.press("Enter");
+  await expect(remove).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => !!document.activeElement?.closest('[role="dialog"]'))).toBe(true);
+  await expect(timing.getByRole("combobox", { name: "Start" }), "the section stays, so focus goes to its Start").toBeFocused();
+});

@@ -141,7 +141,7 @@ function Chip({ id, focusKey, data, title, color, done, planned, onComplete, wor
       onClick={(ev) => onOpen?.(ev.currentTarget)}
       title={scheduled ? `${title} · ${planned} block${planned === 1 ? "" : "s"} planned — drag again for another` : title}
     >
-      {/* Too narrow for controls (a phone's Week): the tap opens its Peek, which ticks too. */}
+      {/* Too narrow for controls (a phone's Week): the tap opens its Peek, whose Time block section has Complete. */}
       {onComplete && !done && !compact && (
         <button
           type="button"

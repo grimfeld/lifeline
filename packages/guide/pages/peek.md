@@ -13,7 +13,7 @@ sheet from the bottom on a phone. The page behind stays in view.
 - **Ctrl+Enter** on a link in the editor peeks it, wherever it lives.
 - **From the hours** — tapping an Event on the [Calendar](calendar.md) (Schedule, Month,
   Upcoming) or the Agenda Card opens its Peek; so does a Task's or a Chore's Time block or untimed
-  chip, with the block's timing above its fields, and a one-off blocker's band or another App's item
+  chip, with the block's timing (and **Complete**) above its fields, and a one-off blocker's band or another App's item
   (a Workout Session, a Deadline, an Occasion), with its day and time above — editable only where
   its App lets it move (a Deadline, to another day). On a phone the sheet leaves the top of the
   screen to the hours, and what you tapped is scrolled up above it. Closing it brings the focus back

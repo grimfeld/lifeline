@@ -41,7 +41,8 @@ blocker bands.
   **Delete event** deletes it at once, with its own Undo.
 - **A Task's or a Chore's block or chip** — tap (or click) a Task's Time block and the Task's [Peek](peek.md)
   opens (a Chore's opens the Chore's, the same way), with a **Time block** section above its fields: the block's day (**Tomorrow** is one
-  tap), start (15-minute nudges) and length, and **Remove block**, which keeps the Task and its
+  tap), start (15-minute nudges) and length, **Complete** (for one that isn't done — it ticks off that
+  occurrence of a recurring Task too, the way to do it from a phone), and **Remove block**, which keeps the Task and its
   chip. A done Task's block is record: it can be removed, not moved. Tapping an untimed chip opens
   the same Peek, where **Give it a time** makes a new block (as long as the Estimate) and the chip
   stays. Changes apply at once; closing the Peek leaves one **Undo** that puts the block back.

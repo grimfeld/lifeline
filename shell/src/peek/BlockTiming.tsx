@@ -1,7 +1,7 @@
-import { useReducer } from "react";
+import { useReducer, useRef } from "react";
 import { Button, DatePicker, Field, QuickTiming, TimeField, toast } from "@lifeline/ui";
 import { addDays, formatHuman, formatTime, SNAP_MIN, todayStr, type HoursTapped } from "@lifeline/core";
-import { Trash2 } from "lucide-react";
+import { Check, Trash2 } from "lucide-react";
 import { blockEnd, blockLasting, blockNudged, type BlockTime } from "./blockTiming";
 import { blockVisit } from "./peekVisit";
 
@@ -16,7 +16,9 @@ import { blockVisit } from "./peekVisit";
  *
  * Every change is written at once and noted to the Peek (`noteTiming`), which
  * leaves one Undo for the visit on closing (ADR 0056, #536); Remove block acts
- * at once with its own Undo. The timing is the visit's (`blockVisit`), kept
+ * at once with its own Undo. **Complete** ticks the item off by its own id (a
+ * recurring Task's Occurrence), so a chip with no tick of its own — a phone's
+ * Week, a Month chip — can still be done from here (F2). The timing is the visit's (`blockVisit`), kept
  * while the Peek is open.
  */
 export function BlockTiming({ tapped }: { tapped: HoursTapped & { kind: "work" } }) {
@@ -25,7 +27,15 @@ export function BlockTiming({ tapped }: { tapped: HoursTapped & { kind: "work" }
   const visit = blockVisit(tapped, todayStr());
   const [, changed] = useReducer((n: number) => n + 1, 0);
   const { time, hasBlock } = visit;
-  const done = !!item.completedOn;
+  const done = !!item.completedOn || visit.completed;
+  const section = useRef<HTMLElement>(null);
+
+  function complete() {
+    void visit.complete().then((ok) => {
+      if (ok) toast.success(`${item.title} done`);
+      changed();
+    });
+  }
 
   function write(next: BlockTime) {
     visit.write(next);
@@ -33,8 +43,11 @@ export function BlockTiming({ tapped }: { tapped: HoursTapped & { kind: "work" }
   }
 
   function remove() {
+    // The button unmounts with the block: focus goes to what stays, the Start field or the Peek itself (F10).
+    const peek = section.current?.closest<HTMLElement>('[role="dialog"]') ?? null;
     const undone = visit.remove();
     changed();
+    queueMicrotask(() => requestAnimationFrame(() => (section.current?.querySelector<HTMLElement>('[role="combobox"]') ?? peek)?.focus()));
     void undone.then((undo) => {
       if (undo) toast.success("Block removed — the task stays", { action: { label: "Undo", onClick: () => void undo().catch((e: Error) => toast.error(`Could not bring it back: ${e.message}`)) } });
     });
@@ -49,8 +62,13 @@ export function BlockTiming({ tapped }: { tapped: HoursTapped & { kind: "work" }
 
   if (done && !hasBlock) return null;
   return (
-    <section aria-label="Time block" className="grid gap-3 rounded-lg border p-3">
+    <section ref={section} aria-label="Time block" className="grid gap-3 rounded-lg border p-3">
       <h3 className="text-muted-foreground text-sm font-medium">{hasBlock ? "Time block" : "Give it a time"}</h3>
+      {!done && (
+        <Button variant="outline" size="sm" className="justify-self-start" onClick={complete}>
+          <Check /> Complete
+        </Button>
+      )}
       {done && time.start ? (
         <>
           <p className="text-sm">

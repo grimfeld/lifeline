@@ -1,4 +1,4 @@
-import { addTimeBlock, forgetTiming, moveTimeBlock, noteTiming, onPeekClosed, removeTimeBlock, unplaceItem, type HoursTapped, type TimedWhen, type WorkOnHours } from "@lifeline/core";
+import { addTimeBlock, completeSurfaceItem, forgetTiming, moveTimeBlock, noteTiming, onPeekClosed, removeTimeBlock, unplaceItem, type HoursTapped, type TimedWhen, type WorkOnHours } from "@lifeline/core";
 import { blockEnd, blockOfTapped, type BlockTime } from "./blockTiming";
 import { contractWhen, timedWhenOf, type WhenTime } from "./timedTiming";
 import { toastWriteFailed, writeQueue, type WriteQueue } from "./writeQueue";
@@ -18,12 +18,14 @@ export interface BlockOps {
   add: (appId: string, itemId: string, date: string, span: { start: string; end: string }) => Promise<string>;
   move: (placementId: string, date: string, span: { start: string; end: string }) => Promise<unknown>;
   unplace: (placementId: string) => Promise<unknown>;
+  /** Complete the item (by its item id, so an Occurrence of a recurring Task is the one done). */
+  complete: (appId: string, itemId: string) => Promise<unknown>;
   remove: (placementId: string) => Promise<() => Promise<unknown>>;
   /** A write that failed: the queue carries on. */
   failed: (e: unknown) => void;
 }
 
-const placementOps: BlockOps = { add: addTimeBlock, move: moveTimeBlock, unplace: unplaceItem, remove: removeTimeBlock, failed: toastWriteFailed };
+const placementOps: BlockOps = { add: addTimeBlock, move: moveTimeBlock, unplace: unplaceItem, complete: (appId, itemId) => completeSurfaceItem({ appId, itemId }), remove: removeTimeBlock, failed: toastWriteFailed };
 
 /** A Time block's timing as the Peek's Undo knows it. */
 type Placed = { date: string; start: string; end: string };
@@ -33,6 +35,10 @@ const placed = (b: BlockTime & { start: string }): Placed => ({ date: b.date, st
 export interface BlockVisit {
   readonly time: BlockTime;
   readonly hasBlock: boolean;
+  /** Whether this visit completed the item. */
+  readonly completed: boolean;
+  /** Complete the item once the writes so far are done; false when it failed (the queue says so). */
+  complete: () => Promise<boolean>;
   /** Write a new timing at once, noted to the Peek for its one Undo; a chip's first start makes its block. */
   write: (next: BlockTime) => void;
   /** Remove the block, with an Undo of its own (null when none was written); the item and its chip stay. */
@@ -55,6 +61,7 @@ function newBlockVisit(item: WorkOnHours, initial: BlockTime, ops: BlockOps): Bl
   let time = initial;
   let blockId: string | null = item.placementId && item.start ? item.placementId : null;
   let hasBlock = blockId !== null;
+  let completed = false;
   /** The block this visit made from the chip, until it is removed. */
   let made = false;
   const timingKey = () => (made || !item.placementId ? `block:chip:${item.appId}/${item.itemId}` : `block:${item.placementId}`);
@@ -66,7 +73,16 @@ function newBlockVisit(item: WorkOnHours, initial: BlockTime, ops: BlockOps): Bl
     get hasBlock() {
       return hasBlock;
     },
+    get completed() {
+      return completed;
+    },
     settled: queue.settled,
+    async complete() {
+      const ok = await queued(queue, () => ops.complete(item.appId, item.itemId));
+      if (ok === null) return false;
+      completed = true;
+      return true;
+    },
     write(next) {
       time = next;
       // An untimed chip only chooses where its block will land until it has a start.

@@ -9,6 +9,7 @@ function fakeOps() {
     add: vi.fn(async () => `block-${++n}`),
     move: vi.fn(async () => undefined),
     unplace: vi.fn(async () => undefined),
+    complete: vi.fn(async () => undefined),
     remove: vi.fn(async () => async () => undefined),
     failed: vi.fn(),
   } satisfies BlockOps;
@@ -110,5 +111,32 @@ describe("a Peek visit keeps its Timed item's time across a link and Back (F1)",
     expect(changes).toHaveLength(1);
     await changes[0]?.restore();
     expect(put).toHaveBeenLastCalledWith({ date: "2026-11-10", start: "07:00", endDate: "2026-11-10", end: "08:00" });
+  });
+});
+
+describe("a Peek visit completes its item by id (F2)", () => {
+  const occurrence: WorkOnHours = { appId: "tasks", itemId: "t1@2026-11-10", title: "Water", date: "2026-11-10", displayDate: "2026-11-10", estimateMin: 30 };
+
+  it("completes the tapped item id, after the writes queued so far, and the visit then reads as completed", async () => {
+    const ops = fakeOps();
+    const tapped: HoursTapped = { kind: "work", item: occurrence };
+    openPeek("task-doc", { tapped });
+    const visit = blockVisit(tapped, "2026-11-09", ops);
+    expect(visit.completed).toBe(false);
+    visit.write({ ...visit.time, start: "10:00" });
+    expect(await visit.complete()).toBe(true);
+    expect(ops.add).toHaveBeenCalledTimes(1);
+    expect(ops.complete).toHaveBeenCalledWith("tasks", "t1@2026-11-10");
+    expect(blockVisit(tapped, "2026-11-09", ops).completed, "still so after a link and Back").toBe(true);
+  });
+
+  it("a failed completion leaves the visit not completed", async () => {
+    const ops = fakeOps();
+    ops.complete.mockRejectedValueOnce(new Error("no"));
+    const tapped: HoursTapped = { kind: "work", item: occurrence };
+    openPeek("task-doc", { tapped });
+    const visit = blockVisit(tapped, "2026-11-09", ops);
+    expect(await visit.complete()).toBe(false);
+    expect(visit.completed).toBe(false);
   });
 });
