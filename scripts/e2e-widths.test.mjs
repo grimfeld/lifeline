@@ -15,6 +15,8 @@ const root = fileURLToPath(new URL("../shell/e2e", import.meta.url));
 const gateSpecs = () => readdirSync(root).filter((f) => f.endsWith(".spec.ts") && !NIGHTLY_SPECS.includes(f));
 
 const WIDTH = /isMobile|viewportSize\(|\bviewport\b|project\.name/;
+/** What a skip may not read: the width, or a support helper that reads it (support/journal.ts). */
+const SKIP_BY_WIDTH = /isMobile|viewportSize\(|\bviewport\b|project\.name|hasSidebar/;
 const CASE = /^(\s*)test(\.describe)?(\.serial|\.only|\.parallel)?\(/;
 
 /** Each `file:line` where `text` (a gate spec's source) picks its width itself. */
@@ -35,7 +37,9 @@ export function widthPicks(file, text) {
       open.push({ indent, both: header.includes("@also-phone") || open.some((b) => b.both) });
     }
     // A skip, fixme or fail whose condition (on its line or the next) reads the width or the project.
-    if (/\btest(\.describe)?\.(skip|fixme|fail)\s*\(/.test(l) && WIDTH.test(l + lines[i + 1])) hits.push(`${at} skips by width`);
+    if (/\btest(\.describe)?\.(skip|fixme|fail)\s*\(/.test(l) && SKIP_BY_WIDTH.test(l + lines[i + 1])) hits.push(`${at} skips by width`);
+    // test.use setting a viewport, a device or isMobile moves every case it covers to another width.
+    else if (/\btest\.use\s*\(/.test(l) && /isMobile|\bviewport\b|devices\[/.test(l + lines[i + 1])) hits.push(`${at} sets its width with test.use`);
     else if (/!\s*isMobile/.test(l)) hits.push(`${at} reads !isMobile`);
     // A case may still act on its width (a tap or a click), but only one that runs at both.
     else if (WIDTH.test(l) && open.length && !open.at(-1).both) hits.push(`${at} reads its width outside an @also-phone case`);
@@ -55,6 +59,8 @@ test("a gate spec picks its width by tag, never by a skip or a width check", () 
 test("widthPicks finds a width skip, a !isMobile and a width read outside an @also-phone case", () => {
   assert.deepEqual(widthPicks("a.spec.ts", 'test("x", async ({ page }) => {\n  test.skip(isMobile, "desk");\n});'), ["a.spec.ts:2 skips by width"]);
   assert.deepEqual(widthPicks("b.spec.ts", 'test.describe("y", () => {\n  test.skip(({ viewport }) => (viewport?.width ?? 0) < 1024);\n});'), ["b.spec.ts:2 skips by width"]);
+  assert.deepEqual(widthPicks("s.spec.ts", 'test("x", async ({ page }) => {\n  test.skip(!hasSidebar(page), "lg");\n});'), ["s.spec.ts:2 skips by width"]);
+  assert.deepEqual(widthPicks("u.spec.ts", 'test.use({ viewport: { width: 360, height: 780 } });\ntest("x", async ({ page }) => {});'), ["u.spec.ts:1 sets its width with test.use"]);
   assert.deepEqual(widthPicks("c.spec.ts", 'test("x", async ({ page }) => {\n  test.skip(\n    isMobile,\n  );\n});'), ["c.spec.ts:2 skips by width", "c.spec.ts:3 reads its width outside an @also-phone case"]);
   assert.deepEqual(widthPicks("d.spec.ts", 'test("x", { tag: "@also-phone" }, async ({ isMobile }) => {\n  if (!isMobile) await click();\n});'), ["d.spec.ts:2 reads !isMobile"]);
   // One case at both widths does not excuse its untagged neighbour.
