@@ -1,10 +1,10 @@
 import { useMemo } from "react";
-import { getDocument, patchDocument, removeDocumentsWhere, type DocumentInput, type DocumentPatch, type TimedSpan } from "@lifeline/core";
-import { attachmentOf, flushSpan, followedSpan, isAttachedTo, liveAttachmentTo } from "../domain/attached";
+import { getDocument, patchDocument, removeDocument, type DocumentInput, type DocumentPatch } from "@lifeline/core";
+import { attachmentOf, DETACHED, flushSpan, followedSpan, isAttachedTo, liveAttachmentTo, sameSpan } from "../domain/attached";
 import { blockerSpan } from "../domain/blockers";
 import { normalizeEvent, spanOf } from "../domain/events";
 import { durationOf } from "../domain/templates";
-import { BLOCKER_TEMPLATE_TYPE, EVENT_TYPE, TIME_BLOCKER_TYPE, type Attachment, type BlockerSide, type BlockerTemplate, type Event, type TimeBlocker } from "../domain/types";
+import { BLOCKER_TEMPLATE_TYPE, EVENT_TYPE, type Attachment, type BlockerSide, type BlockerTemplate, type Event, type TimeBlocker } from "../domain/types";
 import { addTimeBlocker, allTimeBlockers, timeBlockerRow, useTimeBlockers, type TimeBlockerInput } from "./blockers";
 
 /** A Before…/After… pick: which Blocker template to attach, on which side of the Event. */
@@ -61,11 +61,6 @@ export async function attachedBlockersOf(eventId: string): Promise<TimeBlocker[]
   return (await allTimeBlockers()).filter((b) => isAttachedTo(b, eventId));
 }
 
-/** Whether two spans start and end at the same moments. */
-function sameSpan(a: TimedSpan, b: TimedSpan): boolean {
-  return a.date === b.date && a.start === b.start && a.endDate === b.endDate && a.end === b.end;
-}
-
 /**
  * The attached blockers of an Event that moves from `was` to `now`, each as
  * the patch of its times that puts it where it now stands (`followedSpan`),
@@ -106,8 +101,7 @@ export async function liveAttachment(b: TimeBlocker): Promise<Attachment | null>
 
 /** An Event's deletion takes its attached blockers with it (ADR 0045), from every place a Document can be deleted. */
 export async function removeAttachedBlockers(eventId: string): Promise<void> {
-  const ids = new Set((await attachedBlockersOf(eventId)).map((b) => b.id));
-  await removeDocumentsWhere(TIME_BLOCKER_TYPE, (d) => ids.has(d.id));
+  for (const b of await attachedBlockersOf(eventId)) await removeDocument(b.id);
 }
 
 /**
@@ -116,7 +110,7 @@ export async function removeAttachedBlockers(eventId: string): Promise<void> {
  * writes beside it. Empty when nothing is attached.
  */
 export async function blockersDetachedFrom(eventId: string): Promise<DocumentPatch[]> {
-  return (await attachedBlockersOf(eventId)).map((b) => ({ id: b.id, patch: { attachedTo: null, side: null } }));
+  return (await attachedBlockersOf(eventId)).map((b) => ({ id: b.id, patch: DETACHED }));
 }
 
 /** The one-off blockers attached to an Event, live (its Peek lists them). */
@@ -136,7 +130,7 @@ export async function detachBlocker(id: string): Promise<() => Promise<void>> {
   if (!b) throw new Error("That blocker is gone");
   const was = await liveAttachment(b);
   if (!was) return async () => {};
-  await patchDocument(id, { attachedTo: null, side: null });
+  await patchDocument(id, DETACHED);
   return async () => {
     if (await eventExists(was.eventId)) await patchDocument(id, { attachedTo: was.eventId, side: was.side });
   };
