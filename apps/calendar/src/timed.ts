@@ -143,6 +143,14 @@ export const calendarTimed: TimedProvider = {
   href(itemId) {
     return vaultDocPath(itemId);
   },
+  // An Event opens its Peek, whichever piece was tapped (#536); a Time blocker band, its blocker's (#538).
+  peekOf(item) {
+    return item.itemId;
+  },
+  // The Event Form is the Event's timing; a blocker's is the Peek's timing section, through the hooks above.
+  timingInPeek(item) {
+    return !item.background;
+  },
 };
 
 /** The Timed hooks get an item id that is an Event's or a one-off blocker's (ADR 0029): the Document type tells. */

@@ -76,7 +76,7 @@ test("a type's reports over two dates: To can't fall before From", async ({ page
 
 const dateOf = (page: Page, id: string) => inCore(page, async (core, docId: string) => (await core.getDocument(docId))!.date as string, id);
 
-test("a Task moved to another day from Upcoming's Move to day…", async ({ page }) => {
+test("a Task moved to another day from Move to day… in the Peek it opens from Upcoming", async ({ page }) => {
   const title = `Move me ${Date.now()}`;
   const today = dayFromToday(0);
   await page.goto("/calendar?view=upcoming");
@@ -88,15 +88,29 @@ test("a Task moved to another day from Upcoming's Move to day…", async ({ page
     { title, today },
   );
   await page.getByText(title).click();
-  await page.getByRole("menuitem", { name: "Move to day…" }).click();
+  // The tap opens the Task's Peek; its Time block section carries the row's actions, a phone's way to them.
+  const peek = page.getByRole("dialog", { name: title, exact: true });
+  await peek.getByRole("region", { name: "Time block" }).getByRole("button", { name: "Move to day…" }).click();
   const dialog = page.getByRole("dialog", { name: `Move "${title}"` });
   const later = dayFromToday(3);
   await pickDate(page, datePickerLabelled(dialog, "Day"), later);
   await dialog.getByRole("button", { name: "Move" }).click();
   await expect.poll(() => dateOf(page, id)).toBe(later);
+  await expect(peek, "the tapped row has moved: the Peek closes").toBeHidden();
 });
 
-test("an Event's day changed in the Hours editor", async ({ page }) => {
+test("on the desk, a right-click on a Task in Upcoming still opens its menu", async ({ page, isMobile }) => {
+  test.skip(isMobile, "a phone has no right-click: the Peek carries the actions");
+  const title = `Menu me ${Date.now()}`;
+  await page.goto("/calendar?view=upcoming");
+  await workLocally(page);
+  await inCore(page, async (core, a: { title: string; today: string }) => void (await core.putDocument({ type: "task", title: a.title, status: "active", date: a.today, completedOn: null, recurrence: null, notes: "", tags: [] })), { title, today: dayFromToday(0) });
+  await page.getByText(title).click({ button: "right" });
+  await expect(page.getByRole("menuitem", { name: "Move to day…" })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: title, exact: true }), "a right-click opens no Peek").toHaveCount(0);
+});
+
+test("an Event's day changed in the Peek it opens from Upcoming (#536)", async ({ page }) => {
   const title = `Shift me ${Date.now()}`;
   const today = dayFromToday(0);
   await page.goto("/calendar?view=upcoming");
@@ -109,7 +123,7 @@ test("an Event's day changed in the Hours editor", async ({ page }) => {
   );
   await page.getByText(title).click();
   const later = dayFromToday(2);
-  await pickDate(page, datePickerLabelled(page, "Day"), later);
+  await pickDate(page, page.getByRole("dialog", { name: title, exact: true }).getByLabel("Day", { exact: true }), later);
   await expect.poll(() => dateOf(page, id)).toBe(later);
 });
 

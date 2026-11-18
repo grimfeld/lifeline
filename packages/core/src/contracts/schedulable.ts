@@ -28,6 +28,18 @@ export interface SchedulableItem {
 }
 
 /**
+ * A work item as the hours show it: a Time block (a placement with a start,
+ * ADR 0028) or an untimed chip (no placement, or one without a start).
+ */
+export type WorkOnHours = Pick<SchedulableItem, "appId" | "itemId" | "title" | "date" | "completedOn" | "estimateMin"> & {
+  color?: string;
+  displayDate?: DateStr;
+  placementId?: string;
+  start?: string | null;
+  end?: string | null;
+};
+
+/**
  * The Schedulable Contract (ADR 0001): surfaces render items from every
  * provider, but all semantics — what completing means, what happens when a
  * day passes uncompleted — belong to the owning App.
@@ -66,6 +78,13 @@ export interface SchedulableProvider {
    * keep the Estimate it asks for.
    */
   setEstimate?(itemId: string, minutes: number): Promise<void>;
+  /**
+   * The Document whose Peek opens when the item's Time block or untimed chip
+   * is tapped on the hours (#537): a Task's own, an Occurrence's Task. The Peek
+   * draws the block's timing above the App's part. null, or no hook, means
+   * the item has no Document: a tap shows a small read-only card (#538).
+   */
+  peekOf?(itemId: string): string | null;
   /** Optional route that opens the item where its App edits it in full. */
   href?(itemId: string): string;
 }

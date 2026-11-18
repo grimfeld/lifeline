@@ -115,4 +115,9 @@ export const tasksSchedulable: SchedulableProvider = {
   href(itemId) {
     return vaultDocPath(parseItemId(itemId).taskId);
   },
+
+  // A block or chip opens its Task's Peek, with the block's timing above it (#537); an Occurrence's, its Task's.
+  peekOf(itemId) {
+    return parseItemId(itemId).taskId;
+  },
 };

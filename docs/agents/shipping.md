@@ -31,6 +31,27 @@ Not even a hotfix merges directly: give it `ship`, and start the Ship workflow b
   - An ADR number clash stops `integrate`, and the job fails. Renumber the ADR (CLAUDE.md), commit, and run `pnpm integrate --continue`.
 - **Contract the command keeps:** it takes PR numbers, lands them through a PR whose head starts with `integration/`, and skips conflicting PRs for the next batch.
 
+## Conflicts
+
+A labelled PR that conflicts with `master` can't land: a landing run would skip it again and again.
+The `conflicts` job in `ship.yml` checks the labelled PRs each time `master` moves, and when a PR gets `ship`.
+For each one that conflicts, it removes `ship`, adds **`conflicts`**, and comments with the conflicting files.
+
+`/ship:resolve-conflicts [<pr>...]` merges `master` into each such PR, keeping what both sides meant, runs
+the local checks and pushes. Then:
+
+- **Only bookkeeping files conflicted:** `ship` goes back on, and the PR lands with the next run.
+- **Anything else conflicted:** the resolution is new code. `/ship:pr-review` runs on it and a comment explains each
+  choice; re-review it and add `ship` again.
+- **The two sides contradict each other:** nothing is pushed, `conflicts` stays, and a comment names the decision to make.
+
+Resolving it yourself works too: merge `master` into the branch, push, remove `conflicts` and add `ship`.
+
+Bookkeeping files (a conflict here needs no re-review):
+
+- `CONTEXT.md`
+- `packages/guide/pages/**`
+
 ## Checks
 
 Required on `master`: `check`, `e2e` (one result for every e2e shard), `dependency-review`, and `ship`.

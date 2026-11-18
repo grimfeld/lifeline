@@ -1,6 +1,7 @@
 ---
 status: accepted
 amends: ADR 0029 (the deferred option — a one-off blocker may now be attached to an Event), ADR 0085 (in part — the App draws above Core's Peek through `peekAside`)
+amended-by: ADR 0124 (in part — the Event dialog only adds, so its picks are staged only while adding)
 ---
 
 # A one-off Time blocker can be attached to a timed Event and follows it

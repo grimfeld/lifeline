@@ -137,7 +137,7 @@ test("dragging the next-day piece of an overnight Event moves the whole Event, k
 });
 
 test("only the last piece of an overnight Event resizes, and it moves only the end", async ({ page, isMobile }) => {
-  test.skip(isMobile, "a phone sets an end in the Hours editor, not by an edge");
+  test.skip(isMobile, "a phone sets an end in the Event's Peek, not by an edge");
   const title = `Sleeper ${Date.now()}`;
   const { monday, tuesday } = await weekWithNightFlight(page, title);
   await expect(monday.locator(".cursor-ns-resize"), "the first piece carries on: no end of its own to drag").toHaveCount(0);
@@ -148,19 +148,19 @@ test("only the last piece of an overnight Event resizes, and it moves only the e
   await expect.poll(() => storedEvent(page, title)).toEqual({ date: "2025-11-10", endDate: "2025-11-11", start: "22:00", end: "07:00" });
 });
 
-test("the Hours editor gives an Event a Start and an End, rolling an earlier End to the next day", async ({ page }) => {
+test("an Event tapped on the hours gets a Start and an End in its Peek, rolling an earlier End to the next day (#536)", async ({ page }) => {
   const title = `Late shift ${Date.now()}`;
   await page.goto("/calendar?view=week&d=2025-11-10");
   await workLocally(page);
   await seedEvent(page, { title, date: "2025-11-10", endDate: null, start: "20:00", end: "21:00" });
   await page.locator('[data-col="2025-11-10"]').getByText(title).click();
-  await expect(page.getByRole("combobox", { name: "Start" })).toBeVisible();
-  await expect(page.getByRole("group", { name: "Length" }), "an Event is given an end, not a length").toHaveCount(0);
-  await setTime(page.getByRole("combobox", { name: "End" }), "02:00");
-  await expect(page.getByText(/^until Tue.* · 6h$/)).toBeVisible();
+  const peek = page.getByRole("dialog", { name: title, exact: true });
+  await expect(peek.getByRole("combobox", { name: "Start" })).toBeVisible();
+  await setTime(peek.getByRole("combobox", { name: "End" }), "02:00");
+  await expect(peek.getByText(/^until Tue.* · 6h$/)).toBeVisible();
   await expect.poll(() => storedEvent(page, title)).toEqual({ date: "2025-11-10", endDate: "2025-11-11", start: "20:00", end: "02:00" });
   // Moving the Start keeps the length.
-  await setTime(page.getByRole("combobox", { name: "Start" }), "19:00");
+  await setTime(peek.getByRole("combobox", { name: "Start" }), "19:00");
   await expect.poll(() => storedEvent(page, title)).toEqual({ date: "2025-11-10", endDate: "2025-11-11", start: "19:00", end: "01:00" });
 });
 
@@ -173,7 +173,7 @@ test('an Event stored before as ending at "24:00" still ends at midnight on its 
   await expect(page.locator('[data-col="2025-11-11"]').getByTitle(title, { exact: false }), "midnight leaves no piece on the next day").toHaveCount(0);
 });
 
-test("the Hours editor keeps a Start and a Length for a Time block of work", async ({ page }) => {
+test("a Time block of work's Peek keeps a Start and a Length, never an End (#537)", async ({ page }) => {
   const title = `Write report ${Date.now()}`;
   await page.goto("/calendar?view=week&d=2025-11-10");
   await workLocally(page);
@@ -185,10 +185,11 @@ test("the Hours editor keeps a Start and a Length for a Time block of work", asy
     },
     { coreUrl: CORE_URL, title },
   );
-  await page.locator('[data-col="2025-11-10"]').getByText(title).click();
-  await expect(page.getByRole("combobox", { name: "Start" })).toBeVisible();
-  await expect(page.getByRole("group", { name: "Length" })).toBeVisible();
-  await expect(page.getByRole("combobox", { name: "End" })).toHaveCount(0);
+  await page.locator('[data-col="2025-11-10"] [data-focus-key]').filter({ hasText: title }).first().click();
+  const block = page.getByRole("dialog", { name: title, exact: true }).getByRole("region", { name: "Time block" });
+  await expect(block.getByRole("combobox", { name: "Start" })).toBeVisible();
+  await expect(block.getByRole("group", { name: "Length" })).toBeVisible();
+  await expect(block.getByRole("combobox", { name: "End" })).toHaveCount(0);
 });
 
 test("an overnight Event counts as running on its second day until it ends, on the Events screen", async ({ page }) => {
@@ -266,7 +267,7 @@ test("dragging the next-day part of a one-off overnight blocker moves the whole 
 });
 
 test("only the last part of a one-off overnight blocker resizes, and it moves only the end", async ({ page, isMobile }) => {
-  test.skip(isMobile, "a phone sets an end in the Hours editor, not by an edge");
+  test.skip(isMobile, "a phone sets an end in the Peek, not by an edge");
   const title = `Ferry ${Date.now()}`;
   const { monday, tuesday } = await weekWithOvernightBlocker(page, { title, endDate: "2025-11-11" });
   await expect(monday.locator(".cursor-ns-resize"), "the evening part carries on: no end of its own to drag").toHaveCount(0);

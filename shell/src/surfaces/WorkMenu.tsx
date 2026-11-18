@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import {
   Button,
   Dialog,
@@ -22,6 +22,7 @@ import {
   unplaceItem,
   type DateStr,
   type PoolItem,
+  type SchedulableItem,
   type SurfaceItem,
 } from "@lifeline/core";
 import { CalendarClock, Check, Inbox, MapPin, PinOff } from "lucide-react";
@@ -30,30 +31,65 @@ import { usePush } from "./push";
 /** A work item on a day-granular view: placed on a day, or in the pool. */
 export type DayWork = (SurfaceItem | (PoolItem & { displayDate?: undefined; placementId?: undefined; start?: undefined; end?: undefined })) & { color?: string };
 
+/** What the work actions need of an item: a day-granular row's, or what was tapped on the hours. */
+type Actionable = Pick<SchedulableItem, "appId" | "itemId" | "title" | "date" | "estimateMin" | "completedOn"> & { displayDate?: DateStr; placementId?: string; start?: string | null };
+
 const fail = (err: Error) => toast.error(`Could not save: ${err.message}`);
 
-export function completeWork(item: DayWork) {
-  completeSurfaceItem(item as SurfaceItem)
+export function completeWork(item: Actionable) {
+  completeSurfaceItem(item)
     .then(() => toast.success(`${item.title} done`))
     .catch(fail);
 }
 
 /** Move to a day, or back to the pool with `null`. The owning App decides what that means (CONTEXT.md — Move). */
-export function moveWork(item: DayWork, to: DateStr | null) {
+export function moveWork(item: Actionable, to: DateStr | null) {
   if ((item.displayDate ?? null) === to) return;
   moveSurfaceItem(item, to)
     .then(() => toast.success(to ? `Moved to ${formatHuman(to)}` : "Back to the pool"))
     .catch(fail);
 }
 
-/**
- * A work item's actions on Month and Upcoming: Complete, Push, Move to day…,
- * Unplace, Unpin. Opened by its row's tap rather than by a trigger of its
- * own — the row is also what a long press drags, and a menu that opened on
- * press would fight the drag. Sits inside a `relative` row, anchored to it.
- */
-export function WorkMenu({ item, open, onOpenChange, onMove }: { item: DayWork; open: boolean; onOpenChange: (o: boolean) => void; onMove: (item: DayWork) => void }) {
+/** One of a work item's actions, as its menu on Month and Upcoming and its Peek both offer them. */
+export interface WorkAction {
+  id: "complete" | "push" | "move" | "unplace" | "unpin";
+  label: string;
+  icon: ReactNode;
+  run: () => void;
+}
+
+/** A work item's actions, as its App allows: Complete, Push, Move to day…, Unplace, Unpin. */
+export function useWorkActions(item: Actionable, onMove: (item: Actionable) => void): WorkAction[] {
   const push = usePush(item);
+  const done = !!item.completedOn;
+  const placementId = item.placementId;
+  const out: WorkAction[] = [];
+  if (!done) out.push({ id: "complete", label: "Complete", icon: <Check />, run: () => completeWork(item) });
+  if (push) out.push({ id: "push", label: "Push", icon: <CalendarClock />, run: push });
+  if (!done) out.push({ id: "move", label: "Move to day…", icon: <MapPin />, run: () => onMove(item) });
+  if (!done && canUnplace(item.appId) && item.displayDate !== undefined) out.push({ id: "unplace", label: "Unplace", icon: <Inbox />, run: () => moveWork(item, null) });
+  if (placementId && !item.start)
+    out.push({
+      id: "unpin",
+      label: "Unpin",
+      icon: <PinOff />,
+      run: () => {
+        void unplaceItem(placementId);
+        toast.success("Pin removed — back to its natural day");
+      },
+    });
+  return out;
+}
+
+/**
+ * A work item's actions on Month and Upcoming (`useWorkActions`), on a
+ * right-click or the menu key. Opened by its row rather than by a trigger of
+ * its own — the row is also what a long press drags, and a menu that opened
+ * on press would fight the drag; a touch reaches the same actions in the
+ * item's Peek. Sits inside a `relative` row, anchored to it.
+ */
+export function WorkMenu({ item, open, onOpenChange, onMove }: { item: DayWork; open: boolean; onOpenChange: (o: boolean) => void; onMove: (item: Actionable) => void }) {
+  const actions = useWorkActions(item, onMove);
   const done = !!item.completedOn;
   const anchor = useRef<HTMLSpanElement>(null);
   return (
@@ -78,46 +114,21 @@ export function WorkMenu({ item, open, onOpenChange, onMove }: { item: DayWork; 
           {appById(item.appId)?.title} · {item.subtitle ?? item.title}
           {item.urgency === "overdue" && !done ? " · overdue" : ""}
         </div>
-        {!done && (
-          <DropdownMenuItem onClick={() => completeWork(item)}>
-            <Check /> Complete
+        {actions.map((a) => (
+          <DropdownMenuItem key={a.id} onClick={a.run}>
+            {a.icon} {a.label}
           </DropdownMenuItem>
-        )}
-        {push && (
-          <DropdownMenuItem onClick={push}>
-            <CalendarClock /> Push
-          </DropdownMenuItem>
-        )}
-        {!done && (
-          <DropdownMenuItem onClick={() => onMove(item)}>
-            <MapPin /> Move to day…
-          </DropdownMenuItem>
-        )}
-        {!done && canUnplace(item.appId) && item.displayDate !== undefined && (
-          <DropdownMenuItem onClick={() => moveWork(item, null)}>
-            <Inbox /> Unplace
-          </DropdownMenuItem>
-        )}
-        {item.placementId && !item.start && (
-          <DropdownMenuItem
-            onClick={() => {
-              void unplaceItem(item.placementId!);
-              toast.success("Pin removed — back to its natural day");
-            }}
-          >
-            <PinOff /> Unpin
-          </DropdownMenuItem>
-        )}
+        ))}
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
 
 /** "Move to day…": the precise route beside the drag. */
-export function useMoveDialog(today: DateStr) {
-  const [moving, setMoving] = useState<DayWork | null>(null);
+export function useMoveDialog(today: DateStr, onMoved?: () => void) {
+  const [moving, setMoving] = useState<Actionable | null>(null);
   const [date, setDate] = useState<DateStr>(today);
-  const start = (item: DayWork) => {
+  const start = (item: Actionable) => {
     setMoving(item);
     setDate(item.displayDate ?? today);
   };
@@ -136,6 +147,7 @@ export function useMoveDialog(today: DateStr) {
             onClick={() => {
               if (moving && date) moveWork(moving, date);
               setMoving(null);
+              onMoved?.();
             }}
           >
             Move

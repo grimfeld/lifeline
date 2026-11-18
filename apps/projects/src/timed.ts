@@ -33,4 +33,16 @@ export const projectsTimed: TimedProvider = {
   href(itemId) {
     return projectHref(parseMarkerId(itemId).projectId);
   },
+
+  // Tapped on the hours, the Milestone's Peek, or the Project's for its own Deadline (#538).
+  peekOf(item) {
+    const { projectId, milestoneId } = parseMarkerId(item.itemId);
+    return milestoneId ?? projectId;
+  },
+
+  // The Project's Peek edits its own Deadline field, so the shell adds no Day picker (ADR 0124).
+  // A Milestone's Peek has no deadline field, so its timing stays the shell's.
+  timingInPeek(item) {
+    return !parseMarkerId(item.itemId).milestoneId;
+  },
 };

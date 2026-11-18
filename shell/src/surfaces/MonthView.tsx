@@ -22,7 +22,7 @@ import {
 } from "@lifeline/core";
 import { ChevronDown, Inbox, Pin } from "lucide-react";
 import { ItemMark, missed } from "./marks";
-import { HoursEditor, type HoursEditing } from "./HoursEditor";
+import { useOpenOnHours } from "./openOnHours";
 import { moveWork, useMoveDialog, WorkMenu, type DayWork } from "./WorkMenu";
 import type { CalendarCtx } from "./CalendarSurface";
 
@@ -41,7 +41,7 @@ function useDragGuard() {
 }
 
 /**
- * An Event (or other Timed item) on its day: opens in the hours' editor, drags to another day where its App allows.
+ * An Event (or other Timed item) on its day: opens its Peek (or a subscription's read-only card), drags to another day where its App allows.
  * One that runs across days shows on each: its first day with its start, later days with "→ its end" (ADR 0090);
  * any of them drags, moving the whole Event by the days between the chip's day and the drop.
  */
@@ -75,8 +75,8 @@ function TimedChip({ item, onOpen, onStep }: { item: SurfaceTimedItem; onOpen: (
   );
 }
 
-/** A work item: tap for its menu, drag (long press on a phone) to Move it. */
-function WorkChip({ item, onTap, onStep, menu }: { item: DayWork; onTap: () => void; onStep: (step: Step) => void; menu: React.ReactNode }) {
+/** A work item: tap for its Peek, right-click for its menu, drag (long press on a phone) to Move it. */
+function WorkChip({ item, onTap, onMenu, onStep, menu }: { item: DayWork; onTap: (el: HTMLElement) => void; onMenu: () => void; onStep: (step: Step) => void; menu: React.ReactNode }) {
   const done = !!item.completedOn;
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `item:${item.key}`, data: { item }, disabled: done });
   return (
@@ -87,7 +87,7 @@ function WorkChip({ item, onTap, onStep, menu }: { item: DayWork; onTap: () => v
       data-focus-key={`item:${item.key}`}
       onKeyDown={(e) => {
         const k = itemKey(e, "week");
-        if (k?.open) onTap();
+        if (k?.open) onTap(e.currentTarget);
         else if (k && !done) onStep(k);
       }}
       className={cn(
@@ -97,10 +97,16 @@ function WorkChip({ item, onTap, onStep, menu }: { item: DayWork; onTap: () => v
         done && "text-muted-foreground line-through",
         item.urgency === "overdue" && !done && "text-destructive",
       )}
-      onClick={(e) => {
-        // The day cell opens the day; a chip's own tap belongs to its menu.
+      onContextMenu={(e) => {
+        // Right-click, or the menu key: Push, Move and Unplace at once (a touch finds them in the Peek).
+        e.preventDefault();
         e.stopPropagation();
-        onTap();
+        onMenu();
+      }}
+      onClick={(e) => {
+        // The day cell opens the day; a chip's own tap opens its Peek.
+        e.stopPropagation();
+        onTap(e.currentTarget);
       }}
     >
       <span className="size-1.5 shrink-0 rounded-full" style={{ background: item.color ?? "var(--muted-foreground)" }} />
@@ -190,6 +196,7 @@ export function MonthView({ ctx }: { ctx: CalendarCtx }) {
   const monthEnd = fromParts(y, m, daysInMonth(y, m));
   const gridStart = days[0] ?? monthStart;
   const gridEnd = days.at(-1) ?? monthEnd;
+  const { open, card } = useOpenOnHours({ defaultDay: anchor });
 
   // Day-granular: the item on its own day only — its Time blocks are Schedule detail (ADR 0028).
   // Looking back lets work missed before the grid surface in the pool as Overdue.
@@ -207,7 +214,6 @@ export function MonthView({ ctx }: { ctx: CalendarCtx }) {
   );
   const [active, setActive] = useState<string | null>(null);
   const [menuFor, setMenuFor] = useState<string | null>(null);
-  const [editing, setEditing] = useState<(HoursEditing & { id: number }) | null>(null);
   const drag = useDragGuard();
   const move = useMoveDialog(today);
 
@@ -248,7 +254,8 @@ export function MonthView({ ctx }: { ctx: CalendarCtx }) {
       key={item.key}
       item={item}
       onStep={(st) => stepWork(item, st)}
-      onTap={() => !drag.recent() && setMenuFor(item.key)}
+      onTap={(el) => !drag.recent() && open({ kind: "work", item }, el)}
+      onMenu={() => setMenuFor(item.key)}
       menu={<WorkMenu item={item} open={menuFor === item.key} onOpenChange={(o) => setMenuFor(o ? item.key : null)} onMove={move.start} />}
     />
   );
@@ -287,7 +294,7 @@ export function MonthView({ ctx }: { ctx: CalendarCtx }) {
                   {timed
                     .filter((t) => t.date === d)
                     .map((t) => (
-                      <TimedChip key={t.key} item={t} onStep={(st) => stepTimed(t, st)} onOpen={(el) => !drag.recent() && setEditing({ target: { kind: "timed", item: t }, anchor: el, id: Date.now() })} />
+                      <TimedChip key={t.key} item={t} onStep={(st) => stepTimed(t, st)} onOpen={(el) => !drag.recent() && open({ kind: "timed", item: t }, el)} />
                     ))}
                   {inGrid.filter((i) => i.displayDate === d).map(chip)}
                 </DayCell>
@@ -297,23 +304,14 @@ export function MonthView({ ctx }: { ctx: CalendarCtx }) {
         </div>
         <p className="text-muted-foreground shrink-0 text-xs">
           {isMobile
-            ? "Tap a day to open it · tap an item for its actions · press and hold to drag it to another day."
-            : "Click a day to open it · click an item for its actions · drag an item to another day, or from Unplaced onto one · on the keyboard, Enter opens an item and the arrow keys move it."}
+            ? "Tap a day to open it · tap an item to open it, with its actions · press and hold to drag it to another day."
+            : "Click a day to open it · click an item to open it, right-click for its actions · drag an item to another day, or from Unplaced onto one · on the keyboard, Enter opens an item and the arrow keys move it."}
         </p>
       </div>
 
       <DragOverlay dropAnimation={null}>{active && <div className="bg-card rounded-md border px-2 py-1 text-xs shadow-md">{active}</div>}</DragOverlay>
       {move.dialog}
-      {editing && (
-        <HoursEditor
-          key={editing.id}
-          editing={editing}
-          defaultDay={anchor}
-          inView={(d) => d >= gridStart && d <= gridEnd}
-          onGo={(d) => ctx.go(d)}
-          onClose={() => setEditing(null)}
-        />
-      )}
+      {card}
     </DndContext>
   );
 }

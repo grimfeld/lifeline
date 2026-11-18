@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { initApps } from "../registry";
 import type { AppManifest } from "../manifest";
 import type { Document, DocumentTypeDef } from "./types";
-import { backPeek, closePeek, homeModuleOf, openDocument, openPeek, opensInPlace, peekStack, pushPeek } from "./peek";
+import { backPeek, closePeek, forgetTiming, homeModuleOf, noteTiming, onPeekClosed, openDocument, openPeek, opensInPlace, peekOrigin, peekStack, peekTapped, pushPeek, type TimingChange } from "./peek";
 
 const type = (id: string): DocumentTypeDef => ({ id, label: id, titleRule: "name", body: "optional", fields: [], builtIn: true });
 
@@ -119,5 +119,98 @@ describe("openDocument", () => {
     pushPeek("b");
     openDocument(doc, { pathname: "/vault", navigate });
     expect(peekStack()).toEqual(["t1"]);
+  });
+});
+
+describe("what was tapped on the hours (#536)", () => {
+  beforeEach(() => closePeek());
+  const tapped = { kind: "timed" as const, item: { key: "calendar/e1@2026-11-10", appId: "calendar", itemId: "e1", title: "Dentist", date: "2026-11-10", start: "10:00", end: "11:00" } };
+
+  it("is known while the Peek shows the Document it was opened on, and only then", () => {
+    openPeek("e1", { tapped });
+    expect(peekTapped()).toEqual(tapped);
+    pushPeek("p1");
+    expect(peekTapped(), "a link followed in the Peek shows another Document").toBeNull();
+    backPeek();
+    expect(peekTapped()).toEqual(tapped);
+    closePeek();
+    expect(peekTapped()).toBeNull();
+  });
+
+  it("is not known for a Peek opened from anywhere else", () => {
+    openPeek("e1");
+    expect(peekTapped()).toBeNull();
+  });
+
+  it("keeps the element it was opened from once closed, so the focus can go back to it", () => {
+    const anchor = {} as HTMLElement;
+    openPeek("e1", { tapped, anchor });
+    closePeek();
+    expect(peekOrigin().anchor).toBe(anchor);
+  });
+});
+
+describe("one timing Undo on closing a Peek (#536, ADR 0056)", () => {
+  beforeEach(() => closePeek());
+  const closed = () => {
+    const seen: TimingChange[][] = [];
+    const stop = onPeekClosed((c) => seen.push(c));
+    return { seen, stop };
+  };
+  const restore = vi.fn(async () => {});
+  const change = (after: object, key = "event:e1") => noteTiming({ key, label: "Dentist", before: { date: "2026-11-10", start: "10:00" }, after, restore });
+
+  it("hands over what changed, with its timing from before the first change", () => {
+    const { seen, stop } = closed();
+    openPeek("e1");
+    change({ date: "2026-11-10", start: "10:15" });
+    noteTiming({ key: "event:e1", label: "Dentist", before: { date: "2026-11-10", start: "10:15" }, after: { date: "2026-11-11", start: "10:15" }, restore });
+    closePeek();
+    stop();
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toMatchObject([{ key: "event:e1", before: { date: "2026-11-10", start: "10:00" }, after: { date: "2026-11-11", start: "10:15" } }]);
+  });
+
+  it("hands over nothing when the timing was put back as it was", () => {
+    const { seen, stop } = closed();
+    openPeek("e1");
+    change({ date: "2026-11-10", start: "10:15" });
+    change({ start: "10:00", date: "2026-11-10" });
+    closePeek();
+    stop();
+    expect(seen).toEqual([[]]);
+  });
+
+  it("forgets a change whose thing was deleted (deleting brings its own Undo)", () => {
+    const { seen, stop } = closed();
+    openPeek("e1");
+    change({ date: "2026-11-12", start: "10:00" });
+    forgetTiming("event:e1");
+    closePeek();
+    stop();
+    expect(seen).toEqual([[]]);
+  });
+
+  it("notes nothing while no Peek is open", () => {
+    const { seen, stop } = closed();
+    change({ date: "2026-11-12", start: "10:00" });
+    openPeek("e1");
+    closePeek();
+    stop();
+    expect(seen).toEqual([[]]);
+  });
+
+  it("ends one Peek's changes when another Peek replaces it, and keeps those made across links followed inside it", () => {
+    const { seen, stop } = closed();
+    openPeek("e1");
+    change({ date: "2026-11-12", start: "10:00" });
+    pushPeek("e2");
+    change({ date: "2026-11-13", start: "09:00" }, "event:e2");
+    openPeek("e3");
+    expect(seen).toHaveLength(1);
+    expect(seen[0]!.map((c) => c.key)).toEqual(["event:e1", "event:e2"]);
+    closePeek();
+    stop();
+    expect(seen[1]).toEqual([]);
   });
 });
