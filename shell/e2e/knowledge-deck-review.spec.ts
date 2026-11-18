@@ -73,7 +73,7 @@ test("review a Deck, delete one draft, accept the rest with accept all, then pra
   );
   expect(words.sort()).toEqual([["alfa", false], ["delta", false], ["gamma", false]]);
 
-  // Mixed with a second Deck sharing "delta", the three Words are practised together, "delta" once.
+  // Mixed with a second Deck sharing "delta" and "gamma", the three Words are practised together, each once.
   await inCore(
     page,
     async (core, name: string) => {
@@ -91,10 +91,10 @@ test("review a Deck, delete one draft, accept the rest with accept all, then pra
   const together = page.getByRole("button", { name: /decks together/ });
   await expect(together).toBeDisabled();
   await page.getByRole("button", { name: /Lesson 1/ }).click();
-  await page.getByRole("button", { name: /Lesson 3/ }).click();
+  await page.getByRole("button", { name: /Lesson 2/ }).click();
   await expect(together).toBeEnabled();
-  await expect(together).toContainText("6 new"); // 3 Words x 2 Prompts; "gamma" is in both Decks, counted once
+  await expect(together).toContainText("6 new"); // 3 Words x 2 Prompts; "delta" and "gamma" are in both Decks, counted once
   await together.click();
-  await expect(page.getByText(/Lesson 1 \+ Lesson 3/)).toBeVisible();
+  await expect(page.getByText(/Lesson 1 \+ Lesson 2/)).toBeVisible();
   await expect(page.getByText(/· 6 new/)).toBeVisible();
 });
