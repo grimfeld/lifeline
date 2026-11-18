@@ -137,7 +137,9 @@ export function otherNameOf(people: readonly Pick<Person, "id" | "title">[], oth
 }
 
 /** A Tie's kind: the one it carries, else the one its words read as. */
-export const tieKindOf = (t: Pick<Tie, "labelA" | "labelB" | "kind">): TieKind | undefined => t.kind ?? kindOfWords(t.labelA, t.labelB);
+export const tieKindOf = (t: Pick<Tie, "labelA" | "labelB" | "kind">): TieKind | undefined =>
+  // A stored value that is no kind (a text Field can hold anything) counts as none.
+  t.kind && Object.hasOwn(KIND_WORDS, t.kind) ? t.kind : kindOfWords(t.labelA, t.labelB);
 
 export type Gender = "female" | "male" | "neutral";
 

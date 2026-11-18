@@ -75,6 +75,9 @@ describe("Tie kinds read from words (#608)", () => {
     expect(kindOfWords("godmother", "goddaughter")).toBeUndefined();
     expect(kindOfWords("mother", "mother")).toBeUndefined();
   });
+  it("ignores a stored kind that is not one", () => {
+    expect(tiesSeenFrom("p1", [{ ...tie("t1", "p1", "p2", "godmother", "goddaughter"), kind: "text" } as unknown as Tie], [anne, lea])[0]).not.toHaveProperty("kind");
+  });
   it("offers the chips in the spec's order", () => {
     expect(PRESETS.map((p) => p.word).join(" ")).toBe(
       "daughter son child sister brother sibling mother father parent wife husband partner granddaughter grandson grandchild grandmother grandfather grandparent niece nephew aunt uncle cousin",

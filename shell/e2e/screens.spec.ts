@@ -605,6 +605,20 @@ async function longWorld(page: Page) {
 }
 
 /**
+ * A Person page with the Add a tie dialog open and a long-named Person picked
+ * (ADR 0130): the preset chips under the question wrap, never scroll.
+ */
+async function tieDialogWithLongPerson(page: Page) {
+  await workLocally(page);
+  await inCore(page, async (core, a: { long: string; word: string }) => void (await core.createDocument({ type: "contacts_person", title: `${a.long} ${a.word}` })), { long: longText("Another person"), word: LONG_WORD });
+  await page.getByRole("region", { name: "Ties" }).getByRole("button", { name: "Add tie" }).click();
+  const dialog = page.getByRole("dialog", { name: "Add a tie" });
+  await dialog.getByRole("combobox").fill("Another person");
+  await page.getByRole("option", { name: /^Another person/ }).click();
+  await expect(dialog.getByRole("button", { name: "cousin", exact: true })).toBeVisible();
+}
+
+/**
  * The seeded Household (its title as long as a person could type) holding
  * every seeded Person, and a second as long, so a Person's page names two
  * Households and the Household's page lists its members (ADR 0117).
@@ -1316,6 +1330,7 @@ const SCREENS: ScreenCase[] = [
     },
   },
   { name: "Places · Add place, Here's places", path: "/app/places", afterOpen: openHere },
+  { name: "Person · Add tie with a Person picked", path: "/app/people/person/:id", type: "contacts_person", afterOpen: tieDialogWithLongPerson },
   { name: "Person · Households", path: "/app/people/person/:id", type: "contacts_person", afterOpen: async (page) => { await longHouseholds(page); await expect(page.getByRole("link", { name: /^Another household/ })).toBeVisible(); } },
   { name: "Households", path: "/app/people/households", afterOpen: async (page) => { await longHouseholds(page); await expect(page.getByRole("link", { name: /^Another household/ })).toBeVisible(); } },
   { name: "Household", path: "/app/people/household/:id", type: "contacts_household", afterOpen: async (page) => { await workLocally(page); await expect(page.getByText("No members yet.")).toBeVisible(); } },
