@@ -2,8 +2,8 @@ import { defineConfig, devices } from "@playwright/test";
 import { free, preinstalledChromium } from "../scripts/e2e-env.mjs";
 
 /**
- * End-to-end layout tests (see e2e/README.md): every screen, at phone and
- * desktop widths, filled with the longest content a person could type.
+ * End-to-end tests (see e2e/README.md). The delivery gate (`mobile`, `desktop`) runs
+ * behaviour flows; the nightly projects run the UI checks and the Demo (ADR 0129).
  */
 
 /** The first of 1421, 1424, 1427… whose three ports (the app and both Demos) are all free. */
@@ -59,6 +59,20 @@ const projects = selectedProjects();
 /** The Demo builds take half a minute and two ports: only for a run that has Demo cases. */
 const needsDemo = projects.length === 0 || projects.some((p) => p.test("demo") || p.test("demo-setup"));
 
+/**
+ * The UI checks (ADR 0129): how screens look and read, not whether a flow works. They
+ * run nightly, at both widths, in their own projects; never in the delivery gate.
+ */
+const UI_CHECKS = /(screens|a11y-names)\.spec\.ts/;
+/** Specs the gate projects never run: the UI checks and the Demo (its own `demo` project). */
+const NIGHTLY_ONLY = /(screens|a11y-names|demo)\.spec\.ts/;
+/** A case tagged for the phone: `@phone` (phone width only) or `@also-phone` (both widths). */
+const PHONE_TAGS = /@phone\b|@also-phone\b/;
+/** A case for the phone only, which the desktop project leaves out. */
+const PHONE_ONLY = /@phone\b/;
+const PHONE = { ...devices["Pixel 5"], viewport: { width: 360, height: 780 }, storageState: "e2e/.auth/seeded.json", locale: "en-IE" };
+const DESKTOP = { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 }, storageState: "e2e/.auth/seeded.json", locale: "en-IE" };
+
 export default defineConfig({
   testDir: "e2e",
   timeout: 90_000,
@@ -67,7 +81,8 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   // In CI the github reporter turns each failure into an annotation on the check run.
-  reporter: process.env.CI ? [["list"], ["github"], ["html", { open: "never" }]] : "list",
+  // The json report names the failing cases for the nightly run's issue (scripts/e2e-failures.mjs).
+  reporter: process.env.CI ? [["list"], ["github"], ["html", { open: "never" }], ["json", { outputFile: "e2e-results.json" }]] : "list",
   use: {
     // Cloud containers ship their Chromium in /opt/pw-browsers, at a build that may not
     // be the one this Playwright expects, and cannot download another: launch that one.
@@ -79,20 +94,27 @@ export default defineConfig({
   },
   projects: [
     { name: "seed", testMatch: /seed\.setup\.ts/, use: { ...devices["Desktop Chrome"] } },
+    // The delivery gate (ADR 0129): behaviour flows, at desktop width unless a case
+    // carries a phone tag. `@phone` runs at phone width only, `@also-phone` at both.
     {
       name: "mobile",
       dependencies: ["seed"],
-      testIgnore: /demo\.spec\.ts/,
+      testIgnore: NIGHTLY_ONLY,
+      grep: PHONE_TAGS,
       // A small Android phone: the narrowest width the app is laid out for. Here and
       // below, dates and numbers read in en-IE whatever this machine's locale.
-      use: { ...devices["Pixel 5"], viewport: { width: 360, height: 780 }, storageState: "e2e/.auth/seeded.json", locale: "en-IE" },
+      use: PHONE,
     },
     {
       name: "desktop",
       dependencies: ["seed"],
-      testIgnore: /demo\.spec\.ts/,
-      use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 }, storageState: "e2e/.auth/seeded.json", locale: "en-IE" },
+      testIgnore: NIGHTLY_ONLY,
+      grepInvert: PHONE_ONLY,
+      use: DESKTOP,
     },
+    // Nightly only (e2e.yml): the UI checks, every case at both widths (ADR 0065, 0129).
+    { name: "nightly-mobile", dependencies: ["seed"], testMatch: UI_CHECKS, use: PHONE },
+    { name: "nightly-desktop", dependencies: ["seed"], testMatch: UI_CHECKS, use: DESKTOP },
     {
       // Opens the Demo once and keeps the life it seeds, so the cases need not
       // each write it again.
@@ -101,8 +123,8 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"], baseURL: `http://localhost:${DEMO_PORT}`, locale: "en-IE" },
     },
     {
-      // The Demo (never the layout seed); phone and desktop widths are set per
-      // test in demo.spec.ts. Cases start from the seeded life; those about a
+      // The Demo (never the layout seed), nightly only; phone and desktop widths are
+      // set per test in demo.spec.ts. Cases start from the seeded life; those about a
       // stranger's first open start from an empty store instead.
       name: "demo",
       testMatch: /demo\.spec\.ts/,
