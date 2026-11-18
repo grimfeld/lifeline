@@ -135,6 +135,10 @@ test("an Event peeked from the Vault gets a time there; an end before its start 
   await dialog.getByRole("checkbox", { name: "All day" }).click();
   const start = dialog.getByRole("combobox", { name: "Start" });
   const end = dialog.getByRole("combobox", { name: "End" });
+  // Unticking All day gives the Event 09:00–10:00; wait for it to be stored, or typing
+  // the start can race the default (seen on the phone, where saving is slower).
+  await expect.poll(async () => { const d = await field(page, id); return { start: d.start, end: d.end }; }).toEqual({ start: "09:00", end: "10:00" });
+  await expect(start).toHaveValue(/^0?9:00/);
   // Moving the start keeps the length: 09:00–10:00 becomes 10:30–11:30.
   await setTime(start, "10:30");
   await expect.poll(async () => { const d = await field(page, id); return { date: d.date, start: d.start, end: d.end }; }).toEqual({ date: "2026-03-02", start: "10:30", end: "11:30" });
