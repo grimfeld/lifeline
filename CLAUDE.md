@@ -40,8 +40,8 @@ unit tests next to the code (ADR 0129). The commands are in `shell/e2e/README.md
   width only, or `@also-phone` for both: `test("…", { tag: "@phone" }, …)`. Never pick a
   width with `test.skip(isMobile)` or a viewport check (`scripts/e2e-widths.test.mjs`).
 - **At delivery:** a PR runs the gate specs it changes three times each (once on four runners
-  past 150 cases); every integration PR runs the whole gate on four runners, split by
-  each spec file's running time (`.github/workflows/check.yml`, `shell/e2e/durations.json`). Both run the `desktop` and `mobile` projects only.
+  past 150 cases); every integration PR runs the whole gate; four runners split the
+  spec files by running time (`.github/workflows/check.yml`, `shell/e2e/durations.json`). Both run the `desktop` and `mobile` projects only.
 - **Nightly:** the UI checks (`screens.spec.ts`, `a11y-names.spec.ts`) and the Demo
   (`demo.spec.ts`) run only on master each night, with the gate (`.github/workflows/e2e.yml`).
   A PR changing them runs nothing for them in CI, so run the rows you touched before pushing.

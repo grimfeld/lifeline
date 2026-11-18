@@ -45,9 +45,14 @@ export function fileSeconds(reports) {
   return Object.fromEntries(Object.keys(seconds).sort().map((f) => [f, Math.round(seconds[f])]));
 }
 
+/** What a case counts as when no file has a time yet. */
+const SECONDS_PER_CASE_UNKNOWN = 10;
+
 const median = (xs) => {
   const s = [...xs].sort((a, b) => a - b);
-  return s.length ? (s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2) : 0;
+  if (!s.length) return 0;
+  const mid = s.length >> 1;
+  return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
 };
 
 /**
@@ -58,7 +63,7 @@ const median = (xs) => {
  */
 export function plan(counts, durations, n) {
   const known = Object.keys(counts).filter((f) => durations[f] > 0);
-  const perCase = median(known.map((f) => durations[f] / counts[f])) || 10;
+  const perCase = median(known.map((f) => durations[f] / counts[f])) || SECONDS_PER_CASE_UNKNOWN;
   const cost = (f) => (durations[f] > 0 ? durations[f] : counts[f] * perCase);
   const files = Object.keys(counts).sort((a, b) => cost(b) - cost(a) || a.localeCompare(b));
   const shards = Array.from({ length: n }, () => ({ seconds: 0, files: [] }));
