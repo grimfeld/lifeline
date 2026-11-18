@@ -91,10 +91,15 @@ function Row({ color, lead, tick, menu, onMenu, children, onOpen, faded, late }:
       className={cn("hover:bg-accent/60 relative flex min-h-9 cursor-pointer items-center gap-2 rounded-md border-l-[3px] px-2 text-sm", faded && "opacity-60", late && "text-destructive")}
       style={{ borderLeftColor: c, background: `color-mix(in oklab, ${c} 10%, transparent)` }}
       onClick={open}
-      onContextMenu={onMenu && ((e) => {
-        e.preventDefault();
-        onMenu();
-      })}
+      onContextMenu={
+        onMenu &&
+        ((e) => {
+          // Right-click, or the menu key: Push, Move and Unplace (a touch finds them in the Peek).
+          e.preventDefault();
+          e.stopPropagation();
+          onMenu();
+        })
+      }
     >
       <span ref={leadRef} className="text-muted-foreground w-16 shrink-0 py-1.5 text-xs tabular-nums">{lead}</span>
       {tick}
@@ -119,7 +124,7 @@ function Row({ color, lead, tick, menu, onMenu, children, onOpen, faded, late }:
  * one line, today and the day in view aside. Day-granular: no hours, no bands.
  *
  * It only reads and ticks — no drag, nothing added on a tap. A row opens its
- * Peek: an Event's, or a work item's; a work item's menu is on a right-click.
+ * Peek: an Event's, or a work item's; a work item's menu is also on a right-click.
  */
 export function UpcomingView({ ctx }: { ctx: CalendarCtx }) {
   const { anchor, today, tags, openDay } = ctx;

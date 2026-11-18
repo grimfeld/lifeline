@@ -332,6 +332,35 @@ test.describe("on a phone, what was tapped on the hours is scrolled above the Pe
   });
 });
 
+// --- a work chip's actions (Push, Move to day…, Unplace) reach a phone through its Peek ---
+
+test.describe("on a phone, a Task on the Month is pushed, moved or unplaced from its Peek", () => {
+  test.skip(({ isMobile }) => !isMobile, "the phone has no right-click menu");
+
+  test("Move to day… and Unplace in the Peek's Time block section", async ({ page }) => {
+    const title = `Month chip ${Date.now()}`;
+    await page.goto("/calendar?view=month&d=2026-11-09");
+    await workLocally(page);
+    const id = await inCore(page, async (core, t: string) => (await core.putDocument({ type: "task", title: t, status: "active", date: "2026-11-10", completedOn: null, recurrence: null, estimateMin: 30, notes: "", tags: [] })).id as string, title);
+    await page.locator("[data-focus-key]", { hasText: title }).tap();
+    const sheet = page.getByRole("dialog", { name: title, exact: true });
+    const section = sheet.getByRole("region", { name: "Time block" });
+    await expect(section.getByRole("button", { name: "Push" })).toBeVisible();
+    await expect(section.getByRole("button", { name: "Unplace" })).toBeVisible();
+    await section.getByRole("button", { name: "Move to day…" }).tap();
+    const dialog = page.getByRole("dialog", { name: `Move "${title}"` });
+    await pickDate(page, dialog.getByLabel(/^Day, /), "2026-11-12");
+    await dialog.getByRole("button", { name: "Move" }).tap();
+    await expect.poll(async () => (await field(page, id)).date).toBe("2026-11-12");
+    await expect(sheet).toBeHidden();
+
+    await page.locator("[data-focus-key]", { hasText: title }).tap();
+    await sheet.getByRole("region", { name: "Time block" }).getByRole("button", { name: "Unplace" }).tap();
+    await expect.poll(async () => (await field(page, id)).date).toBeNull();
+    await expect(sheet).toBeHidden();
+  });
+});
+
 // --- a visit's timing outlives a link followed in the Peek and Back (F1) ---
 
 /** A Task on Tue 10 Nov with a 45-minute Estimate and no block yet, and another Task to follow a link to; the Week open. */

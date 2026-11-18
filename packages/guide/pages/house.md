@@ -33,7 +33,8 @@ Housework that comes back: each chore has a schedule and is due again once done.
   archive, or change its schedule in place. Tapping a chore's Time block or untimed chip on any
   Calendar view (or the Agenda Card) opens its Peek too, with a **Time block** section above its
   fields: the block's day, start and length, **Remove block** (the chore stays), or a start to
-  give an untimed chip a block. See [Calendar](calendar.md).
+  give an untimed chip a block, and **Complete** and the chip's own actions (**Unpin** for a chore
+  pinned to a day by a drag) — on a phone too. See [Calendar](calendar.md).
 
 ## Pantry
 

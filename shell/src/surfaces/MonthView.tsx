@@ -98,7 +98,7 @@ function WorkChip({ item, onTap, onMenu, onStep, menu }: { item: DayWork; onTap:
         item.urgency === "overdue" && !done && "text-destructive",
       )}
       onContextMenu={(e) => {
-        // Right-click, or the menu key: Complete, Push, Move and Unplace, which the Peek does not carry.
+        // Right-click, or the menu key: Push, Move and Unplace at once (a touch finds them in the Peek).
         e.preventDefault();
         e.stopPropagation();
         onMenu();
@@ -304,8 +304,8 @@ export function MonthView({ ctx }: { ctx: CalendarCtx }) {
         </div>
         <p className="text-muted-foreground shrink-0 text-xs">
           {isMobile
-            ? "Tap a day to open it · tap an item for its actions · press and hold to drag it to another day."
-            : "Click a day to open it · click an item for its actions · drag an item to another day, or from Unplaced onto one · on the keyboard, Enter opens an item and the arrow keys move it."}
+            ? "Tap a day to open it · tap an item to open it, with its actions · press and hold to drag it to another day."
+            : "Click a day to open it · click an item to open it, right-click for its actions · drag an item to another day, or from Unplaced onto one · on the keyboard, Enter opens an item and the arrow keys move it."}
         </p>
       </div>
 

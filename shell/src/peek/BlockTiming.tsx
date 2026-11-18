@@ -1,9 +1,10 @@
 import { useReducer, useRef } from "react";
 import { Button, DatePicker, Field, QuickTiming, TimeField, toast, toastWithUndo } from "@lifeline/ui";
-import { addDays, formatHuman, formatTime, SNAP_MIN, todayStr, type HoursTapped } from "@lifeline/core";
+import { addDays, closePeek, formatHuman, formatTime, SNAP_MIN, todayStr, type HoursTapped } from "@lifeline/core";
 import { Check, Trash2 } from "lucide-react";
 import { blockEnd, blockLasting, blockNudged, type BlockTime } from "./blockTiming";
 import { blockVisit } from "./peekVisit";
+import { useMoveDialog, useWorkActions } from "../surfaces/WorkMenu";
 
 /**
  * The **timing section** of a work item's Peek opened from the hours (#537):
@@ -29,6 +30,17 @@ export function BlockTiming({ tapped }: { tapped: HoursTapped & { kind: "work" }
   const { time, hasBlock } = visit;
   const done = !!item.completedOn || visit.completed;
   const section = useRef<HTMLElement>(null);
+  // The row's own actions, as Month's and Upcoming's right-click menu has them: the way a phone reaches them.
+  // A chip's day is the item's own, so Move and Unplace act on it; a block's day is the section's Day.
+  // Each acts on the item as tapped, so the Peek closes once it has.
+  const move = useMoveDialog(todayStr(), closePeek);
+  const isBlock = !!(item.placementId && item.start);
+  const actions = useWorkActions(item, move.start).filter((a) => a.id !== "complete" && (!isBlock || a.id === "push"));
+  const act = (a: (typeof actions)[number]) => {
+    if (a.id === "move") return a.run();
+    closePeek();
+    a.run();
+  };
 
   function complete() {
     void visit.complete().then((ok) => {
@@ -64,11 +76,21 @@ export function BlockTiming({ tapped }: { tapped: HoursTapped & { kind: "work" }
   return (
     <section ref={section} aria-label="Time block" className="grid gap-3 rounded-lg border p-3">
       <h3 className="text-muted-foreground text-sm font-medium">{hasBlock ? "Time block" : "Give it a time"}</h3>
-      {!done && (
-        <Button variant="outline" size="sm" className="justify-self-start" onClick={complete}>
-          <Check /> Complete
-        </Button>
+      {(!done || actions.length > 0) && (
+        <div className="flex flex-wrap gap-2">
+          {!done && (
+            <Button variant="outline" size="sm" onClick={complete}>
+              <Check /> Complete
+            </Button>
+          )}
+          {actions.map((a) => (
+            <Button key={a.id} variant="outline" size="sm" onClick={() => act(a)}>
+              {a.icon} {a.label}
+            </Button>
+          ))}
+        </div>
       )}
+      {move.dialog}
       {done && time.start ? (
         <>
           <p className="text-sm">

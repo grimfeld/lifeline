@@ -46,6 +46,8 @@ blocker bands.
   chip. A done Task's block is record: it can be removed, not moved. Tapping an untimed chip opens
   the same Peek, where **Give it a time** makes a new block (as long as the Estimate) and the chip
   stays. Changes apply at once; closing the Peek leaves one **Undo** that puts the block back.
+  A chip's section also has its row's actions — **Push**, **Move to day…**, **Unplace** and **Unpin**, as its
+  App allows (a block's has **Push**); each acts on the item and closes the Peek.
 - **A blocker** — tap (or click) a one-off blocker's band and its [Peek](peek.md) opens, with a
   **Timing** section on top: its day (**Tomorrow** is one tap), start (15-minute nudges) and end
   (an End earlier than the Start is the next day's), and **Delete blocker**, at once with its own
@@ -53,9 +55,9 @@ blocker bands.
   Weekly bands are rules: change them on the Blockers tab.
 - **Another App's item** — a Workout Session, a Deadline or an Occasion opens its Peek (the
   Session's, the Project's or Milestone's, the Person's) with its day and time on top, changed as
-  far as its App allows: a Deadline moves to another day there (its **Day**, or **Tomorrow** in one
-  tap), with one **Undo** on closing; it is read only where its App keeps the time (a Session is
-  a record).
+  far as its App allows: a Project's Deadline is the Project's own **Deadline** field there, a
+  Milestone's moves to another day (its **Day**, or **Tomorrow** in one tap), each with one **Undo**
+  on closing; it is read only where its App keeps the time (a Session is a record).
 - **A subscription's event** — has nothing in Lifeline to open: a tap shows a small read-only card
   with its title, day and time, place and the subscription it comes from.
 - **Adding at an hour** — tap an empty hour on a phone, double-click on the desk: the **New event**
@@ -82,12 +84,15 @@ day, if later), up to two weeks out. Push again and that block moves to the next
 after it. With no Estimate, it asks "How long will … take?" first and remembers the answer.
 Nothing free: nothing changes. Undoable.
 
-Where: the Push icon on a chip or block on the Schedule, **Push** in an item's right-click menu on Month and
-Upcoming, and on Tasks (their menu, form and Peek). Offered on work with an Estimate — Tasks today.
+Where: the Push icon on a chip or block on the Schedule, **Push** in the **Time block** section of an
+item's Peek opened from the hours (and in its right-click menu on Month and Upcoming), and on Tasks
+(their menu, form and Peek). Offered on work with an Estimate — Tasks today.
 
 ## Work on Month and Upcoming
 
-Tap a work item to open its Peek (Enter does too); right-click it (or press the menu key) for its menu:
+Tap a work item to open its Peek (Enter does too): its **Time block** section has **Complete** and
+the actions below, on a phone and a desk alike. On a desk, right-click it (or press the menu key) for
+the same actions in a menu, without opening the Peek:
 
 - **Complete**, **Push**, **Move to day…**.
 - **Unplace** — back to the Unplaced pool (Tasks).
