@@ -1,6 +1,7 @@
 import { PERSON_HINT, PERSON_TYPE, peopleArg, peopleIn, peopleNamed, type CommandDef } from "@lifeline/core";
 import { CalendarHeart, PhoneCall, UserPlus, Users } from "lucide-react";
 import { AddPersonDialog } from "./components/AddPersonDialog";
+import { LogExchangeDialog } from "./components/LogExchangeDialog";
 import { addOccasion, addPerson } from "./data/repo";
 import { PEOPLE_HREF } from "./constants";
 import { addExchange } from "./data/exchanges";
@@ -55,6 +56,8 @@ export const contactsCommands: CommandDef[] = [
     title: "Log an exchange…",
     keywords: ["exchange", "call", "called", "phoned", "video", "message", "texted", "letter", "talked", "spoke", "person", "people"],
     icon: PhoneCall,
+    dialog: LogExchangeDialog,
+    capture: true,
     args: [
       { ...peopleArg("with", "With", "Who it was with, at least one"), required: true },
       { key: "kind", label: "Kind", kind: "select", options: EXCHANGE_KINDS.map((k) => ({ value: k.value, label: k.label })), hint: "call (the default), video, message or letter." },

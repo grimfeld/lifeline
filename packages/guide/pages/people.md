@@ -237,7 +237,8 @@ mother in another town is his Tie, not a member, and Mary keeps her own name and
   alias or id; it has no screen, and is how Claude adds Occasions (`people_occasion_add`). Where: Claude
   only.
 - **Log an exchange…** — a call, video call, message or letter with People, on a day (today unless
-  you say), with what was said; see **Exchanges**, above. Where: Claude (`people_exchange_add`).
+  you say), with what was said; see **Exchanges**, above. Where: the Capture sheet, the palette (Ctrl+K), a
+  Person's page (**Log exchange**), and Claude (`people_exchange_add`).
 - **Go to People** — the People home. Where: the palette.
 
 ## Capture

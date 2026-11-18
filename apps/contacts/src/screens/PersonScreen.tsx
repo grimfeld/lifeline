@@ -2,10 +2,10 @@ import { useCallback, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
 import { PERSON_TYPE, documentType, patchDocument, todayStr, useDocument, useLinkIndex, type Document } from "@lifeline/core";
 import { DocumentEditor } from "@lifeline/editor";
-import { Badge, Page, PageHeader, cn } from "@lifeline/ui";
+import { Badge, Button, Page, PageHeader, cn } from "@lifeline/ui";
 import { InlineText } from "../components/InlineText";
 import { PersonHouseholds } from "../components/PersonHouseholds";
-import { ArrowLeft, AtSign, Mail, Phone, Plus } from "lucide-react";
+import { ArrowLeft, AtSign, Mail, Phone, PhoneCall, Plus } from "lucide-react";
 import { PEOPLE_HREF } from "../constants";
 import { type ContactKind, type Person } from "../domain/types";
 import { ageOf, upcomingOccasions } from "../domain/occasions";
@@ -23,6 +23,7 @@ import { NextOccasionBadge, TagBadges } from "../components/Badges";
 import { TiesSection } from "./TiesSection";
 import { ReportsSection } from "./ReportsSection";
 import { TimelineSection } from "./TimelineSection";
+import { LogExchangeDialog } from "../components/LogExchangeDialog";
 
 const back = (
   <Link to={PEOPLE_HREF} className="text-muted-foreground inline-flex items-center gap-1 text-sm hover:underline">
@@ -90,6 +91,9 @@ export function PersonScreen() {
   // Only the body and its Tags are written from the editor, so a Field changed above is never sent back as it was.
   const saveBody = useCallback((next: Document) => patchDocument(next.id, { body: next.body, tags: next.tags }), []);
   const [detailEditing, setDetailEditing] = useState<DetailInput | null>(null);
+  const [logging, setLogging] = useState(false);
+  // With them already (ADR 0131); held, so the dialog is not reset on every render.
+  const withThem = useMemo(() => ({ with: id ? [id] : [] }), [id]);
 
   if (!person) {
     return (
@@ -135,7 +139,11 @@ export function PersonScreen() {
         <div className="flex min-w-0 flex-wrap items-start gap-4">
           <ContactButtons person={person} onAdd={(kind) => setDetailEditing({ ...BLANK_DETAIL, kind })} />
           {next && <NextOccasionBadge next={next} variant="secondary" />}
+          <Button variant="outline" size="sm" onClick={() => setLogging(true)}>
+            <PhoneCall /> Log exchange
+          </Button>
         </div>
+        <LogExchangeDialog open={logging} onOpenChange={setLogging} initial={withThem} />
 
         {/* A grid track of 22rem: the cards' column, wide enough for an Address on two lines. */}
         <div className="grid min-w-0 gap-6 md:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
