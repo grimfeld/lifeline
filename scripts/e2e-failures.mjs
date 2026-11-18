@@ -28,17 +28,17 @@ function list(found) {
   /** file → `line title` → { line, title, projects } */
   const byFile = new Map();
   for (const c of found) {
-    const cases = byFile.get(c.file) ?? new Map();
-    byFile.set(c.file, cases);
+    const fileCases = byFile.get(c.file) ?? new Map();
+    byFile.set(c.file, fileCases);
     const key = `${c.line} ${c.title}`;
-    if (!cases.has(key)) cases.set(key, { line: c.line, title: c.title, projects: new Set() });
-    cases.get(key).projects.add(c.project);
+    if (!fileCases.has(key)) fileCases.set(key, { line: c.line, title: c.title, projects: new Set() });
+    fileCases.get(key).projects.add(c.project);
   }
   return [...byFile]
     .sort(([a], [b]) => a.localeCompare(b))
-    .flatMap(([file, cases]) => [
+    .flatMap(([file, fileCases]) => [
       `- \`${file}\``,
-      ...[...cases.values()].map(({ line, title, projects }) => `  - \`${file}:${line}\` ${title} (${[...projects].sort().join(", ")})`),
+      ...[...fileCases.values()].map(({ line, title, projects }) => `  - \`${file}:${line}\` ${title} (${[...projects].sort().join(", ")})`),
     ]);
 }
 
