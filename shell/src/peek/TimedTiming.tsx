@@ -16,7 +16,7 @@ import {
 import { Trash2 } from "lucide-react";
 import { timedVisit } from "./peekVisit";
 import { offerUndo, useRedraw } from "./visitSection";
-import { timedControls, timedAllDay, timedEndingAt, timedNudged, timedOnDay, timedStartingAt } from "./timedTiming";
+import { timedControls, timedAllDay, timedEndingAt, timedNudged, timedOnDay, timedStartingAt } from "./timedWhen";
 
 /**
  * The **timing section** of a Peek opened from the hours on a Timed item its
