@@ -38,19 +38,49 @@ export async function put<T extends SyncedRecord>(
 }
 
 /**
+ * A change to some fields of a stored record, merged onto the row as it is
+ * when the write lands. Given as a function, it is worked out from that row
+ * (read inside the write's transaction); null leaves the row as it is.
+ */
+export interface RecordPatch<T extends SyncedRecord = SyncedRecord> {
+  id: string;
+  patch: Record<string, unknown> | ((current: T) => Record<string, unknown> | null);
+}
+
+/**
  * Several writes to one collection as one: every record stored and queued for
  * push, or none of them (a cascade that must not stop halfway). Stamps one
- * LWW clock for all.
+ * LWW clock for all. Each of `patches` is read and merged inside the same
+ * transaction (a function patch is worked out from that row there), so an
+ * edit made since the caller last read that row is kept; one whose row is
+ * missing or tombstoned is skipped, never brought back.
  */
-export async function putAll<T extends SyncedRecord>(collection: string, records: readonly (Omit<T, "updatedAt" | "deleted"> & Partial<SyncedRecord>)[]): Promise<void> {
-  if (!records.length) return;
+export async function putAll<T extends SyncedRecord>(
+  collection: string,
+  records: readonly (Omit<T, "updatedAt" | "deleted"> & Partial<SyncedRecord>)[],
+  patches: readonly RecordPatch<T>[] = [],
+): Promise<void> {
+  if (!records.length && !patches.length) return;
   const updatedAt = new Date().toISOString();
   const rows = records.map((r) => ({ deleted: 0, ...r, updatedAt }) as T);
-  await db().transaction("rw", db().collection(collection), db()._outbox, async () => {
-    await db().collection<T>(collection).bulkPut(rows);
-    await db()._outbox.bulkAdd(rows.map((r) => ({ collection, recordId: r.id, queuedAt: updatedAt })));
+  const table = db().collection<T>(collection);
+  let written = 0;
+  await db().transaction("rw", table, db()._outbox, async () => {
+    const patched: T[] = [];
+    for (const { id, patch } of patches) {
+      const current = await table.get(id);
+      if (!current || current.deleted) continue;
+      const fields = typeof patch === "function" ? patch(current) : patch;
+      if (fields) patched.push({ ...current, ...fields, id, updatedAt } as T);
+    }
+    const all = [...rows, ...patched];
+    if (!all.length) return;
+    await table.bulkPut(all);
+    await db()._outbox.bulkAdd(all.map((r) => ({ collection, recordId: r.id, queuedAt: updatedAt })));
+    written = all.length;
   });
-  writes += rows.length;
+  if (!written) return;
+  writes += written;
   requestSync();
 }
 

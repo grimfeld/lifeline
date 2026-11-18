@@ -6,6 +6,8 @@ import type { Event } from "../domain/types";
 import { whenFormErrors, whenOf, type WhenForm } from "../domain/eventForm";
 import { editEvent, setEventWhen } from "../data/repo";
 import { WhenFields } from "./WhenFields";
+import { AttachBlocker } from "./AttachBlocker";
+import { AttachedBlockers } from "./AttachedBlockers";
 
 /** Typed values are written a moment after the typing stops, as the Vault's editor writes. */
 const WRITE_DELAY = 500;
@@ -73,6 +75,13 @@ function EventPeekPart({ doc }: { doc: Document }) {
           placeholder="Add tag…"
         />
       </Field>
+      {/* Only a timed Event takes attached blockers (#497). */}
+      {event.start && (
+        <>
+          <AttachedBlockers eventId={event.id} eventDay={event.date} />
+          <AttachBlocker eventId={event.id} eventTitle={event.title} />
+        </>
+      )}
     </div>
   );
 }

@@ -70,6 +70,23 @@ export interface TimeBlocker extends Document {
   color: string | null;
   /** Off keeps the definition but stops painting it. */
   active: boolean;
+  /**
+   * One-off shape only: the Event this blocker is attached to (CONTEXT.md
+   * "Attached blocker"), a Link field to an `event`. null/absent = a plain
+   * blocker. Read through `attachmentOf`, never alone.
+   */
+  attachedTo?: string | null;
+  /** Which edge of its Event an attached blocker is held to; meaningless when not attached. It never changes once attached. */
+  side?: BlockerSide | null;
+}
+
+/** An attached blocker stands before its Event (held to its start) or after it (held to its end). */
+export type BlockerSide = "before" | "after";
+
+/** Where an attached blocker is attached: its Event, and the edge of it the band is held to. */
+export interface Attachment {
+  eventId: string;
+  side: BlockerSide;
 }
 
 /**

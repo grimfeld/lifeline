@@ -239,6 +239,14 @@ export interface DocumentTypeDef {
    * (`peekPartOf`). A user-defined type has neither: Core draws its whole Peek.
    */
   peekEdit?: React.ComponentType<PeekProps>;
+  /**
+   * A line the owning App adds to its Documents' Peek without drawing the
+   * Fields itself (ADR 0085): Core draws it above the App's part, or above its
+   * own read-only list of the App's Fields when the App brings none — a Time
+   * blocker's "Before **Dentist**" and Detach. It renders nothing for a
+   * Document it has nothing to say about. Built-in types only.
+   */
+  peekAside?: React.ComponentType<PeekProps>;
   /** Sync conflict hook (ADR 0010): may rescue a losing local edit. Absent = plain LWW. */
   onConflict?: (local: Document, server: Document) => Promise<void>;
   /**
