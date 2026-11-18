@@ -11,6 +11,14 @@ export const DAY_TYPE = "daily";
  */
 export const EVENT_TYPE = "event";
 
+/**
+ * The Exchange's type id (ADR 0131): a call, video call, message or letter with
+ * People, on a day, owned by the Contacts App. Named beside the Event's for the
+ * Talked family, which counts Exchanges as Seen counts Events; Core may not
+ * import Contacts. An Exchange's day is its `date`, never a span.
+ */
+export const EXCHANGE_TYPE = "contacts_exchange";
+
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** Whether a value is a YYYY-MM-DD string: the one "is this a date" check. */

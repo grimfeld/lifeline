@@ -13,7 +13,7 @@ import { PERSON_TYPE } from "../people";
  * them. Periods, other Documents and unlinked mentions never count.
  */
 
-export { DAY_TYPE, EVENT_TYPE, dayOf, isDateStr } from "./sourceDays";
+export { DAY_TYPE, EVENT_TYPE, EXCHANGE_TYPE, dayOf, isDateStr } from "./sourceDays";
 
 export type ReportFamily = "ranking" | "document";
 /** What a Report counts (ADR 0112): Days that link (Mentioned) or Events that link (Seen). */
