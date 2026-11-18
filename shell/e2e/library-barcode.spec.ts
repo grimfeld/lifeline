@@ -67,3 +67,4 @@ test("on the phone, a scanned ISBN fills the Add dialog's search and finds the w
   await expect(dialog.getByLabel("Camera")).toHaveCount(0);
   await expect(dialog.getByRole("button", { name: /^Dune/ })).toBeVisible();
 });
+// timing run for #633; not to merge

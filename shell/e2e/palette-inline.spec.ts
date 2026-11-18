@@ -110,3 +110,4 @@ test.describe("Palette · inline arguments (#232)", () => {
     await expect(page.getByTestId("inline-preview")).toContainText(/· mar \d+ /);
   });
 });
+// timing run for #633; not to merge

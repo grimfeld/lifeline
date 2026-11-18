@@ -71,3 +71,4 @@ test("an Occasion can be edited and removed", async ({ page }) => {
   await occasions.getByRole("button", { name: "Remove Operation" }).click();
   await expect(occasions).not.toContainText("Operation");
 });
+// timing run for #633; not to merge

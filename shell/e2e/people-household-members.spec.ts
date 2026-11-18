@@ -127,3 +127,4 @@ test("a member who moved out stays listed as a former member, and their days are
   await expect(members).toContainText("since 1990-01-01");
   await expect(members).not.toContainText("until");
 });
+// timing run for #633; not to merge

@@ -87,3 +87,4 @@ test("the user's own Field on Book is edited beneath the Library's part of a Boo
   // The Library's own Fields stay the Library's: Core draws no second control for them.
   await expect(dialog.getByLabel("Year")).toHaveCount(1);
 });
+// timing run for #633; not to merge

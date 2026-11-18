@@ -37,3 +37,4 @@ test("an Event template's usual start is typed into its Time field", async ({ pa
     )
     .toBe("09:15");
 });
+// timing run for #633; not to merge

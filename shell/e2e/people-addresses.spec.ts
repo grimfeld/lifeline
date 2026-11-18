@@ -86,3 +86,4 @@ test("two current Addresses stand on the Map twice; a former one leaves it, and 
   await page.getByRole("button", { name: "Remove Office" }).click();
   await expect.poll(async () => (await addressesOf(page, id)).map((a) => a.label)).toEqual(["Home"]);
 });
+// timing run for #633; not to merge

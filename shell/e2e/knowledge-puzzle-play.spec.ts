@@ -57,3 +57,4 @@ test("Practise now practises what the Puzzle drew", async ({ page }) => {
   // palabra's forward Prompt is new; mar's two would make three.
   await expect(page.getByText(new RegExp(`${name} · Wordle-like · \\d+ due · 1 new`))).toBeVisible();
 });
+// timing run for #633; not to merge

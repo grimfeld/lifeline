@@ -182,3 +182,4 @@ test("Link to… links a name to the Document searched for, adding the name as i
   await expect(page.getByText("Backlinks · 1")).toBeVisible();
   await expect(page.getByText("Unlinked mentions · 1")).toBeVisible();
 });
+// timing run for #633; not to merge

@@ -64,3 +64,4 @@ test("an Event At a Place stands on the World map, shows its title and day, and 
   await popup.getByRole("button", { name: "Open →" }).click();
   await expect(page.getByRole("dialog", { name: title })).toBeVisible();
 });
+// timing run for #633; not to merge

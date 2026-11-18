@@ -75,3 +75,4 @@ test("an Event's Peek offers Households in With, as the dialog does: picking one
   const stored = () => inCore(page, async (core, id: string) => ((await core.getDocument(id)) as { with?: string[] }).with ?? [], ids.event);
   await expect.poll(stored).toEqual([ids.ines, ids.joao]);
 });
+// timing run for #633; not to merge

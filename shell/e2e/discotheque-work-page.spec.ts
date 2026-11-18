@@ -47,3 +47,4 @@ test("Discotheque: a Gallery tile opens the album's page, where a Field edited i
   await page.reload();
   await expect(page.getByLabel("Reason")).toHaveValue("A friend's loan.");
 });
+// timing run for #633; not to merge

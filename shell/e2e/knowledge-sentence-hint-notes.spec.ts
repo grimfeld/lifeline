@@ -52,3 +52,4 @@ test("a Sentence's hint shows in the gap before the reveal and its notes after",
   await expect(page.getByText("nel", { exact: true })).toBeVisible();
   await expect(page.getByText("also: in centro")).toBeVisible();
 });
+// timing run for #633; not to merge

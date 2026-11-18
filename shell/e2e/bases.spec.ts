@@ -106,3 +106,4 @@ test("a long Base opens with a page of rows and draws more as it scrolls", async
   await expect(rows).toHaveCount(450);
   await expect(page.getByRole("button", { name: /^Show more/ }), "all drawn: nothing more to show").toHaveCount(0);
 });
+// timing run for #633; not to merge

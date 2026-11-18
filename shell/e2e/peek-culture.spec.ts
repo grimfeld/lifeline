@@ -47,3 +47,4 @@ test("Library: a book's Year is edited in its Peek, and its Shelf moves only thr
   await page.getByRole("menuitem", { name: "Got it (owned)" }).click();
   await expect.poll(() => fieldOf(page, id, "acquisition")).toBe("OWNED");
 });
+// timing run for #633; not to merge

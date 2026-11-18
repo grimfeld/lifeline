@@ -28,3 +28,4 @@ test.describe("Vault · the phone drawer (#319)", { tag: "@phone" }, () => {
     await expect(drawer.getByRole("button", { name: "All places" })).toHaveCount(0);
   });
 });
+// timing run for #633; not to merge

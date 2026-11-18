@@ -91,3 +91,4 @@ test("Library: Find metadata searches an ISBN typed in place of the title", asyn
   await dialog.getByRole("button", { name: /^Dune/ }).click();
   await expect.poll(() => fieldOf(page, id, "year")).toBe(1965);
 });
+// timing run for #633; not to merge

@@ -342,3 +342,4 @@ test.describe("Journal navigation · keyboard paging (#213)", () => {
     await expect(page).toHaveURL(dayUrl("1997-05-20"));
   });
 });
+// timing run for #633; not to merge

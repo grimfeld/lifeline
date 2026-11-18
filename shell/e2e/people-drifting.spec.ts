@@ -69,3 +69,4 @@ test("Not mentioned counts the Days that link instead, and Everyone's drifting b
   await expect(drifting.getByText("Quiet Qui")).toBeVisible();
   await expect(row).toContainText(/drifting · 1[45]\d days/);
 });
+// timing run for #633; not to merge

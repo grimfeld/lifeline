@@ -158,3 +158,4 @@ test("the Places screen sorts by last visit, the Places never visited last", { t
   if (isMobile) await page.keyboard.press("Escape");
   await expect(listed(page)).toHaveText([/^Chez Janou/, /^Café de Flore/, /^Café Kitsuné/]);
 });
+// timing run for #633; not to merge

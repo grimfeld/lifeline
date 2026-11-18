@@ -70,3 +70,4 @@ test("Museum: an Artist is turned into a Person from the Vault, after a confirma
   await expect.poll(() => read(page, id)).toMatchObject({ type: "contacts_person", roles: ["artist"], years: "1945" });
   expect(await read(page, work)).toMatchObject({ artistId: id });
 });
+// timing run for #633; not to merge

@@ -44,3 +44,4 @@ test("Offences Base: a used Offence is kept and selected, an unused one is delet
   await expect(page.getByText("1 selected")).toBeVisible();
   await expect(row(used).locator("[role=checkbox]:not([disabled])").first()).toBeChecked();
 });
+// timing run for #633; not to merge

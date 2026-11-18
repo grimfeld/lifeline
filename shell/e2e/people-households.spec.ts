@@ -57,3 +57,4 @@ test("on a phone, Add household sits in the Phone dock", { tag: "@phone" }, asyn
   await expect(dock.getByRole("button", { name: "Add household" })).toBeVisible();
   await expect(page.getByRole("main").getByRole("button", { name: "Add household" })).toHaveCount(0);
 });
+// timing run for #633; not to merge

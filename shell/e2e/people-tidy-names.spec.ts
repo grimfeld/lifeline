@@ -42,3 +42,4 @@ test("tidying applies to the People left ticked, a failed Apply is announced wit
   await page.getByRole("dialog", { name: "Tidy given names" }).getByRole("button", { name: "Apply to 1" }).click();
   await expect(page.getByRole("button", { name: "Tidy given names…" })).toHaveCount(0);
 });
+// timing run for #633; not to merge

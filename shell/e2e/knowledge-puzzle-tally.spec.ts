@@ -64,3 +64,4 @@ test("a Topic tallies each finished daily Puzzle to a Habit", async ({ page }) =
   await expect(page.getByText("Solved in 1")).toBeVisible();
   await expect.poll(completions).toBe(1);
 });
+// timing run for #633; not to merge

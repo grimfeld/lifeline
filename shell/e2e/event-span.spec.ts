@@ -287,3 +287,4 @@ test("the Time blocker dialog gives a one-off blocker a Start and an End, with t
   await dialog.getByRole("button", { name: "Save" }).click();
   await expect.poll(() => storedBlocker(page, title)).toEqual({ date: "2025-11-10", endDate: "2025-11-12", start: "18:00", end: "11:00" });
 });
+// timing run for #633; not to merge

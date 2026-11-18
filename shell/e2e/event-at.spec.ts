@@ -92,3 +92,4 @@ test("an Event At a Person holds one At, which can be changed to a new Place by 
   await peek.getByRole("button", { name: "Clear At" }).click();
   await expect.poll(() => storedAt(page, title)).toBe("");
 });
+// timing run for #633; not to merge

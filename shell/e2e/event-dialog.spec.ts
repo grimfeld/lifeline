@@ -151,3 +151,4 @@ test("the Event dialog lists Event templates above the Form, and picking one fil
   await expect(dialog).toBeHidden();
   await expect.poll(() => storedEvent(page, template)).toMatchObject({ start: "19:00", end: "20:30" });
 });
+// timing run for #633; not to merge

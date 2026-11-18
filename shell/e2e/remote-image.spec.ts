@@ -60,3 +60,4 @@ test("a remote image loads only when asked, and Always trusts its host", async (
   await page.keyboard.press("Control+e");
   await expect(note.locator('img[src="https://tracker.example/p.png"]')).toHaveCount(1);
 });
+// timing run for #633; not to merge

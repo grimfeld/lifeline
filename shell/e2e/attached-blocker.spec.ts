@@ -133,3 +133,4 @@ test("a new Event's dialog attaches the blockers picked from Before… and After
       ["before", "13:30", "14:00"],
     ]);
 });
+// timing run for #633; not to merge

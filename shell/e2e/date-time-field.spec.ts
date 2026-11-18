@@ -68,3 +68,4 @@ test("a Fine's 'When it happened': picking a day fills in the time now, and chan
   await expect(dialog).toBeHidden();
   expect(await storedWhen(page, offenceId)).toBe(`${daysAgo(12)}T09:05`);
 });
+// timing run for #633; not to merge

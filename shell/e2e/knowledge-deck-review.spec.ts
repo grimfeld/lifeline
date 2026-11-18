@@ -98,3 +98,4 @@ test("review a Deck, delete one draft, accept the rest with accept all, then pra
   await expect(page.getByText(/Lesson 1 \+ Lesson 2/)).toBeVisible();
   await expect(page.getByText(/· 6 new/)).toBeVisible();
 });
+// timing run for #633; not to merge

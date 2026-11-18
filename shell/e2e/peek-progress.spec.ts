@@ -34,3 +34,4 @@ test("Stats: a Stat's unit is edited in its Peek; its kind stays fixed", async (
   await expect.poll(() => field(page, id, "unit")).toBe("sets");
   expect(await field(page, id, "kind")).toBe("additive");
 });
+// timing run for #633; not to merge

@@ -137,3 +137,4 @@ test("Ledger: saving a Category rule offers Apply to history, which recategorize
   await expect.poll(() => cat(made[2]!)).toBe("");
   expect(await cat(made[1]!)).toBe(ids.taxi);
 });
+// timing run for #633; not to merge

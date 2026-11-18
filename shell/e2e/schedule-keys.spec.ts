@@ -486,3 +486,4 @@ test("a Task's chip in the Month and in Upcoming opens its Peek with the Time bl
   await page.keyboard.press("Escape");
   await expect(peek).toBeHidden();
 });
+// timing run for #633; not to merge

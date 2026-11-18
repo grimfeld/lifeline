@@ -66,3 +66,4 @@ test("Projects: a Project opened from its Deadline marker shows one Deadline con
   await expect(peek.getByLabel("Day", { exact: true })).toHaveCount(0);
   await expect(peek.getByRole("region", { name: "Timing" })).toHaveCount(0);
 });
+// timing run for #633; not to merge

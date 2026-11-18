@@ -102,3 +102,4 @@ test("a Base filter on a date is added by picking the day", async ({ page }) => 
   await expect(page.getByText(`Day is ${day}`)).toBeVisible();
   await expect(datePickerLabelled(page, "Value")).toBeHidden();
 });
+// timing run for #633; not to merge

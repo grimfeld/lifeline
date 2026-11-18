@@ -423,3 +423,4 @@ test("Remove block by keyboard leaves focus inside the Peek", async ({ page }) =
   await expect.poll(() => page.evaluate(() => !!document.activeElement?.closest('[role="dialog"]'))).toBe(true);
   await expect(timing.getByRole("combobox", { name: "Start" }), "the section stays, so focus goes to its Start").toBeFocused();
 });
+// timing run for #633; not to merge

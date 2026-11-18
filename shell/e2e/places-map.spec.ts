@@ -142,3 +142,4 @@ test("a Place with no coordinates is no Pin; editing its address finds them", as
   await workLocally(page);
   await expect(page.getByRole("button", { name: /^Places 1$/ })).toBeVisible();
 });
+// timing run for #633; not to merge

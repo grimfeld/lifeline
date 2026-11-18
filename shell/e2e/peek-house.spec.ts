@@ -134,3 +134,4 @@ test("a Need gets a note and is ticked bought in its Peek", async ({ page }) => 
   await dialog.getByRole("button", { name: "Put back on list" }).click();
   await expect.poll(() => field(page, id, "boughtOn")).toBe("");
 });
+// timing run for #633; not to merge

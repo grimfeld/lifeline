@@ -117,3 +117,4 @@ test("an item with a clip produces a listening Prompt: it plays at once, takes a
   }, name);
   expect(kept).toEqual(["nono"]);
 });
+// timing run for #633; not to merge

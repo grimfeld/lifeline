@@ -191,3 +191,4 @@ test("a Place's page shows when it was last visited, Mentioned beside it, and it
   );
   expect(order).toEqual(["Booked dinner", "Today", expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), "Drinks", "Lunch", "Weekend"]);
 });
+// timing run for #633; not to merge

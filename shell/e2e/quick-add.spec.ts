@@ -177,3 +177,4 @@ test("on the desk, dragging an Event still moves it rather than sweeping", async
   await expect.poll(() => storedEvent(page, title)).toEqual({ date: DAY, endDate: null, start: "11:00", end: "12:00" });
   await expect(page.getByRole("dialog", { name: "New event" }), "no dialog from a drag").toBeHidden();
 });
+// timing run for #633; not to merge

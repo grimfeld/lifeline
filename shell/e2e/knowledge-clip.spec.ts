@@ -111,3 +111,4 @@ test("recording announces when it starts and stops, not every second, while the 
   await page.getByRole("button", { name: "Stop recording" }).click();
   await expect(status).toHaveText("Recording stopped");
 });
+// timing run for #633; not to merge

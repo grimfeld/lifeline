@@ -52,3 +52,4 @@ test("a Household picked in an Event's With adds its current members; one is tak
     );
   await expect.poll(stored).toEqual([ids.mary, ids.paul]);
 });
+// timing run for #633; not to merge
