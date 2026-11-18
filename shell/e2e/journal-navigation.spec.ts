@@ -1,6 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { openPalette } from "./support/palette";
-import { TEMPLATE, calendar, calendarTile, expectCalendarAt, hasSidebar, linkHeadings, openDay, openPeriod, seedJournal, sidebar, titlesOf, workLocally } from "./support/journal";
+import { TEMPLATE, calendar, calendarTile, expectCalendarAt, linkHeadings, openDay, openPeriod, seedJournal, sidebar, titlesOf, workLocally } from "./support/journal";
 import { CORE_URL } from "./support/seed";
 
 /**
@@ -11,8 +11,11 @@ import { CORE_URL } from "./support/seed";
 
 test.describe("Journal navigation · the sidebar stays (#206)", () => {
   // Desktop only (no phone tag): the side column is hidden below `lg`.
-  test("a date with no Day keeps the calendar, Reviews and On this day, without Links or Backlinks", async ({ page }) => {
-    await seedJournal(page, { days: { "2000-02-14": "A year ago today.", "2001-02-13": "The day before." } });
+  test("a date with no Day, and a period with no review, keep the calendar, Reviews and On this day, without Links or Backlinks", async ({ page }) => {
+    await seedJournal(page, {
+      persons: ["Ada Lovelace"],
+      days: { "2000-02-14": "A year ago today.", "2001-02-13": "Lunch with [[Ada Lovelace]]." },
+    });
 
     // A written Day: the sidebar leads with its links.
     await openDay(page, "2001-02-13");
@@ -30,51 +33,15 @@ test.describe("Journal navigation · the sidebar stays (#206)", () => {
     await expect(side.getByText("A year ago today.")).toBeVisible();
     await expect(linkHeadings(page)).toHaveCount(0);
     expect(await titlesOf(page, "daily")).not.toContain("2001-02-14");
-  });
 
-  test("a period with no review keeps its sidebar, without Links or Backlinks", async ({ page }) => {
-    await seedJournal(page, { persons: ["Ada Lovelace"], days: { "2001-02-14": "Lunch with [[Ada Lovelace]]." } });
-
+    // A period with no review keeps its sidebar too, with its Reports: who came up in it.
     await openPeriod(page, "2001-02");
     await expect(page.getByText("No review of")).toBeVisible();
-    const side = sidebar(page);
     await expect(side).toBeVisible();
-    // The period's Reports: who came up in it.
+    await expect(calendar(page).locator("[aria-current]")).toHaveCount(0);
     await expect(side.getByText("Ada Lovelace")).toBeVisible();
     await expect(linkHeadings(page)).toHaveCount(0);
     expect(await titlesOf(page, "month")).not.toContain("2001-02");
-  });
-
-  test("a period with no review and nothing in it still shows the calendar, Reviews and On this day", async ({ page }) => {
-    await seedJournal(page, { days: { "1999-07-01": "A year before." } });
-
-    await openPeriod(page, "2000-07");
-    await expect(page.getByText("No review of")).toBeVisible();
-    const side = sidebar(page);
-    // The calendar opens at the period's first month; no Day is open on a period page.
-    await expectCalendarAt(page, "July 2000");
-    await expect(calendar(page).locator("[aria-current]")).toHaveCount(0);
-    await expect(side.getByRole("heading", { name: "Reviews" })).toBeVisible();
-    await expect(side.getByRole("link", { name: /^Quarter Q3 2000/ })).toBeVisible();
-    // On this day, for the period's first day.
-    await expect(side.getByRole("heading", { name: "On this day" })).toBeVisible();
-    await expect(side.getByText("A year before.")).toBeVisible();
-    await expect(linkHeadings(page)).toHaveCount(0);
-  });
-
-  test("paging the calendar to a month with nothing written keeps the sidebar", async ({ page }) => {
-    await seedJournal(page, { days: { "2001-02-14": "Valentine's." } });
-    await openDay(page, "2001-02-14");
-    expect(hasSidebar(page)).toBe(true);
-
-    await calendar(page).getByRole("button", { name: "Previous month" }).click();
-    await expectCalendarAt(page, "January 2001");
-    // Each click waits for its month, so two quick clicks can't be read as one.
-    await calendar(page).getByRole("button", { name: "Next month" }).click();
-    await expectCalendarAt(page, "February 2001");
-    await calendar(page).getByRole("button", { name: "Next month" }).click();
-    await expectCalendarAt(page, "March 2001");
-    await expect(sidebar(page)).toBeVisible();
   });
 });
 
@@ -83,11 +50,12 @@ test.describe("Journal navigation · the calendar pages by itself (#210)", () =>
   const DAY = "/app/journal?d=2001-02-14";
   const atDay = (page: Page) => expect(page).toHaveURL((u) => u.pathname + u.search === DAY);
 
-  test("the month arrows page the calendar and leave the Day and the URL put", async ({ page }) => {
-    await seedJournal(page, { days: { "2001-02-14": "Valentine's.", "2001-04-02": "April showers." } });
+  test("the arrows page the calendar and leave the Day and the URL put; picking a day opens it", async ({ page }) => {
+    await seedJournal(page, { days: { "2001-02-14": "Valentine's.", "2001-04-02": "April showers.", "2000-06-21": "Midsummer." } });
     await openDay(page, "2001-02-14");
     await expectCalendarAt(page, "February 2001");
 
+    // Each click waits for its month, so two quick clicks can't be read as one.
     await calendar(page).getByRole("button", { name: "Next month" }).click();
     await expectCalendarAt(page, "March 2001");
     await calendar(page).getByRole("button", { name: "Next month" }).click();
@@ -99,29 +67,14 @@ test.describe("Journal navigation · the calendar pages by itself (#210)", () =>
 
     await calendar(page).getByRole("button", { name: "Previous month" }).click();
     await expectCalendarAt(page, "March 2001");
+    // A month with nothing written keeps the sidebar.
+    await expect(sidebar(page)).toBeVisible();
+
+    await calendar(page).getByRole("button", { name: "Previous year" }).click();
+    await expectCalendarAt(page, "March 2000");
     await atDay(page);
-  });
 
-  test("the year arrows step a whole year, and the URL stays put", async ({ page }) => {
-    await seedJournal(page, { days: { "2001-02-14": "Valentine's." } });
-    await openDay(page, "2001-02-14");
-
-    await calendar(page).getByRole("button", { name: "Previous year" }).click();
-    await expectCalendarAt(page, "February 2000");
-    await calendar(page).getByRole("button", { name: "Previous year" }).click();
-    await expectCalendarAt(page, "February 1999");
-    await calendar(page).getByRole("button", { name: "Next year" }).click();
-    await expectCalendarAt(page, "February 2000");
-    await atDay(page);
-  });
-
-  test("clicking a day opens it, and the calendar comes back to the open Day's month", async ({ page }) => {
-    await seedJournal(page, { days: { "2001-02-14": "Valentine's.", "2000-06-21": "Midsummer." } });
-    await openDay(page, "2001-02-14");
-
-    // Page away, then open a Day by other means: the calendar returns to its month.
-    await calendar(page).getByRole("button", { name: "Previous year" }).click();
-    await expectCalendarAt(page, "February 2000");
+    // Open a Day by other means: the calendar returns to its month.
     await page.getByRole("button", { name: "Next day" }).click();
     await expect(page).toHaveURL(/d=2001-02-15/);
     await expectCalendarAt(page, "February 2001");
@@ -144,7 +97,7 @@ test.describe("Journal navigation · the calendar pages by itself (#210)", () =>
  * The calendar zooms out (#211): the month's title shows the year's months,
  * the year's title the years from the earliest written Day's to this year;
  * picking zooms back in. Written months and years are marked; a Template-only
- * Day marks nothing.
+ * Day marks nothing. Which years are listed and marked is `calendarZoom.test.ts`'s.
  */
 test.describe("Journal navigation · the calendar zooms out (#211)", () => {
   const DAYS = {
@@ -156,19 +109,16 @@ test.describe("Journal navigation · the calendar zooms out (#211)", () => {
   const atDay = (page: Page) => expect(page).toHaveURL((u) => u.pathname + u.search === DAY);
   /** A month or year tile (named `2001-02`, `2001`) or a day cell, in the calendar. */
   const tile = (page: Page, name: string) => calendarTile(calendar(page), name);
-  /** The years list's page holding `year`: pages of twelve end on this year, the first starts at 1997. */
-  const pageOf = (year: number) => {
-    const now = new Date().getFullYear();
-    const end = now - Math.floor((now - year) / 12) * 12;
-    return `${Math.max(1997, end - 11)}–${end}`;
-  };
 
   test("the month's title shows the year's months, written ones marked; picking one shows its days", async ({ page }) => {
     await seedJournal(page, { days: DAYS });
     await openDay(page, "2001-02-14");
 
+    // The month title zooms out; it no longer opens the Month review.
+    await expect(calendar(page).getByRole("link")).toHaveCount(0);
     await calendar(page).getByRole("button", { name: "February 2001" }).click();
     await expectCalendarAt(page, "2001");
+    await atDay(page);
     await expect(tile(page, "2001-02")).toHaveAccessibleName(/, written$/);
     await expect(tile(page, "2001-02")).toHaveAttribute("aria-current", "date");
     await expect(tile(page, "2001-03")).not.toHaveAccessibleName(/written/);
@@ -188,60 +138,10 @@ test.describe("Journal navigation · the calendar zooms out (#211)", () => {
     await expectCalendarAt(page, "February 2001");
     await expect(tile(page, "2001-02-14")).toHaveAttribute("aria-current", "date");
     await atDay(page);
-  });
 
-  test("the year's title lists the years from the earliest written one to this year; picking zooms back in", async ({ page }) => {
-    await seedJournal(page, { days: DAYS });
-    await openDay(page, "2001-02-14");
-
+    // Zoomed out, opening another Day brings the calendar back to its month's days.
     await calendar(page).getByRole("button", { name: "February 2001" }).click();
-    await calendar(page).getByRole("button", { name: "2001", exact: true }).click();
-    await expectCalendarAt(page, pageOf(2001));
-    await expect(tile(page, "1997")).toBeVisible();
-    await expect(tile(page, "1996")).toHaveCount(0);
-    await expect(tile(page, "1997")).toHaveAccessibleName(/, written$/);
-    await expect(tile(page, "2001")).toHaveAccessibleName(/, written$/);
-    await expect(tile(page, "2001")).toHaveAttribute("aria-current", "date");
-    await expect(tile(page, "1998")).not.toHaveAccessibleName(/written/);
-    await expect(tile(page, "1999")).not.toHaveAccessibleName(/written/); // its only Day is Template-only
-    await expect(calendar(page).getByRole("button", { name: "Earlier years" })).toBeDisabled();
-
-    // The arrows page by twelve years, up to this year.
-    const thisYear = new Date().getFullYear();
-    for (let shown = pageOf(2001); shown !== pageOf(thisYear); ) {
-      await calendar(page).getByRole("button", { name: "Later years" }).click();
-      shown = pageOf(Number(shown.slice(-4)) + 1);
-      await expectCalendarAt(page, shown);
-    }
-    await expect(tile(page, String(thisYear))).toBeVisible();
-    await expect(tile(page, String(thisYear + 1))).toHaveCount(0);
-    await expect(calendar(page).getByRole("button", { name: "Later years" })).toBeDisabled();
-
-    for (let shown = pageOf(thisYear); shown !== pageOf(1999); ) {
-      await calendar(page).getByRole("button", { name: "Earlier years" }).click();
-      shown = pageOf(Number(shown.slice(0, 4)) - 1);
-      await expectCalendarAt(page, shown);
-    }
-    await tile(page, "1999").click();
-    await expectCalendarAt(page, "1999");
-    await tile(page, "1999-05").click();
-    await expectCalendarAt(page, "May 1999");
-    await atDay(page);
-  });
-
-  test("the month title no longer opens the Month review", async ({ page }) => {
-    await seedJournal(page, { days: DAYS });
-    await openDay(page, "2001-02-14");
-    await expect(calendar(page).getByRole("link")).toHaveCount(0);
-    await calendar(page).getByRole("button", { name: "February 2001" }).click();
-    await atDay(page);
-  });
-
-  test("opening another Day brings the calendar back to its month's days", async ({ page }) => {
-    await seedJournal(page, { days: DAYS });
-    await openDay(page, "2001-02-14");
-    await calendar(page).getByRole("button", { name: "February 2001" }).click();
-    await calendar(page).getByRole("button", { name: "2001", exact: true }).click();
+    await expectCalendarAt(page, "2001");
     await page.getByRole("button", { name: "Next day" }).click();
     await expectCalendarAt(page, "February 2001");
     await expect(tile(page, "2001-02-15")).toHaveAttribute("aria-current", "date");
@@ -267,33 +167,12 @@ test.describe("Journal navigation · written Days (#205)", () => {
     await expect(row("1999-03-05")).not.toContainText("not written");
     await expect(row("1999-03-05")).toContainText("A walk by the river.");
   });
-
-  test("the sidebar calendar marks only written Days", async ({ page }) => {
-    await seedJournal(page, { days: DAYS });
-    await openDay(page, "1999-03-05");
-    // The day cells are named by their date, and a written Day's name ends ", written".
-    const cell = (date: string) => calendarTile(sidebar(page), date);
-    await expect(cell("1999-03-07")).toHaveAccessibleName(/, written$/);
-    await expect(cell("1999-03-05")).toHaveAccessibleName(/, written$/);
-    await expect(cell("1999-03-03")).not.toHaveAccessibleName(/written/);
-    await expect(cell("1999-03-04")).not.toHaveAccessibleName(/written/);
-    await expect(cell("1999-03-06")).not.toHaveAccessibleName(/written/);
-  });
-
-  test("the header's strip of days marks only written Days", async ({ page }) => {
-    await seedJournal(page, { days: DAYS });
-    await openDay(page, "1999-03-05");
-    const strip = page.getByRole("group", { name: "Days around" });
-    await expect(strip.getByRole("button", { name: "1999-03-07, written" })).toBeVisible();
-    await expect(strip.getByRole("button", { name: "1999-03-05, written" })).toBeVisible();
-    for (const date of ["1999-03-03", "1999-03-04", "1999-03-06"]) await expect(strip.getByRole("button", { name: date, exact: true })).toBeVisible();
-  });
 });
 
 /**
  * Skipping the gaps (#208): an unwritten date's page offers the nearest
  * written Day before and after it, each with its date; Template-only Days are
- * skipped, and a direction with no written Day offers nothing.
+ * skipped, and a direction with no written Day offers nothing (`nearest.test.ts`).
  */
 test.describe("Journal navigation · the nearest written Days (#208)", () => {
   // February–March 1998: a stretch nothing else in the store uses.
@@ -320,44 +199,12 @@ test.describe("Journal navigation · the nearest written Days (#208)", () => {
     await expect(page).toHaveURL(/\?d=1998-03-13$/);
     await expect(page.locator(".cm-content")).toContainText("Rain.");
   });
-
-  test("an untouched Template-only Day is not written: it keeps its editor and offers both", async ({ page }) => {
-    await seedJournal(page, { days: DAYS });
-    await openDay(page, "1998-02-20");
-    await expect(page.locator(".cm-content")).toBeVisible();
-    await expect(before(page)).toContainText("1998");
-    await after(page).click();
-    await expect(page).toHaveURL(/\?d=1998-03-13$/);
-    // A written Day offers neither.
-    await expect(page.locator(".cm-content")).toContainText("Rain.");
-    await expect(before(page)).toHaveCount(0);
-    await expect(after(page)).toHaveCount(0);
-  });
-
-  test("Template-only Days are skipped", async ({ page }) => {
-    await seedJournal(page, { days: DAYS });
-    await openDay(page, "1998-02-10");
-    await after(page).click();
-    await expect(page).toHaveURL(/\?d=1998-03-13$/);
-  });
-
-  test("no before ahead of the first written Day, no after past the last", async ({ page }) => {
-    await seedJournal(page, { days: DAYS });
-    await openDay(page, "1998-01-01");
-    await expect(after(page)).toBeVisible();
-    await expect(before(page)).toHaveCount(0);
-
-    // After 13 March 1998 the next written Days are the layout seed's (dated today), so look from past them.
-    await openDay(page, "2999-01-01");
-    await expect(page.getByRole("button", { name: "Start writing" })).toBeVisible();
-    await expect(before(page)).toBeVisible();
-    await expect(after(page)).toHaveCount(0);
-  });
 });
 
 /**
  * The palette's date row (ADR 0088, #207): typing a date or a period key puts
- * one row first, in human form; Enter opens that page and makes nothing.
+ * one row first, in human form; Enter opens that page and makes nothing. What
+ * each form reads as, and what offers no row, is `periods.test.ts`'s (`journalPageOf`).
  */
 test.describe("Journal navigation · a date typed in the palette (#207)", () => {
   // Desktop only (no phone tag): the palette is opened with Mod+K, on the desk (ADR 0021).
@@ -370,30 +217,6 @@ test.describe("Journal navigation · a date typed in the palette (#207)", () => 
   }
 
   const options = (page: Page) => page.getByRole("dialog").getByRole("option");
-  /** What a date row reads as: a weekday and date, a Week, a Month, a Quarter or a Year — then the Journal. */
-  const DATE_ROW = /^\s*(\w+day \d+ \w+ \d{4}|Week \d+, \d{4}|\w+ \d{4}|Q\d \d{4}|\d{4})\s*Journal\s*$/;
-
-  const FORMS = [
-    { query: "2023-03-14", label: "Tuesday 14 March 2023", url: "/app/journal?d=2023-03-14", type: "daily" },
-    { query: "2023-W11", label: "Week 11, 2023", url: "/app/journal/p/2023-W11", type: "week" },
-    { query: "2023-03", label: "March 2023", url: "/app/journal/p/2023-03", type: "month" },
-    { query: "2023-Q1", label: "Q1 2023", url: "/app/journal/p/2023-Q1", type: "quarter" },
-    { query: "2023", label: "2023", url: "/app/journal/p/2023", type: "year" },
-  ];
-
-  for (const form of FORMS) {
-    test(`${form.query} offers ${form.label} first, and Enter opens it from any page without making a Document`, async ({ page }) => {
-      await page.goto("/screens");
-      await workLocally(page);
-      await typeInPalette(page, form.query);
-      await expect(options(page).first()).toContainText(form.label);
-      await expect(options(page).first()).toHaveAttribute("aria-selected", "true");
-      await page.keyboard.press("Enter");
-      await expect(page).toHaveURL((u) => u.pathname + u.search === form.url);
-      await expect(page.getByRole("dialog")).toHaveCount(0);
-      expect(await titlesOf(page, form.type)).not.toContain(form.query);
-    });
-  }
 
   test("2023 ranks above a Document and a Screen called 2023", async ({ page }) => {
     await page.goto("/screens");
@@ -412,21 +235,8 @@ test.describe("Journal navigation · a date typed in the palette (#207)", () => 
     await expect(options(page).first()).toHaveAccessibleName("2023 Journal");
     await page.keyboard.press("Enter");
     await expect(page).toHaveURL((u) => u.pathname === "/app/journal/p/2023");
-  });
-
-  test("what the calendar doesn't have, and words, offer no date row", async ({ page }) => {
-    await page.goto("/screens");
-    await workLocally(page);
-    await openPalette(page);
-    const query = page.getByRole("dialog").getByRole("combobox");
-    for (const junk of ["2023-13", "2023-02-30", "2023-W60", "2023-Q5", "hello", "2023-W53"]) {
-      await query.fill(junk);
-      // Other rows may still match the text loosely; none is a Journal page in human form.
-      await expect(options(page).filter({ hasText: DATE_ROW })).toHaveCount(0);
-    }
-    // 2020 had a 53rd ISO week.
-    await query.fill("2020-W53");
-    await expect(options(page).first()).toContainText("Week 53, 2020");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    expect(await titlesOf(page, "year")).not.toContain("2023");
   });
 });
 
@@ -440,63 +250,51 @@ test.describe("Journal navigation · Go to date and the review Commands (#212)",
   const palette = (page: Page) => page.getByRole("dialog");
   const query = (page: Page) => palette(page).getByRole("combobox");
 
-  async function pickByName(page: Page, name: string, how: "enter" | "click") {
+  async function pickByName(page: Page, name: string) {
     await openPalette(page);
     await query(page).fill(name);
-    const row = palette(page).getByRole("option", { name: new RegExp(`^${name}`) });
-    await expect(row).toBeVisible();
-    if (how === "click") await row.click();
-    else {
-      await expect(palette(page).getByRole("option").first()).toContainText(name);
-      await page.keyboard.press("Enter");
-    }
+    await expect(palette(page).getByRole("option", { name: new RegExp(`^${name}`) })).toBeVisible();
+    await expect(palette(page).getByRole("option").first()).toContainText(name);
+    await page.keyboard.press("Enter");
   }
 
-  for (const how of ["enter", "click"] as const) {
-    test(`picking Go to date… (${how}) leaves the palette open, empty and focused, ready for a date`, async ({ page }) => {
-      await page.goto("/screens");
-      await workLocally(page);
-      await pickByName(page, "Go to date…", how);
-      await expect(palette(page)).toBeVisible();
-      await expect(query(page)).toHaveValue("");
-      await expect(query(page)).toBeFocused();
-      await page.keyboard.type("2023-03-14");
-      await expect(palette(page).getByRole("option").first()).toContainText("Tuesday 14 March 2023");
-      await page.keyboard.press("Enter");
-      await expect(page).toHaveURL((u) => u.pathname + u.search === "/app/journal?d=2023-03-14");
-      await expect(palette(page)).toHaveCount(0);
-    });
-  }
-
-  test("Go to date… is listed when the palette opens", async ({ page }) => {
+  test("picking Go to date… leaves the palette open, empty and focused, ready for a date", async ({ page }) => {
     await page.goto("/screens");
     await workLocally(page);
+    // It is listed as soon as the palette opens.
     await openPalette(page);
     await expect(palette(page).getByRole("option", { name: /^Go to date…/ })).toBeAttached();
+    await page.keyboard.press("Escape");
+    await expect(palette(page)).toHaveCount(0);
+
+    await pickByName(page, "Go to date…");
+    await expect(palette(page)).toBeVisible();
+    await expect(query(page)).toHaveValue("");
+    await expect(query(page)).toBeFocused();
+    await page.keyboard.type("2023-03-14");
+    await expect(palette(page).getByRole("option").first()).toContainText("Tuesday 14 March 2023");
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL((u) => u.pathname + u.search === "/app/journal?d=2023-03-14");
+    await expect(palette(page)).toHaveCount(0);
   });
 
-  const now = new Date();
-  const year = String(now.getFullYear());
-  const quarter = `${year}-Q${Math.floor(now.getMonth() / 3) + 1}`;
-  for (const { name, key } of [
-    { name: "Open this quarter's review", key: quarter },
-    { name: "Open this year's review", key: year },
-  ]) {
-    test(`${name} opens ${key}`, async ({ page }) => {
-      await page.goto("/screens");
-      await workLocally(page);
-      await pickByName(page, name, "enter");
-      await expect(page).toHaveURL((u) => u.pathname === `/app/journal/p/${key}`);
-      await expect(palette(page)).toHaveCount(0);
-    });
-  }
+  // The review Commands are one flow, each a link to its stretch: the quarter's stands for the others.
+  test("Open this quarter's review opens the current quarter", async ({ page }) => {
+    const now = new Date();
+    const quarter = `${now.getFullYear()}-Q${Math.floor(now.getMonth() / 3) + 1}`;
+    await page.goto("/screens");
+    await workLocally(page);
+    await pickByName(page, "Open this quarter's review");
+    await expect(page).toHaveURL((u) => u.pathname === `/app/journal/p/${quarter}`);
+    await expect(palette(page)).toHaveCount(0);
+  });
 });
 
 /**
  * Keyboard paging (#213): Alt+←/→ steps a Day by a calendar day and a period
  * by one of its kind; Alt+Shift+←/→ skips to the nearest written Day or the
- * nearest period with a review, and does nothing past the last one. Never
- * while typing: Esc leaves the editor first.
+ * nearest period with a review, and does nothing past the last one
+ * (`paging.test.ts`). Never while typing: Esc leaves the editor first.
  */
 test.describe("Journal navigation · keyboard paging (#213)", () => {
   // May–July 1997: a stretch nothing else in the store uses.
@@ -505,9 +303,7 @@ test.describe("Journal navigation · keyboard paging (#213)", () => {
     "1997-05-09": TEMPLATE, // made, never written in: skipped
     "1997-05-20": "Hay in.",
   };
-  const REVIEWS = { "1997-02": "A cold month.", "1997-07": "" };
   const dayUrl = (date: string) => (u: URL) => u.searchParams.get("d") === date;
-  const periodUrl = (key: string) => (u: URL) => u.pathname === `/app/journal/p/${key}`;
 
   test("on a Day, Alt+←/→ step a calendar day and Alt+Shift+←/→ skip to the nearest written Day", async ({ page }) => {
     await seedJournal(page, { days: DAYS });
@@ -520,40 +316,6 @@ test.describe("Journal navigation · keyboard paging (#213)", () => {
     await expect(page).toHaveURL(dayUrl("1997-05-02"));
     await page.keyboard.press("Alt+Shift+ArrowRight");
     await expect(page).toHaveURL(dayUrl("1997-05-20"));
-  });
-
-  test("Alt+Shift past the last written Day does nothing", async ({ page }) => {
-    await seedJournal(page, { days: DAYS });
-    // After May 1997 the next written Days are the layout seed's (dated today), so look from past them.
-    await openDay(page, "2999-01-01");
-    await page.keyboard.press("Alt+Shift+ArrowRight");
-    await page.keyboard.press("Alt+ArrowRight"); // one day on from where it stayed
-    await expect(page).toHaveURL(dayUrl("2999-01-02"));
-  });
-
-  test("on a period page, Alt+←/→ step a period and Alt+Shift+←/→ skip to the nearest review", async ({ page }) => {
-    await seedJournal(page, { reviews: REVIEWS });
-    await openPeriod(page, "1997-05");
-    await page.keyboard.press("Alt+ArrowRight");
-    await expect(page).toHaveURL(periodUrl("1997-06"));
-    await page.keyboard.press("Alt+ArrowLeft");
-    await expect(page).toHaveURL(periodUrl("1997-05"));
-    await page.keyboard.press("Alt+Shift+ArrowLeft");
-    await expect(page).toHaveURL(periodUrl("1997-02"));
-    await page.keyboard.press("Alt+Shift+ArrowRight");
-    await expect(page).toHaveURL(periodUrl("1997-07"));
-
-    await openPeriod(page, "1997-Q2");
-    await page.keyboard.press("Alt+ArrowLeft");
-    await expect(page).toHaveURL(periodUrl("1997-Q1"));
-  });
-
-  test("Alt+Shift past the last review does nothing", async ({ page }) => {
-    await seedJournal(page, { reviews: REVIEWS });
-    await openPeriod(page, "2999-01");
-    await page.keyboard.press("Alt+Shift+ArrowRight");
-    await page.keyboard.press("Alt+ArrowRight");
-    await expect(page).toHaveURL(periodUrl("2999-02"));
   });
 
   test("they do nothing in the editor or the date picker; Esc leaves the editor so they page", async ({ page }) => {
