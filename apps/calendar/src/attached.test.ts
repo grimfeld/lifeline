@@ -1,18 +1,40 @@
 import "fake-indexeddb/auto";
-import { beforeEach, describe, expect, it } from "vitest";
-import { defaultColumns, documentToText, documentsTable, documentTypeSync, initApps, moveDocumentsToWorkspace, removeDocument } from "@lifeline/core";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { defaultColumns, documentToText, documentsTable, documentTypeSync, initApps, moveDocumentsToWorkspace, patchDocument, removeDocument } from "@lifeline/core";
 import { calendarApp } from "./index";
 import { calendarTimed } from "./timed";
-import { addEvent, allEvents, setEventWhen, updateEvent } from "./data/repo";
+import { addEvent, allEvents, moveEvent, setEventWhen, updateEvent } from "./data/repo";
 import { addTimeBlocker, allTimeBlockers, rescheduleTimeBlocker } from "./data/blockers";
 import { addBlockerTemplate } from "./data/blockerTemplates";
 import { attachBlocker, attachedBlockersOf, detachBlocker, liveAttachment } from "./data/attached";
 import { TIME_BLOCKER_TYPE, type BlockerSide } from "./domain/types";
 
+/**
+ * Every read of the blocker table, counted, and an edit a test may land just
+ * after one: what another tab or device writes while a move is in flight.
+ */
+const blockerReads = vi.hoisted(() => ({ count: 0, after: null as null | (() => Promise<void>) }));
+vi.mock("./data/blockers", async (importOriginal) => {
+  const real = await importOriginal<typeof import("./data/blockers")>();
+  return {
+    ...real,
+    allTimeBlockers: async () => {
+      blockerReads.count++;
+      const rows = await real.allTimeBlockers();
+      const edit = blockerReads.after;
+      blockerReads.after = null;
+      await edit?.();
+      return rows;
+    },
+  };
+});
+
 initApps([calendarApp]);
 
 beforeEach(async () => {
   await documentsTable().clear();
+  blockerReads.count = 0;
+  blockerReads.after = null;
 });
 
 // 2026-08-24 is a Monday.
@@ -143,6 +165,45 @@ describe("an Event moved through the Timed provider takes its attached blockers"
     // The Hours editor's Undo puts back the Event's whole span (ADR 0056).
     await calendarTimed.reschedule!(ev, { date: "2026-08-24", start: "09:00", endDate: "2026-08-24", end: "10:00" });
     expect({ ev: await event(ev), before: await band(before), after: await band(after) }).toEqual(was);
+  });
+});
+
+describe("a band edited while its Event moves keeps the edit", () => {
+  it("a retitle landing between the move's read and its write survives, and the band still follows", async () => {
+    const ev = await dentist();
+    const b = await attach(ev, "before");
+    blockerReads.after = () => patchDocument(b, { title: "Taxi" });
+    await moveEvent(ev, "2026-08-26");
+    const row = (await allTimeBlockers()).find((x) => x.id === b);
+    expect(row).toMatchObject({ title: "Taxi", date: "2026-08-26", start: "08:30", end: "09:00", attachedTo: ev, side: "before" });
+  });
+
+  it("a retitle landing while the Event is made all day survives its detach", async () => {
+    const ev = await dentist();
+    const b = await attach(ev, "before");
+    blockerReads.after = () => patchDocument(b, { title: "Taxi" });
+    await setEventWhen(ev, { date: "2026-08-24", endDate: null, start: null, end: null });
+    expect((await allTimeBlockers()).find((x) => x.id === b)).toMatchObject({ title: "Taxi", start: "08:30", attachedTo: null, side: null });
+  });
+
+  it("a band deleted while its Event moves stays deleted", async () => {
+    const ev = await dentist();
+    const b = await attach(ev, "before");
+    blockerReads.after = () => removeDocument(b);
+    await moveEvent(ev, "2026-08-26");
+    expect(await allTimeBlockers()).toEqual([]);
+  });
+});
+
+describe("an Event saved without a new time", () => {
+  it("reads no blocker: a title-only save is the Event's own write", async () => {
+    const ev = await dentist();
+    await attach(ev, "before");
+    const row = (await allEvents()).find((e) => e.id === ev)!;
+    blockerReads.count = 0;
+    await updateEvent({ ...row, title: "Dentist (Dr Lee)", notes: "Bring the card" });
+    expect(blockerReads.count).toBe(0);
+    expect((await allEvents()).find((e) => e.id === ev)).toMatchObject({ title: "Dentist (Dr Lee)", notes: "Bring the card" });
   });
 });
 
