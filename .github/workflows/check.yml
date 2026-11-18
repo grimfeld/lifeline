@@ -148,12 +148,9 @@ jobs:
           elif [ "$cases" -gt 150 ]; then repeat=1; retries=--retries=0; runners=4
           else repeat=3; retries=--retries=0; runners=1
           fi
-          if [ "$runners" -gt 1 ]; then
-            pnpm exec playwright test --list --reporter=json $FILES $PROJECTS > "$RUNNER_TEMP/list.json"
-            matrix=$(node ../scripts/e2e-shards.mjs plan "$runners" "$RUNNER_TEMP/list.json" e2e/durations.json)
-          else
-            matrix=$(jq -cn --arg files "$FILES" '{include: [{shard: 1, files: $files}]}')
-          fi
+          # Even on one runner: the plan names each file so that it matches no other.
+          pnpm exec playwright test --list --reporter=json $FILES $PROJECTS > "$RUNNER_TEMP/list.json"
+          matrix=$(node ../scripts/e2e-shards.mjs plan "$runners" "$RUNNER_TEMP/list.json" e2e/durations.json)
           echo "$cases cases, each run $repeat time(s), on $runners runner(s): $matrix"
           {
             echo "run=true"

@@ -29,11 +29,12 @@ test("plan splits by time, not by count: the slow file runs alone", () => {
   assert.deepEqual(plan(counts, durations, 2), [["slow.spec.ts"], ["a.spec.ts", "b.spec.ts", "c.spec.ts"]]);
 });
 
-test("plan prices a file it has no time for at the median seconds per case", () => {
-  // 10 s a case: the new file's 6 cases weigh 60 s, as much as the two known files together.
-  const counts = { "a.spec.ts": 3, "b.spec.ts": 3, "new.spec.ts": 6 };
-  const durations = { "a.spec.ts": 30, "b.spec.ts": 30 };
-  assert.deepEqual(plan(counts, durations, 2), [["new.spec.ts"], ["a.spec.ts", "b.spec.ts"]]);
+test("plan prices a file it has no time for, or a time of 0, at the median seconds per case", () => {
+  // 30 s a case: the new file's 6 cases weigh 180 s, as much as the two known files
+  // together, and the 0 s file's case 30 s. At the 10 s fallback the split would differ.
+  const counts = { "a.spec.ts": 3, "b.spec.ts": 3, "new.spec.ts": 6, "zero.spec.ts": 1 };
+  const durations = { "a.spec.ts": 90, "b.spec.ts": 90, "zero.spec.ts": 0 };
+  assert.deepEqual(plan(counts, durations, 2), [["new.spec.ts", "zero.spec.ts"], ["a.spec.ts", "b.spec.ts"]]);
 });
 
 test("plan gives every file exactly once, and the same split for the same inputs", () => {
