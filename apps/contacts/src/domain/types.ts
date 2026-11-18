@@ -124,7 +124,12 @@ export interface Tie extends Document {
   b: string;
   labelA: string;
   labelB: string;
+  /** What the Tie means, read from `a` to `b` (ADR 0130); absent for free words. The words stay what is shown. */
+  kind?: TieKind;
 }
+
+/** A Tie's meaning, read from end `a` to end `b`: `parent` is "a is b's parent". */
+export type TieKind = "parent" | "child" | "sibling" | "partner" | "grandparent" | "grandchild" | "auntUncle" | "nieceNephew" | "cousin";
 
 /** The type of a Household (ADR 0117): App-prefixed, as Person's is, so a user's own `household` type stays theirs. */
 export const HOUSEHOLD = "contacts_household";

@@ -1,4 +1,65 @@
-import type { Person, Tie } from "./types";
+import type { Person, Tie, TieKind } from "./types";
+
+/** The preset words of one end of a kind: female, male, neutral. */
+type Words = readonly [female: string, male: string, neutral: string];
+const HAS = (a: Words, b: Words) => ({ a, b });
+const PARENT: Words = ["mother", "father", "parent"];
+const CHILD: Words = ["daughter", "son", "child"];
+const SIBLING: Words = ["sister", "brother", "sibling"];
+const PARTNER: Words = ["wife", "husband", "partner"];
+const GRANDPARENT: Words = ["grandmother", "grandfather", "grandparent"];
+const GRANDCHILD: Words = ["granddaughter", "grandson", "grandchild"];
+const AUNT_UNCLE: Words = ["aunt", "uncle", "aunt or uncle"];
+const NIECE_NEPHEW: Words = ["niece", "nephew", "niece or nephew"];
+const COUSIN: Words = ["cousin", "cousin", "cousin"];
+
+/** The words of each end of each kind (ADR 0130): `a` names end a, `b` end b. */
+export const KIND_WORDS: Record<TieKind, { a: Words; b: Words }> = {
+  parent: HAS(PARENT, CHILD),
+  child: HAS(CHILD, PARENT),
+  sibling: HAS(SIBLING, SIBLING),
+  partner: HAS(PARTNER, PARTNER),
+  grandparent: HAS(GRANDPARENT, GRANDCHILD),
+  grandchild: HAS(GRANDCHILD, GRANDPARENT),
+  auntUncle: HAS(AUNT_UNCLE, NIECE_NEPHEW),
+  nieceNephew: HAS(NIECE_NEPHEW, AUNT_UNCLE),
+  cousin: HAS(COUSIN, COUSIN),
+};
+
+const INVERSE: Record<TieKind, TieKind> = { parent: "child", child: "parent", sibling: "sibling", partner: "partner", grandparent: "grandchild", grandchild: "grandparent", auntUncle: "nieceNephew", nieceNephew: "auntUncle", cousin: "cousin" };
+/** The same Tie's kind read from the other end. */
+export const invertKind = (kind: TieKind): TieKind => INVERSE[kind];
+
+/** One preset chip: the word for the other Person, and the kind it gives with this Person as end `a`. */
+export interface Preset {
+  word: string;
+  kind: TieKind;
+}
+
+/** The chips, in order. A word names end `b` of its kind ("daughter": this Person is her parent). */
+export const PRESETS: readonly Preset[] = [
+  ["daughter", "parent"], ["son", "parent"], ["child", "parent"],
+  ["sister", "sibling"], ["brother", "sibling"], ["sibling", "sibling"],
+  ["mother", "child"], ["father", "child"], ["parent", "child"],
+  ["wife", "partner"], ["husband", "partner"], ["partner", "partner"],
+  ["granddaughter", "grandparent"], ["grandson", "grandparent"], ["grandchild", "grandparent"],
+  ["grandmother", "grandchild"], ["grandfather", "grandchild"], ["grandparent", "grandchild"],
+  ["niece", "auntUncle"], ["nephew", "auntUncle"],
+  ["aunt", "nieceNephew"], ["uncle", "nieceNephew"],
+  ["cousin", "cousin"],
+].map(([word, kind]) => ({ word: word!, kind: kind as TieKind }));
+
+const norm = (w: string) => w.trim().toLowerCase();
+const KINDS = Object.keys(KIND_WORDS) as TieKind[];
+
+/**
+ * The kind two words read as, `labelA` for end a and `labelB` for end b:
+ * a consistent preset pair, any case, trimmed; else none. Read, never stored.
+ */
+export function kindOfWords(labelA: string, labelB: string): TieKind | undefined {
+  const [a, b] = [norm(labelA), norm(labelB)];
+  return KINDS.find((k) => KIND_WORDS[k].a.includes(a) && KIND_WORDS[k].b.includes(b));
+}
 
 /** One Tie as a Person's page shows it: the other Person, and the labels from this Person's side. */
 export interface TieRow {

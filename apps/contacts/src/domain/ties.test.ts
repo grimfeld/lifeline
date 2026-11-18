@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Person, Tie } from "./types";
-import { otherNameOf, tieCandidates, tieDraft, tieQuestions, tiesSeenFrom } from "./ties";
+import { PRESETS, kindOfWords, otherNameOf, tieCandidates, tieDraft, tieQuestions, tiesSeenFrom } from "./ties";
 
 const person = (id: string, title: string) => ({ id, title }) as Person;
 const anne = person("p1", "Anne");
@@ -58,5 +58,25 @@ describe("the Tie dialog", () => {
   it("asks how the two People stand to each other, never about me", () => {
     expect(tieQuestions("Anne", "Léa")).toEqual({ label: "Léa is Anne's…", ownLabel: "Anne is Léa's…" });
     expect(tieQuestions("Anne", "")).toEqual({ label: "They are Anne's…", ownLabel: "Anne is their…" });
+  });
+});
+
+describe("Tie kinds read from words (#608)", () => {
+  it("reads a matching preset pair as its kind, any case, trimmed", () => {
+    expect(kindOfWords("mother", "daughter")).toBe("parent");
+    expect(kindOfWords(" Daughter ", "MOTHER")).toBe("child");
+    expect(kindOfWords("husband", "wife")).toBe("partner");
+    expect(kindOfWords("aunt or uncle", "niece")).toBe("auntUncle");
+    expect(kindOfWords("cousin", "cousin")).toBe("cousin");
+  });
+  it("reads a non-matching pair as no kind", () => {
+    expect(kindOfWords("mother", "godson")).toBeUndefined();
+    expect(kindOfWords("godmother", "goddaughter")).toBeUndefined();
+    expect(kindOfWords("mother", "mother")).toBeUndefined();
+  });
+  it("offers the chips in the spec's order", () => {
+    expect(PRESETS.map((p) => p.word).join(" ")).toBe(
+      "daughter son child sister brother sibling mother father parent wife husband partner granddaughter grandson grandchild grandmother grandfather grandparent niece nephew aunt uncle cousin",
+    );
   });
 });
