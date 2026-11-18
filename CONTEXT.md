@@ -545,7 +545,7 @@ The People who live together — Paul, Mary, Tom and Lily, "the Smiths" — as a
 _Avoid_: family (kin, which Ties say), group, home (an Address)
 
 ### Drifting
-The People I have not seen in a while: a ranking of Seen (Not seen in 90 days, a fixed window; Not mentioned as the alternative) over the People who have a Relationship, minus any I have chosen to leave out. Someone I have never seen at all is drifting too, ahead of everyone seen. Where the People Module asks "who have I lost touch with?". Derived, like every Report; never a reminder.
+The People I have not been in touch with in a while: a ranking by when I was last **in touch** — the later of my last Seen and last Talked, read as dates and never added as counts (Not in touch in 90 days, a fixed window; Not mentioned as the alternative) — over the People who have a Relationship, minus any I have chosen to leave out. Someone I have never been in touch with at all is drifting too, ahead of everyone else. Where the People Module asks "who have I lost touch with?". Derived, like every Report; never a reminder.
 _Avoid_: neglected, overdue, stale, reminder
 
 ### Exchange
@@ -596,7 +596,7 @@ _Avoid_: unlinked reference, suggestion, candidate, "unlinked here" (old label f
 Core Contract: a Document type whose Documents are wikilink targets by title and alias, and receive backlinks. A type may also supply **derived names** (a Person's Given name resolves `[[Anne]]` without being copied into aliases) and **members** a link reaches (a Household's People) — ADR 0117. Declarable by data (a user-defined type just says so).
 
 ### Report
-A read-only figure or table derived from the Documents of one type and the links to them — who was mentioned most this month, when a Place was last visited, how often a person comes up over time. Two families never added together: **Mentioned** counts Days that link to a Document, **Seen** counts Events that link to it, each once per day (**Visited**, for a Place; an Event's At counts toward a Place, never toward a Person's Seen). A link to a Household counts for each member on that date (Household reach, ADR 0117). Each type chooses its own Reports. Derived, never logged, never stored. Shown on a Journal period, on one Document, on the type's own page, and placeable as a Card. Not a Stat (a Stat is a series the user logs).
+A read-only figure or table derived from the Documents of one type and the links to them — who was mentioned most this month, when a Place was last visited, how often a person comes up over time. Three families never added together: **Mentioned** counts Days that link to a Document, **Seen** counts Events that link to it (**Visited**, for a Place; an Event's At counts toward a Place, never toward a Person's Seen), **Talked** counts Exchanges whose People include it, each once per day. A link to a Household counts for each member on that date (Household reach, ADR 0117). Each type chooses its own Reports. Derived, never logged, never stored. Shown on a Journal period, on one Document, on the type's own page, and placeable as a Card. Not a Stat (a Stat is a series the user logs).
 _Avoid_: stat, statistic, insight, summary, analytics
 
 ### Role
