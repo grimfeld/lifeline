@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildLinkIndex, type Document, type DocumentTypeDef } from "@lifeline/core";
-import { personTypeDef } from "../types";
+import { householdTypeDef, personTypeDef } from "../types";
 import { driftingFrom, groupByRelationship, lastDays, type DriftSource } from "./drifting";
 import type { Person } from "./types";
 
@@ -99,5 +99,16 @@ describe("Group by Relationship", () => {
   });
   it("leaves out People with no Relationship", () => {
     expect(groupByRelationship([stranger])).toEqual([]);
+  });
+});
+
+describe("Drifting through a Household (ADR 0117)", () => {
+  it("counts an Event or a Day that links to someone's Household as seeing or mentioning them", () => {
+    const pair = [P("Paul"), P("Mary")];
+    const smiths = { ...base, id: "smiths", type: "contacts_household", title: "the Smiths", body: "", aliases: [], members: [{ personId: "Paul" }, { personId: "Mary" }] } as unknown as Document;
+    const at = buildLinkIndex([...(pair as unknown as Document[]), smiths, ev("x", "2026-11-01", "Dinner at [[the Smiths]]"), day("2026-10-01", "[[the Smiths]]")], [...types, householdTypeDef]);
+    expect(drifting(at, pair, { today })).toEqual([]);
+    expect(lastDays(at, pair, { source: "seen", today }).get("Mary")).toBe("2026-11-01");
+    expect(lastDays(at, pair, { source: "mentioned", today }).get("Paul")).toBe("2026-10-01");
   });
 });

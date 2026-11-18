@@ -1,4 +1,4 @@
-import { initialText, pickLinked, type CommandDef, type CommandDialogProps } from "@lifeline/core";
+import { initialText, pickLinked, peopleArg, peopleIn, peopleNamed, type CommandDef, type CommandDialogProps } from "@lifeline/core";
 import { NextPartDialog, partName, quickAddFromLine } from "@lifeline/parts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@lifeline/ui";
 import { Library as LibraryIcon, Plus, Settings2, StepForward, UserPen } from "lucide-react";
@@ -65,14 +65,16 @@ export const libraryCommands: CommandDef[] = [
       { key: "title", label: "Title", kind: "text", required: true },
       { key: "author", label: "Author", kind: "text", hint: "Author(s), comma-separated." },
       { key: "type", label: "Kind", kind: "select", options: WORK_TYPES.map((t) => ({ value: t.id, label: t.label })), hint: `Defaults to ${WORK_TYPES[0]!.id}.` },
+      peopleArg("recommendedBy", "Recommended by", "The People who recommended it"),
     ],
     returnsDocument: true,
     async invoke(a) {
       const medium = ((a.type as WorkTypeId | undefined) ?? WORK_TYPES[0]!.id) as WorkTypeId;
       const title = (a.title as string).trim();
-      const { id, twin } = await quickAddWork({ medium, title, author: a.author as string | undefined });
+      const people = peopleIn(a, "recommendedBy");
+      const { id, twin } = await quickAddWork({ medium, title, author: a.author as string | undefined, recommendedBy: people });
       if (twin) throw new Error(`“${twin.title}” is already on the shelf; tell the user — nothing was changed`);
-      return { id, message: `${title} added (${workType(medium).wantLabel})` };
+      return { id, message: `${title} added (${workType(medium).wantLabel})${await peopleNamed("recommended by", people)}` };
     },
   },
   {

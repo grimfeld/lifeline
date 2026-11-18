@@ -131,6 +131,6 @@ describe("Roles through the generic tooling", () => {
     const docs = [doc("a", "author", "Le Guin"), doc("p", "person", "Ursula", { roles: ["author"] }), doc("q", "person", "Bob")];
     const arg = { key: "author", label: "Author", kind: "link" as const, linkRole: "author" };
     expect(pickLinked(arg, "ursula", docs)).toBe("p");
-    expect(() => pickLinked(arg, "Bob", docs)).toThrow(/no author/);
+    expect(() => pickLinked(arg, "Bob", docs)).toThrow(/No Author called “Bob”/);
   });
 });

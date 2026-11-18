@@ -1,10 +1,12 @@
 import { useMemo } from "react";
 import { extractLinks, isImageEmbed, normalizeName, type WikiLink } from "../markdown";
 import { docPath, normalizeFolder } from "../folders";
-import { aliasesOf, displayTitle, isLinkKind, singularOf, type Document, type DocumentTypeDef } from "./types";
+import { aliasesOf, displayTitle, isLinkKind, singularOf, spanCovers, type Document, type DocumentTypeDef, type MemberSpan } from "./types";
 import { useAllDocuments } from "./store";
 import { fieldsOfDocument } from "./roles";
 import { usePrivateLockedRefs, type PrivateLockedRefs } from "../private";
+import type { DateStr } from "../dates";
+import { sourceDays } from "./sourceDays";
 
 const NO_LOCKED: PrivateLockedRefs = { names: new Set(), ids: new Set() };
 import { useDocumentTypes } from "./registry";
@@ -26,6 +28,17 @@ export interface Backlink {
   context: string;
   /** Key of the Link field that holds the reference, for field-based backlinks. */
   field?: string;
+}
+
+/**
+ * What reaches a Document (ADR 0117): a Backlink, or a link to a Document it
+ * is a member of (a Household), marked with what it came via.
+ */
+export interface Reach extends Backlink {
+  /** The Document whose link this is (the Household), when it is not a link to this one. */
+  via?: string;
+  /** For a `via` reach from a dated source: the source's days on which this one was a member. */
+  days?: DateStr[];
 }
 
 export interface LinkName {
@@ -53,6 +66,14 @@ export interface LinkIndex {
   resolveAll(name: string): LinkRef[];
   linksFrom(docId: string): ResolvedLink[];
   backlinksTo(docId: string): Backlink[];
+  /**
+   * What reaches a Document (ADR 0117): its Backlinks, then a link to each
+   * Document that counts it among its `linkable.members` on the source's day
+   * (on every day for a source with none of its own), marked `via` that
+   * Document. A source is there once: as the direct link when it is one, else
+   * through the first such Document, on every day any of them counts.
+   */
+  reaches(docId: string): Reach[];
   /** Normalised unresolved names → ids of the Documents mentioning them. */
   unresolved: Map<string, string[]>;
   /** Tag → ids of the Documents carrying it. */
@@ -307,7 +328,7 @@ function idsIn(v: unknown): string[] {
 }
 
 /** The index over `docs`, from their Targets and each one's Contribution: no body is read here. */
-function assemble(docs: Document[], t: Targets, contributions: Map<string, Contribution>): LinkIndex {
+function assemble(docs: Document[], t: Targets, contributions: Map<string, Contribution>, via: ViaCache): LinkIndex {
   const linksFromMap = new Map<string, ResolvedLink[]>();
   const backlinks = new Map<string, Backlink[]>();
   const unresolved = new Map<string, string[]>();
@@ -325,6 +346,7 @@ function assemble(docs: Document[], t: Targets, contributions: Map<string, Contr
     for (const tag of c.tags) push(tags, tag, d.id);
   }
   const { defs, byId, targets, titleOf, ref } = t;
+  const hasMembers = declaresMembers(defs);
 
   return {
     docs,
@@ -334,6 +356,15 @@ function assemble(docs: Document[], t: Targets, contributions: Map<string, Contr
     resolveAll: t.resolveAll,
     linksFrom: (id) => linksFromMap.get(id) ?? [],
     backlinksTo: (id) => backlinks.get(id) ?? [],
+    reaches(id) {
+      const direct = backlinks.get(id) ?? [];
+      if (!hasMembers) return direct;
+      via.map ??= viaMembers(docs, defs, byId, backlinks);
+      const through = via.map.get(id);
+      if (!through) return direct;
+      const named = new Set(direct.map((b) => b.sourceId));
+      return [...direct, ...through.filter((r) => !named.has(r.sourceId))];
+    },
     unresolved,
     tags,
     names: () => names(targets, "canonical"),
@@ -361,6 +392,103 @@ function assemble(docs: Document[], t: Targets, contributions: Map<string, Contr
   }
 }
 
+/** The hook that says who a Document stands for on a day (ADR 0117), when its type declares one. */
+function membersHook(def: DocumentTypeDef | undefined): MembersHook | undefined {
+  const l = def?.linkable;
+  return typeof l === "object" ? l.members : undefined;
+}
+
+type MembersHook = (doc: Document) => MemberSpan[];
+
+/** Whether any type declares `linkable.members`: without one, nothing reaches a Document but its Backlinks. */
+function declaresMembers(defs: Map<string, DocumentTypeDef>): boolean {
+  for (const def of defs.values()) if (membersHook(def)) return true;
+  return false;
+}
+
+/**
+ * Who a source on `days` reaches through a Household's spans, each with the
+ * days they were a member. A member with no bounds takes the source's days as
+ * they are, unexpanded; a dateless source (no days) reaches only those.
+ */
+function reachedBy(days: DateStr[] | null | undefined, spans: readonly MemberSpan[]): Map<string, DateStr[] | undefined> {
+  const reached = new Map<string, DateStr[] | undefined>();
+  for (const span of spans) {
+    const always = !span.since && !span.until;
+    if (!days) {
+      if (always) reached.set(span.id, undefined);
+      continue;
+    }
+    const on = always ? days : days.filter((d) => spanCovers(span, d));
+    if (!on.length) continue;
+    const had = reached.get(span.id);
+    reached.set(span.id, had ? [...new Set([...had, ...on])].sort() : on);
+  }
+  return reached;
+}
+
+/** Each source once, at its first Backlink: a Day naming the Household twice reaches its members once. */
+function firstPerSource(backlinks: Backlink[]): Backlink[] {
+  const seen = new Set<string>();
+  return backlinks.filter((b) => !seen.has(b.sourceId) && !!seen.add(b.sourceId));
+}
+
+/** Add a reach for member `m`; through a second of their Households a source is still one reach, the first Household's, on every day either counts. */
+function mergeReach(out: Map<string, Reach[]>, m: string, r: Reach): void {
+  const list = out.get(m);
+  const had = list?.find((x) => x.sourceId === r.sourceId);
+  if (had) {
+    if (r.days) had.days = [...new Set([...(had.days ?? []), ...r.days])].sort();
+  } else if (list) list.push(r);
+  else out.set(m, [r]);
+}
+
+/**
+ * The reaches through membership (ADR 0117), by member id: for each Document
+ * whose type declares `linkable.members`, each source linking to it reaches
+ * whoever was a member on one of its days — or, for a source with no date of
+ * its own, whoever is a member whatever the day. One reach per member and
+ * source, through the first Household. Derived, never stored.
+ */
+function viaMembers(docs: Document[], defs: Map<string, DocumentTypeDef>, byId: Map<string, Document>, backlinks: Map<string, Backlink[]>): Map<string, Reach[]> {
+  builds.via++;
+  const out = new Map<string, Reach[]>();
+  for (const household of docs) {
+    const members = membersHook(defs.get(household.type));
+    if (!members) continue;
+    const sources = firstPerSource(backlinks.get(household.id) ?? []);
+    if (!sources.length) continue;
+    // Read once per Household, never itself.
+    const spans = members(household).filter((s) => s.id !== household.id);
+    for (const b of sources) {
+      for (const [m, days] of reachedBy(sourceDays(byId.get(b.sourceId)), spans)) {
+        if (m !== b.sourceId) mergeReach(out, m, { ...b, via: household.id, ...(days ? { days } : {}) });
+      }
+    }
+  }
+  return out;
+}
+
+/** The via-a-Household reaches, worked out when first asked and kept by a patch that changes nothing they read. */
+interface ViaCache {
+  map?: Map<string, Reach[]>;
+}
+
+/**
+ * Whether a patch can change who a Household link reaches: a changed Document
+ * is of a type with members, or linked to one before or after the change (its
+ * days or its links may have moved).
+ */
+function touchesMembership(changed: Document[], prev: Built, contributions: Map<string, Contribution>): boolean {
+  const { defs, byId } = prev.targets;
+  const isHousehold = (id: string) => !!membersHook(defs.get(byId.get(id)?.type ?? ""));
+  return changed.some(
+    (d) =>
+      !!membersHook(defs.get(d.type)) ||
+      [prev.contributions.get(d.id), contributions.get(d.id)].some((c) => c?.backlinks.some((b) => isHousehold(b.to))),
+  );
+}
+
 /**
  * Derive every link relation from the Documents (ADR 0018): wikilinks in
  * bodies and Link fields. Precedence (CONTEXT.md "Wikilink"): an exact
@@ -380,20 +508,22 @@ interface Built {
   locked: PrivateLockedRefs;
   targets: Targets;
   contributions: Map<string, Contribution>;
+  via: ViaCache;
   index: LinkIndex;
 }
 
-const builds = { full: 0, patched: 0 };
+const builds = { full: 0, patched: 0, via: 0 };
 
-/** How many times `linkIndexFor` built the index whole, and how many it patched one: for tests and profiling. */
-export function linkIndexBuilds(): { full: number; patched: number } {
+/** How many times `linkIndexFor` built the index whole, how many it patched one, and how many times any index worked out its via-a-Household reaches: for tests and profiling. */
+export function linkIndexBuilds(): { full: number; patched: number; via: number } {
   return { ...builds };
 }
 
 function build(docs: Document[], types: DocumentTypeDef[], locked: PrivateLockedRefs): Built {
   const targets = buildTargets(docs, types, locked);
   const contributions = new Map(docs.map((d) => [d.id, contributionOf(d, targets)]));
-  return { docs, types, locked, targets, contributions, index: assemble(docs, targets, contributions) };
+  const via: ViaCache = {};
+  return { docs, types, locked, targets, contributions, via, index: assemble(docs, targets, contributions, via) };
 }
 
 /** Past this many changed Documents a patch saves nothing worth the bookkeeping: a whole build. */
@@ -426,7 +556,8 @@ function patch(prev: Built, docs: Document[]): Built | undefined {
   const targets: Targets = { ...prev.targets, byId, targets: docs.filter((d) => isLinkable(defs.get(d.type))) };
   const contributions = new Map(prev.contributions);
   for (const { doc } of changed) contributions.set(doc.id, contributionOf(doc, targets));
-  return { ...prev, docs, targets, contributions, index: assemble(docs, targets, contributions) };
+  const via: ViaCache = prev.via.map && !touchesMembership(changed.map((c) => c.doc), prev, contributions) ? prev.via : {};
+  return { ...prev, docs, targets, contributions, via, index: assemble(docs, targets, contributions, via) };
 }
 
 /** Whether a type's Documents may be offered as Unlinked mentions (CONTEXT.md): linkable, and not opted out. */

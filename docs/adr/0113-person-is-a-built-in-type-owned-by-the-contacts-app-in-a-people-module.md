@@ -1,5 +1,6 @@
 ---
 status: accepted
+amended-by: ADR 0117 (in part — Given and Family names, and Households)
 amends: ADR 0069 (in part — Person is a built-in type, no longer the user-defined example)
 ---
 

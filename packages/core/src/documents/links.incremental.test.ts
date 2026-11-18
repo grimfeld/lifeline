@@ -10,7 +10,7 @@ import type { Document, DocumentTypeDef } from "./types";
 const T = (id: string, extra: Partial<DocumentTypeDef> = {}): DocumentTypeDef => ({
   id, label: id + "s", titleRule: "name", body: "optional", fields: [], linkable: true, builtIn: true, ...extra,
 });
-const types = [T("note"), T("person"), T("media", { linkable: { aliasesField: "aliases" } }),
+const types = [T("note"), T("person", { linkable: { extraNames: (d) => [String(d.givenName ?? "")] } }), T("media", { linkable: { aliasesField: "aliases" } }),
   T("recipe", { fields: [{ key: "source", label: "Source", kind: "link" }] }),
   T("version", { internal: true, linkable: false, fields: [{ key: "of", label: "Of", kind: "link" }] })];
 
@@ -22,7 +22,7 @@ const vault = (): Document[] => [
   doc("a", "note", "Alpha", "See [[Beta]] and [[Yas]], not [[Nobody]]. #idea", { tags: ["idea"] }),
   doc("b", "note", "Beta", "Back to [[Alpha]]. [[Dune]]"),
   doc("m", "media", "Dune", "", { aliases: ["Arrakis"] }),
-  doc("p", "person", "Yasmine", "Self [[Yasmine]]", { aliases: ["Yas"] }),
+  doc("p", "person", "Yasmine", "Self [[Yasmine]]", { aliases: ["Yas"], givenName: "Yasmina" }),
   doc("r", "recipe", "Cake", "[[Arrakis]] spice", { source: "m" }),
   doc("v", "version", "Snapshot", "[[Beta]] [[Nobody]]", { of: "a" }),
 ];
@@ -40,7 +40,7 @@ function snapshot(idx: LinkIndex) {
     tags: [...idx.tags.entries()].sort(),
     names: idx.names(),
     mentions: idx.mentionNames(),
-    resolve: ["Alpha", "Beta", "Yas", "Arrakis", "media:Dune", "Nobody", "Gamma"].map((n) => idx.resolve(n)),
+    resolve: ["Alpha", "Beta", "Yas", "Arrakis", "media:Dune", "Nobody", "Gamma", "Yasmina", "Mina"].map((n) => idx.resolve(n)),
   };
 }
 
@@ -88,6 +88,13 @@ describe("linkIndexFor patches what a whole build would give", () => {
     expect(run(v0, v1, v2, v3, v4)).toEqual({ full: 5, patched: 0 });
   });
 
+  it("a corrected extra name (a Given name) is a whole build, so [[…]] follows it", () => {
+    const v0 = vault().map((d) => (d.id === "b" ? { ...d, body: "[[Mina]]" } : d));
+    const v1 = edit(v0, "p", { givenName: "Mina" });
+    expect(run(v0, v1)).toEqual({ full: 2, patched: 0 });
+    expect(linkIndexFor(v1, types).backlinksTo("p").map((b) => b.sourceId)).toContain("b");
+  });
+
   it("a Document added or deleted is a whole build", () => {
     const v0 = vault();
     const v1 = [...v0, doc("g", "note", "Gamma", "[[Alpha]]")];
@@ -116,4 +123,59 @@ describe("linkIndexFor patches what a whole build would give", () => {
     expect(after.patched - before.patched).toBe(40);
     expect(snapshot(linkIndexFor(docs, types))).toEqual(snapshot(buildLinkIndex(docs, types)));
   });
+});
+
+describe("linkIndexFor keeps who a Household link reaches (ADR 0117) across patches", () => {
+  const withHouseholds = [...types, T("household", { linkable: { members: (d) => ((d.members ?? []) as { personId: string }[]).map((m) => ({ id: m.personId })) } })];
+  const home = (): Document[] => [
+    ...vault(),
+    doc("h", "household", "Home", "", { members: [{ personId: "p" }] }),
+    doc("d", "note", "Dinner", "At [[Home]]"),
+  ];
+  const reachedBy = (docs: Document[], id: string) => linkIndexFor(docs, withHouseholds).reaches(id).map((r) => [r.sourceId, r.via]);
+  const viaBuilt = () => linkIndexBuilds().via;
+
+  it("reuses it after a body-only edit to a Note that links to no Household", () => {
+    linkIndexFor([], withHouseholds);
+    const v0 = home();
+    const start = viaBuilt();
+    expect(reachedBy(v0, "p")).toContainEqual(["d", "h"]);
+    const before = viaBuilt();
+    expect(before).toBe(start + 1);
+    const v1 = edit(v0, "a", { body: "Typing [[Beta]] away" });
+    expect(reachedBy(v1, "p")).toContainEqual(["d", "h"]);
+    expect(viaBuilt()).toBe(before);
+  });
+
+  it("works it out again when a Household's members change", () => {
+    linkIndexFor([], withHouseholds);
+    const v0 = home();
+    expect(reachedBy(v0, "p")).toContainEqual(["d", "h"]);
+    const v1 = edit(v0, "h", { members: [] });
+    expect(reachedBy(v1, "p")).not.toContainEqual(["d", "h"]);
+    expect(snapshotReaches(v1)).toEqual(snapshotReaches(v1, true));
+  });
+
+  it("works it out again when a source linking to a Household changes", () => {
+    linkIndexFor([], withHouseholds);
+    const v0 = home();
+    expect(reachedBy(v0, "p")).toContainEqual(["d", "h"]);
+    const v1 = edit(v0, "d", { body: "Not there after all" });
+    expect(reachedBy(v1, "p")).not.toContainEqual(["d", "h"]);
+    const v2 = edit(v1, "a", { body: "Now at [[Home]]" });
+    expect(reachedBy(v2, "p")).toContainEqual(["a", "h"]);
+  });
+
+  it("never works it out when no type declares members", () => {
+    linkIndexFor([], types);
+    const before = viaBuilt();
+    expect(linkIndexFor(vault(), types).reaches("p")).toEqual(linkIndexFor(vault(), types).backlinksTo("p"));
+    expect(viaBuilt()).toBe(before);
+    expect(typeof before).toBe("number");
+  });
+
+  function snapshotReaches(docs: Document[], whole = false) {
+    const idx = whole ? buildLinkIndex(docs, withHouseholds) : linkIndexFor(docs, withHouseholds);
+    return docs.map((d) => idx.reaches(d.id));
+  }
 });

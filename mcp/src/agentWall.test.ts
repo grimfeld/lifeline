@@ -47,6 +47,14 @@ vi.mock("@lifeline/core", async (importOriginal) => {
   };
 });
 
+// Core reads a link argument's candidates from its own store module, so it is stood in for there too.
+vi.mock("../../packages/core/src/documents/store", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../packages/core/src/documents/store")>()),
+  getDocument: async (id: string) => docs.get(id),
+  allDocuments: async () => [...docs.values()],
+  documentsOf: async (type: string) => [...docs.values()].filter((d) => d.type === type),
+}));
+
 const { runTool, WallRefused } = await import("./handlers");
 
 // Through the manifest only, as the server takes it (apps.ts).
@@ -237,5 +245,18 @@ describe("the agent wall: what an agent writes of a Person (ADR 0114)", () => {
   it("writes a Field the user added to Person like any other", async () => {
     await runTool("update_document", { id: "p1", fields: { giftIdeas: "oil paints", relationship: "my mum" } });
     expect(core.patchDocument).toHaveBeenCalledWith("p1", { giftIdeas: "oil paints", relationship: "my mum" });
+  });
+});
+
+describe("the agent wall: link matching (#455)", () => {
+  it("is never bypassed by an alias field: no type's `linkable.aliasesField` is agent-walled", async () => {
+    const { manifests } = await import("./apps");
+    const defs = manifests.flatMap((m) => m.types);
+    expect(defs.length).toBeGreaterThan(0);
+    for (const def of defs) {
+      const l = def.linkable;
+      const key = typeof l === "object" && l?.aliasesField ? l.aliasesField : "aliases";
+      expect(def.agentWalled ?? [], `${def.id} walls its alias field “${key}”, which link matching reads`).not.toContain(key);
+    }
   });
 });

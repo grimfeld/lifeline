@@ -1,4 +1,4 @@
-import { commandKey, commandNavigates, isInvocable, linkableDocuments, pickLinked, readCommandArgs, type LinkableDocument, type OwnedCommand } from "./commands";
+import { commandKey, commandNavigates, isInvocable, linkableDocuments, linkSource, linkProblemText, linkValues, matchLinks, pickLinked, readCommandArgs, takesDocument, type LinkableDocument, type OwnedCommand } from "./commands";
 import { MACRO_APP, type MacroShape } from "./macros";
 import type { CommandArg } from "./manifest";
 
@@ -21,15 +21,55 @@ export interface DocumentLookup {
 /** The lookup over the local store, through its Workspace gates — the shell's, and the MCP device worker's. */
 export const storeLookup: DocumentLookup = { linkable: linkableDocuments };
 
+/**
+ * One reason a Macro is broken. `fixed-link` is a fixed link, or entry of a
+ * fixed list of links, that names no Document or several: the one kind the
+ * Macro editor refuses to save. `step` and `key` (the argument) say where, when
+ * the reason is about one argument of one step; `text` is the sentence, without
+ * its step ("Source: No Source called “Gone”"): `reasonLine` puts it in a list.
+ */
+export interface MacroReason {
+  kind: "fixed-link" | "other";
+  /** Zero-based index of the step. */
+  step?: number;
+  /** The argument's key within that step. */
+  key?: string;
+  text: string;
+}
+
+/** A reason as a line of a list of reasons: its step's number (one-based) first, when it has a step. */
+export const reasonLine = (r: MacroReason): string => (r.step === undefined ? r.text : `Step ${r.step + 1}: ${r.text}`);
+
 /** A Macro is fine, or broken, with each reason. */
-export type MacroCheck = { ok: true } | { ok: false; reasons: string[] };
+export type MacroCheck = { ok: true } | { ok: false; reasons: MacroReason[] };
+
+/** A lookup that reads each candidate set once, however many links ask for it: one per check pass. */
+export function memoLookup(lookup: DocumentLookup = storeLookup): DocumentLookup {
+  const seen = new Map<string, Promise<readonly LinkableDocument[]>>();
+  return {
+    linkable(arg) {
+      const key = JSON.stringify(linkSource(arg));
+      let read = seen.get(key);
+      if (!read) seen.set(key, (read = lookup.linkable(arg)));
+      return read;
+    },
+  };
+}
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
-const empty = (v: unknown) => v === undefined || v === null || v === "";
+const empty = (v: unknown) => v === undefined || v === null || v === "" || (Array.isArray(v) && v.length === 0);
 
-/** Why a fixed value does not fit its argument; none when it does. A link is looked up, rows are checked row by row. */
+/** Why a fixed value does not fit its argument; none when it does. A link is looked up, each entry of a list of links too, rows are checked row by row. */
 async function valueProblems(arg: CommandArg, value: unknown, lookup: DocumentLookup): Promise<string[]> {
   if (empty(value)) return [];
+  if (arg.kind === "links") {
+    try {
+      const values = linkValues(arg, value);
+      return values.length ? matchLinks(arg, values, await lookup.linkable(arg)).problems.map(linkProblemText) : [];
+    } catch (e) {
+      return [message(e)];
+    }
+  }
   if (arg.kind === "link") {
     try {
       pickLinked(arg, String(value), await lookup.linkable(arg));
@@ -82,51 +122,63 @@ export function returnsDocument(def: OwnedCommand): boolean {
  * Check a Macro before it runs: every Command exists and is not a Macro, a
  * step that goes somewhere is last, every value a step gives is one its
  * Command takes and fits it, fixed links name one living Document, a step's
- * result is taken only by a link, from an earlier step that returns a Document, and every
- * required value has a source.
+ * result is taken only by a link or a list of links (as its one entry), from
+ * an earlier step that returns a Document, and every required value has a source.
  */
 export async function checkMacro(macro: MacroShape, commands: readonly OwnedCommand[], lookup: DocumentLookup = storeLookup): Promise<MacroCheck> {
-  if (macro.steps.length === 0) return { ok: false, reasons: ["It has no steps"] };
+  if (macro.steps.length === 0) return { ok: false, reasons: [{ kind: "other", text: "It has no steps" }] };
   const defs = macro.steps.map((s) => commands.find((c) => commandKey(c) === s.command));
-  const reasons: string[] = [];
+  const reasons: MacroReason[] = [];
+  const other = (text: string, step?: number, key?: string) => reasons.push({ kind: "other", step, key, text });
   for (const [i, step] of macro.steps.entries()) {
-    const at = `Step ${i + 1}: `;
     const def = defs[i];
     if (!def) {
-      reasons.push(`${at}“${step.command}” no longer exists`);
+      other(`“${step.command}” no longer exists`, i);
       continue;
     }
     if (def.appId === MACRO_APP) {
-      reasons.push(`${at}“${def.title}” is a Macro, and a Macro cannot be a step`);
+      other(`“${def.title}” is a Macro, and a Macro cannot be a step`, i);
       continue;
     }
     if (def.readOnly) {
-      reasons.push(`${at}“${def.title}” only answers an agent, so it cannot be a step`);
+      other(`“${def.title}” only answers an agent, so it cannot be a step`, i);
       continue;
     }
-    if (commandNavigates(def) && i < macro.steps.length - 1) reasons.push(`${at}“${def.title}” goes somewhere, so it must be the last step`);
+    if (commandNavigates(def) && i < macro.steps.length - 1) other(`“${def.title}” goes somewhere, so it must be the last step`, i);
     const args = isInvocable(def) ? def.args : [];
     for (const [key, src] of Object.entries(step.args)) {
       const arg = args.find((a) => a.key === key);
       if (!arg) {
-        reasons.push(`${at}“${def.title}” takes no “${key}”`);
+        other(`“${def.title}” takes no “${key}”`, i, key);
         continue;
       }
-      if (src.from === "fixed") reasons.push(...(await valueProblems(arg, src.value, lookup)).map((p) => at + p));
+      if (src.from === "fixed") {
+        const kind = takesDocument(arg) ? ("fixed-link" as const) : ("other" as const);
+        for (const p of await valueProblems(arg, src.value, lookup)) reasons.push({ kind, step: i, key, text: p });
+      }
       if (src.from === "step") {
-        const made = `${at}${arg.label} takes what step ${src.step + 1} made, but `;
+        const made = `${arg.label} takes what step ${src.step + 1} made, but `;
         const earlier = src.step >= 0 && src.step < i ? defs[src.step] : undefined;
-        if (arg.kind !== "link") reasons.push(`${made}only a link can take a Document`);
-        else if (!(src.step >= 0 && src.step < i)) reasons.push(`${made}step ${src.step + 1} does not come before it`);
+        if (!takesDocument(arg)) other(`${made}only a link or a list of links can take a Document`, i, key);
+        else if (!(src.step >= 0 && src.step < i)) other(`${made}step ${src.step + 1} does not come before it`, i, key);
         // Only a headless step that says it returns a Document reports one; a dialog or a place makes nothing a later step can take.
-        else if (earlier && !returnsDocument(earlier)) reasons.push(`${made}“${earlier.title}” makes no Document`);
+        else if (earlier && !returnsDocument(earlier)) other(`${made}“${earlier.title}” makes no Document`, i, key);
       }
     }
     for (const arg of args) {
       const src = step.args[arg.key];
       if (arg.required && (!src || (src.from === "fixed" && empty(src.value))))
-        reasons.push(`${at}${arg.label} is required, and is neither fixed, asked nor taken from a step`);
+        other(`${arg.label} is required, and is neither fixed, asked nor taken from a step`, i, arg.key);
     }
   }
   return reasons.length ? { ok: false, reasons } : { ok: true };
+}
+
+/**
+ * What the Macro editor refuses to save: the fixed-link reasons of the one
+ * check (`checkMacro`), each with its step and argument. A draft broken any
+ * other way is saved, and shows as broken.
+ */
+export function fixedLinkReasons(check: MacroCheck): MacroReason[] {
+  return check.ok ? [] : check.reasons.filter((r) => r.kind === "fixed-link");
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { QUICK_MAKE_MAX } from "@lifeline/core";
-import { findPerson, initialName, knownLine, nameFromHandoff } from "./person";
+import { composeTitle, initialName, knownLine, nameFromHandoff } from "./person";
 
 describe("the name a Person is made with from a Handoff", () => {
   it("is the selected words when they are a name", () => {
@@ -14,24 +14,6 @@ describe("the name a Person is made with from a Handoff", () => {
 
   it("is the title when the text is empty", () => {
     expect(nameFromHandoff({ title: "Ada Lovelace — Wikipedia", text: "" })).toBe("Ada Lovelace — Wikipedia");
-  });
-});
-
-describe("findPerson", () => {
-  const anne = { title: "Anne Dupont", aliases: ["Mum"] };
-  const anna = { title: "Anna", aliases: ["Mum", "Annie"] };
-  const people = [anne, anna];
-  it("finds one by name or alias, ignoring case and accents", () => {
-    expect(findPerson(people, " anne dupont ")).toEqual({ person: anne });
-    expect(findPerson(people, "ANNIE")).toEqual({ person: anna });
-    expect(findPerson([{ title: "Léa" }], "lea")).toEqual({ person: { title: "Léa" } });
-  });
-  it("refuses an unknown name in words", () => {
-    expect(findPerson(people, "Bob")).toEqual({ problem: "No Person called “Bob”" });
-    expect(findPerson(people, "  ")).toHaveProperty("problem");
-  });
-  it("refuses an ambiguous name, naming those it could be", () => {
-    expect(findPerson(people, "Mum")).toEqual({ problem: expect.stringMatching(/ambiguous: Anne Dupont, Anna/) });
   });
 });
 
@@ -57,5 +39,19 @@ describe("the line under a Person's name", () => {
     expect(knownLine(["Mum"], null)).toBe("also Mum");
     expect(knownLine([], 0)).toBe("0 years old");
     expect(knownLine([], null)).toBe("");
+  });
+});
+
+describe("the title composed from the names (ADR 0117)", () => {
+  it("is the Given and Family name, trimmed", () => {
+    expect(composeTitle(" Anne ", "Dupont")).toBe("Anne Dupont");
+    expect(composeTitle("Anne", "García López")).toBe("Anne García López");
+  });
+  it("is the one name given when the other is blank or missing", () => {
+    expect(composeTitle("Anne", "  ")).toBe("Anne");
+    expect(composeTitle(undefined, "Dupont")).toBe("Dupont");
+  });
+  it("is empty with neither", () => {
+    expect(composeTitle("", undefined)).toBe("");
   });
 });

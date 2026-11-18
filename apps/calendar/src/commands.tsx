@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { formatTime, initialText, todayStr, type CommandDef, type CommandDialogProps } from "@lifeline/core";
+import { formatTime, initialText, peopleArg, peopleIn, peopleNamed, todayStr, type CommandDef, type CommandDialogProps } from "@lifeline/core";
 import { toast } from "@lifeline/ui";
 import { Ban, CalendarPlus, LayoutTemplate, Zap } from "lucide-react";
 import { EventDialog } from "./components/EventDialog";
@@ -60,6 +60,7 @@ export const calendarCommands: CommandDef[] = [
       },
       { key: "notes", label: "Notes", kind: "longtext" },
       { key: "tags", label: "Tags", kind: "list" },
+      peopleArg("with", "With", "The People there"),
     ],
     returnsDocument: true,
     async invoke(a) {
@@ -68,6 +69,7 @@ export const calendarCommands: CommandDef[] = [
       const endDate = (a.endDate as string | undefined) ?? null;
       const refused = eventArgsError({ date: a.date as string, start, end, endDate });
       if (refused) throw new Error(refused);
+      const people = peopleIn(a, "with");
       const id = await addEvent({
         title: a.title as string,
         date: a.date as string,
@@ -76,9 +78,10 @@ export const calendarCommands: CommandDef[] = [
         end,
         notes: a.notes as string | undefined,
         tags: a.tags as string[] | undefined,
+        with: people,
       });
       const at = start ? ` at ${start}${end ? `–${endDate && endDate !== a.date ? `${endDate} ` : ""}${end}` : ""}` : "";
-      return { id, message: `Added event “${a.title}” on ${a.date}${at}` };
+      return { id, message: `Added event “${a.title}” on ${a.date}${at}${await peopleNamed("with", people)}` };
     },
   },
   {

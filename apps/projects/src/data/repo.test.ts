@@ -143,7 +143,7 @@ describe("agents", () => {
     };
     expect((await invokeCommand(def, { project: "website" })).id).toBe(id);
     expect((await invokeCommand(def, { project: id })).id).toBe(id);
-    await expect(invokeCommand(def, { project: "Webside" })).rejects.toThrow("no project called");
+    await expect(invokeCommand(def, { project: "Webside" })).rejects.toThrow("No Project called");
   });
 
   it("read a Project's whole Board through get_document's description", async () => {

@@ -55,14 +55,30 @@ const COMMANDS: InlineCommand[] = [
     ],
     invoke: ok,
   },
+  {
+    appId: "calendar",
+    id: "calendar.add-event",
+    title: "Add event…",
+    capture: true,
+    args: [
+      { key: "title", label: "Title", kind: "text", required: true },
+      { key: "with", label: "With", kind: "links", linkType: "person" },
+      { key: "for", label: "For", kind: "links", linkType: "person" },
+    ],
+    invoke: ok,
+  },
 ];
 
 const DOCS = [
+  { id: "m1", type: "person", title: "Marc Lefèvre", aliases: ["Marco", "Marc"] },
+  { id: "l1", type: "person", title: "Léa" },
+  { id: "z1", type: "person", title: "Zoé" },
+  { id: "z2", type: "person", title: "Zoe Two", aliases: ["Zoé"] },
   { id: "d1", type: "source", title: "Dune" },
   { id: "d2", type: "film", title: "Dune" },
   { id: "d3", type: "source", title: "Mum's letters" },
   { id: "d4", type: "source", title: "Mum's letters" },
-  { id: "p1", type: "project", title: "Family" },
+  { id: "p1", type: "project", title: "Family", aliases: ["Famille"] },
 ];
 
 function read(line: string, over: Partial<InlineLineInput> = {}) {
@@ -156,6 +172,25 @@ describe("the @ mark", () => {
     const r = read("!note-on-a-source dear @\"Mum's letters\"");
     expect(r.ambiguous).toEqual([expect.objectContaining({ value: "Mum's letters", ids: ["d3", "d4"] })]);
     expect(r.ready).toBe(false);
+  });
+
+  it("fills a link by an alias, accents and case folded, as an agent's name would", () => {
+    expect(read("!task plan @Famille").args).toEqual({ title: "plan", project: "p1" });
+    expect(read("!add-event lunch with:@Marco").args).toEqual({ title: "lunch", with: ["m1"] });
+    expect(read("!add-event lunch with:marc").args).toEqual({ title: "lunch", with: ["m1"] });
+  });
+
+  it("fills a list of links, one entry for each repeated mark or key", () => {
+    expect(read("!add-event lunch with:@Marc with:@Lea").args).toEqual({ title: "lunch", with: ["m1", "l1"] });
+    expect(read("!add-event lunch @Marc").problems.join()).toMatch(/fits With and For/);
+    const r = read("!add-event lunch with:@Marc for:@Marco");
+    expect(r.args).toEqual({ title: "lunch", with: ["m1"], for: ["m1"] });
+    expect(r.problems).toEqual([]);
+  });
+
+  it("keeps each Document once, and reports an ambiguous name", () => {
+    expect(read("!add-event x with:Marc with:Marco").args.with).toEqual(["m1"]);
+    expect(read("!add-event x with:Zoé").ambiguous).toEqual([expect.objectContaining({ value: "Zoé", ids: ["z1", "z2"] })]);
   });
 
   it("suggests only Documents of the expected type, quoting a title with a space", () => {

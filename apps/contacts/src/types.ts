@@ -1,8 +1,10 @@
 import { PERSON_TYPE, getDocument, type DocumentTypeDef } from "@lifeline/core";
-import { AGENT_WALLED_KEYS, PEOPLE_FOLDER, TIE, type Person } from "./domain/types";
-import { describePerson } from "./describe";
+import { AGENT_WALLED_KEYS, HOUSEHOLD, HOUSEHOLDS_FOLDER, PEOPLE_FOLDER, TIE, type Person } from "./domain/types";
+import { describeHousehold, describePerson } from "./describe";
 import { removeTiesOf, tieIdsOf } from "./data/ties";
-import { personHref } from "./constants";
+import { householdHref, personHref } from "./constants";
+import { dropMembersOutside, dropMembershipsOf } from "./data/households";
+import { memberSpansOf } from "./domain/households";
 import { addressPinsOf } from "./domain/addresses";
 
 /**
@@ -18,7 +20,11 @@ export const personTypeDef: DocumentTypeDef = {
   titleRule: "name",
   body: "optional",
   folder: PEOPLE_FOLDER,
-  linkable: { subtitle: (d) => ((d as Person).relationship?.trim() ? `Person · ${(d as Person).relationship.trim()}` : "Person") },
+  linkable: {
+    subtitle: (d) => ((d as Person).relationship?.trim() ? `Person · ${(d as Person).relationship.trim()}` : "Person"),
+    // [[Anne]] reaches them by their Given name, read from the Field and never copied into Aliases (ADR 0117).
+    extraNames: (d) => [typeof d.givenName === "string" ? d.givenName : ""],
+  },
   // Opens on its own page; its Peek's "Open" leads there (ADR 0110's pattern).
   href: (d) => personHref(d.id),
   // A Pin for each current Address with coordinates, through the App's code and no geo Field (#418).
@@ -27,15 +33,23 @@ export const personTypeDef: DocumentTypeDef = {
   reports: [{ kind: "lastSeen" }, { kind: "last" }],
   order: 30,
   builtIn: true,
-  // Their Ties go with them, and move with them between Workspaces (#412).
-  onDelete: (doc) => removeTiesOf(doc.id),
+  // Their Ties go with them, and move with them between Workspaces (#412); their place in any Household goes too (ADR 0117).
+  onDelete: async (doc) => {
+    await removeTiesOf(doc.id);
+    await dropMembershipsOf(doc.id);
+  },
   followers: (doc) => tieIdsOf(doc.id),
+  // Out of the Households they leave behind: members belong to the Household's Workspace (ADR 0117).
+  onMove: (doc, workspace) => dropMembershipsOf(doc.id, workspace),
   // Gone from every People field too (an Event's With, a Task's For…): the other Apps never import Contacts.
   unlinkOnDelete: true,
   // An agent reads their Ties and Reports (#404 story 92), and never their Addresses or Contact details (ADR 0114).
   describe: describePerson,
   agentWalled: AGENT_WALLED_KEYS,
   fields: [
+    // Beside the title, never part of it after add (ADR 0117).
+    { key: "givenName", label: "Given name", kind: "text", column: true },
+    { key: "familyName", label: "Family name", kind: "text", column: true },
     { key: "aliases", label: "Aliases", kind: "list" },
     { key: "relationship", label: "Relationship", kind: "text", column: true },
     // Left out of Drifting by choice (#420): set on the Person's page or from their Drifting row.
@@ -70,4 +84,37 @@ export const tieTypeDef: DocumentTypeDef = {
   ],
   // Either Person speaks for it.
   owner: async (doc) => (typeof doc.a === "string" ? getDocument(doc.a) : undefined),
+};
+
+/**
+ * The Household (ADR 0117): the People who live together, Linkable by its
+ * title and aliases, with a body. Its members are the Contacts App's own part
+ * (guarded, hidden json), chosen on its page, its Peek or a Person's page,
+ * never by a Base or an agent. It holds nothing of a Person's, so deleting it
+ * touches no one, and nothing walled reaches an agent through it.
+ */
+export const householdTypeDef: DocumentTypeDef = {
+  id: HOUSEHOLD,
+  label: "Households",
+  singular: "Household",
+  iconName: "home",
+  titleRule: "name",
+  body: "optional",
+  folder: HOUSEHOLDS_FOLDER,
+  // A link to it counts for whoever was a member on the source's day (ADR 0117): Core's `reaches`.
+  linkable: { subtitle: () => "Household", members: (doc) => memberSpansOf(doc.members) },
+  href: (d) => householdHref(d.id),
+  // Its own page's Reports, as a Person's (ADR 0112): what links to it by name, never through its members.
+  reports: [{ kind: "lastSeen" }, { kind: "last" }],
+  order: 31,
+  builtIn: true,
+  // An agent reads its name, aliases and the names of its members (ADR 0117), as it reads a Person.
+  describe: describeHousehold,
+  // Moved, it keeps only the members in its new Workspace (ADR 0117); a Person moved with it stays.
+  onMove: (doc, workspace) => dropMembersOutside(doc.id, workspace),
+  fields: [
+    { key: "aliases", label: "Aliases", kind: "list" },
+    // `{ personId, since?, until? }[]` (`Membership`): only the App's own controls write it.
+    { key: "members", label: "Members", kind: "json", guarded: true, hidden: true },
+  ],
 };

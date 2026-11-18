@@ -1,7 +1,8 @@
 # People
 
 The people in your life: family, friends, colleagues, someone you met once, someone who has
-died. Each one is a **Person** you can link to from anywhere, with a page of their own.
+died. Each one is a **Person** you can link to from anywhere, with a page of their own. The People
+who live together make a **Household** ("the Smiths"), which you can link to as well.
 
 ## People
 
@@ -21,6 +22,12 @@ Workspace, A to Z under a letter each (a name that starts with no letter goes un
   next 30 days ("Birthday in 9 days · turns 61"), **drifting** with how many days when they are in
   Drifting (below), counted the way Drifting is switched (Not seen or Not mentioned), and their Tags.
 - **Search** matches a name or any alias, ignoring case and accents.
+- **Tidy given names…** — a notice above Upcoming, shown only while some Person has their given name
+  typed as an alias: their name starts with one of their own aliases ("Anne Dupont", alias "Anne") and they
+  have no **Given name**. It opens a review, one row per Person, with the proposed **Given name**, **Family
+  name** (the rest of the name) and the alias it drops. Untick anyone to leave them as they are;
+  **Apply** changes nothing until you press it. Only the duplicated alias goes (their other aliases stay),
+  and `[[Anne]]` still reaches them through the Given name. Once no one is left, the notice goes. It never runs by itself.
 - **Relationship** (a row of choices, **Everyone** first) and **Tag** narrow the list, and together
   they narrow it further. On a phone they are under **Filters**.
 - With no one yet, the home offers **Add person**.
@@ -40,8 +47,10 @@ bring them back.
 ### A Person's page
 
 At the top, their name, then what they are to you (their **Relationship**, underlined with dashes:
-click it and type to change it, Enter or leaving it saves, Escape puts it back), then their age (when their Birthday has a year) and their
-aliases. Under them, three buttons: **Call**, **Email** and **Profile** reach them by their first
+click it and type to change it, Enter or leaving it saves, Escape puts it back), then their
+**Given name** and **Family name** (both optional, written the same way: "Anne" and "Dupont"), then their age (when their Birthday has a year) and their
+aliases, then **Households:** with each Household they belong to as a link, and **Add to a household…**
+(see Households, below). Under them, three buttons: **Call**, **Email** and **Profile** reach them by their first
 current phone number, email and handle; a former one is skipped. One they have none of is dimmed, and adds one of
 its kind: a dimmed **Email** opens the dialog on Email. Their next
 Occasion within the year sits beside them.
@@ -54,7 +63,8 @@ Below, two columns (one after the other on a phone):
   a cross removes it (with Undo) and **Former** marks a Contact detail or Address former. Edit also
   lets you rename them in place, as the Relationship is changed (every `[[link]]` to them follows).
   A name can't be emptied ("Name can't be empty.") or be another Person's: the reason shows under
-  it, to fix or undo with Escape. Edit also shows **More**: their **Aliases**, their
+  it, to fix or undo with Escape. Changing the name never changes the Given or Family name, and
+  changing those never changes the name: the name stays "Mum" or "Dr Okafor" as you wrote it. Edit also shows **More**: their **Aliases**, their
   **Tags** and **Excluded from Drifting**. **Done** goes back to reading.
 - **About them** — the body: what you know of them, written with `[[links]]` and `#tags` like
   any page.
@@ -64,11 +74,16 @@ Below, two columns (one after the other on a phone):
   counts an Event once per day it is on, every day of a trip, and nothing in the future; Tasks
   and Occasions never count. A type can also choose **Seen count**, a **Seen heatmap**, **Top seen**
   and **Not seen lately** in its editor, and each can be placed as a Report Card.
-- **Timeline** — their Occasions in the year ahead, above a **Today** line, then everything that
-  links to them, by month, newest first: Events with them, Tasks and Transactions for them, books
-  they recommended, and the Days and notes that name them, each once, saying what it is and how it
-  links ("via With", "mentioned"). Click one to peek at it. Only an Event counts as having seen
-  them: its **With**, or a `[[link]]` to them in its notes ("Dinner with [[Marc]]").
+- **Timeline** — everything that links to them, by month, newest first: Events with them, Tasks
+  and Transactions for them, books they recommended, and the Days and notes that name them, each
+  once, saying what it is and how it links ("via With", "mentioned", or "via the Smiths" for a link
+  to a Household of theirs). A **Today** line splits it:
+  above, their Occasions in the year ahead and whatever is dated today or later (a planned Event,
+  with how soon it is: "tomorrow", "in 29 days"); below, what is past, then what has no day.
+  A note or anything else with no date of its own sits below the line, on the day it last
+  changed. An Event still under way (a trip begun but not yet over) stays above the line, by its
+  first day, until its End day has passed; one that ends at midnight is over that night. Click one to peek at it. Only an Event counts as having
+  seen them: its **With**, or a `[[link]]` to them in its notes ("Dinner with [[Marc]]").
 
 Deleting a Person takes them out of every People field that held them (an Event's **With**, a
 Task's **For**…); the Events, Tasks and the rest stay. A `[[link]]` to them in a body becomes an
@@ -139,11 +154,63 @@ Removing anything from a Person's page (an Occasion, an Address, a Contact detai
 happens at once, with **Undo** on the message that follows: it puts back just that one, even
 if you have added something since.
 
+### Households
+
+A **Household** is the People who live together: Paul, Mary, Tom and Lily, "the Smiths". It has a
+name, aliases, **members** you choose, and a page of your own words. It is not a family: Paul's
+mother in another town is his Tie, not a member, and Mary keeps her own name and is still one.
+
+- **Households**, beside **People** in the People Module (its sidebar, or its tabs at the bottom,
+  against the bar, on a phone), lists every Household in the current Workspace,
+  A to Z, with the names and number of its current members (former members only on its page).
+  **Add household** takes a name and opens its page.
+- **A Household's page** — its name, underlined with dashes (click it to rename it; every
+  `[[link]]` to it follows), its **Members**, its **Aliases** and **About it**, its body, then its
+  own **Reports** (**Last seen** and **Last mentioned**) and **Timeline**: what links to the
+  Household itself, by name, each opening in a Peek. **Add member** finds a Person by name or
+  alias; the cross beside a member takes them out, with Undo.
+  Each member's name opens their page. The calendar button beside a member sets **Since** and
+  **Until**, the first and last day they lived there; either may stay empty. Someone who moves out
+  gets an Until day and, once it has passed, moves to **Former members**, listed apart with
+  their days, never removed.
+- **From a Person's page**, **Add to a household…** finds a Household by name, or makes a new one
+  from the name you type ("New household “Student flat”") with them in it.
+- **Adding a Person** whose Family name matches a member of a Household suggests joining it
+  (see **Add person…**, below); nothing joins unless you tap the suggestion.
+- Someone may belong to several Households: a student's flat and their parents' home.
+- Only People of the Household's own Workspace can be its members. A Person moved to another
+  Workspace leaves the Households of the old one; a Household moved keeps only the members that
+  are in its new Workspace (move them together to keep them).
+- In an Event's **With**, typing a Household's name offers it ("Household · Paul Smith, Mary
+  Martin…"); picking it adds its members of today as People, without doubling anyone already
+  there. Take off whoever was away: **With** records who was there, and keeps the People, never
+  the Household.
+- `[[the Smiths]]` links to the Household like any page, and clicking it opens its **Peek**,
+  where you can change its aliases, members and Tags; **Open** goes to its page.
+- **A link to a Household counts for its members.** "Dinner at `[[the Smiths]]`" in a Day or an
+  Event stands on each member's **Timeline** ("via the Smiths") and counts toward their **Last
+  seen** and **Last mentioned**, so toward **Drifting** too, as if you had named each of them. A
+  Day or Event that names someone and their Household is one entry, as the direct link.
+- **A link counts for whoever lived there on its date.** The Day's date, or an Event's days, decide
+  which members it reaches (Since and Until included), so a past dinner keeps counting for someone
+  who has since left, and does not count for someone who arrived later. A page with no date of its
+  own, a note, reaches only members with neither Since nor Until.
+- Deleting a Person takes them out of every Household; the Households stay. Deleting a
+  Household changes no Person.
+- The home stays each member's **Address**: a Household has none, and no Occasion or Contact
+  detail.
+
 ### Linking to a Person
 
 - Write `[[` and their name, or any of their aliases: `[[Mum]]` and `[[Anne Dupont]]` land on
   the same Person. The completer marks each one as a Person, with their Relationship.
-- Click a link to a Person to open them in a **Peek**, where you can change their aliases,
+- Their **Given name** works like an alias you never type: with "Anne" as Anne Dupont's Given
+  name, `[[Anne]]` lands on her, the completer offers "Anne → Anne Dupont", and a plain "Anne"
+  in a Day shows under her **Unlinked mentions**. It is read from the Given name, never copied
+  into her Aliases, so correcting the Given name changes what `[[Anne]]` reaches (a page titled
+  "Anne" still comes first, as it does over an alias). Two People with the same Given name share
+  it as two equal aliases would: `[[Anne]]` goes to one of them, so write the full name to be sure.
+- Click a link to a Person to open them in a **Peek**, where you can change their Given name, Family name, aliases,
   Relationship and Tags and write in their body. **Open** goes to their page.
 - Select a name in a Day (or any body) and pick **Person** under **People** in the Selection
   menu: the Person is made, and the name becomes a link to them.
@@ -156,25 +223,33 @@ if you have added something since.
 
 ### Commands
 
-- **Add person…** — a new Person, from their name alone. Where: the Capture sheet, the palette
+- **Add person…** — a new Person, from a name, or from a **Given name** and a **Family name**: until
+  you type a name, it fills in as "Anne Dupont" while you type the two, and a name you typed
+  ("Mum") is kept as typed. Both names are kept on the Person, beside the name, and can be left
+  empty. When the **Family name** is one a member of a Household of this Workspace has ("Smith",
+  and the Smiths have a Smith in them), the dialog offers a **Join the Smiths** button: tap it (it stays pressed) and the new
+  Person joins when you press **Add**; leave it, and they join nothing. It is only ever a
+  suggestion, and an unrelated Smith simply isn't tapped. Where: the Capture sheet, the palette
   (Ctrl+K).
-- **Add occasion…** — a birthday, anniversary or other Occasion for a Person found by name or
-  alias; it has no screen, and is how Claude adds Occasions (`people_occasion_add`). Where: Claude
+- **Add occasion…** — a birthday, anniversary or other Occasion for a Person found by name,
+  alias or id; it has no screen, and is how Claude adds Occasions (`people_occasion_add`). Where: Claude
   only.
 - **Go to People** — the People home. Where: the palette.
 
 ## Capture
 
-**+** on the phone (or Ctrl+K at the desk) offers **Add person…** under People: just a name, so
+**+** on the phone (or Ctrl+K at the desk) offers **Add person…** under People: just a name (or the two names), so
 you can add someone you just met before you forget it.
 
 ## Ask Claude
 
-- "Add my aunt Anne Dupont, I call her Mum" — `people_add`, with a name, aliases, a
-  Relationship and Tags.
-- "Anne's birthday is 12 November 1961" — `people_occasion_add`, for the Person found by name or
-  alias, with a label, a day (the year optional) and yearly or once. An unknown name, or one
-  that two People share, is refused and Claude asks which.
+- "Add my aunt Anne Dupont, I call her Mum" — `people_add`, with a name, optional Given and
+  Family names, aliases, a Relationship and Tags.
+- "Anne's birthday is 12 November 1961" — `people_occasion_add`, for the Person found by name,
+  alias, Given name or id (accents and case aside), with a label, a day (the year optional) and yearly or
+  once. An unknown name is refused; so is one that fits two People — a name they share, or one's
+  name and the other's alias — and the refusal lists each with their id, so Claude can ask which
+  and call again with it.
 - "Whose birthday is coming up?" — `people_upcoming` is the Upcoming Report for the next days,
   with the age each Birthday reaches; `agenda` lists Occasions too, as `occasion` entries apart
   from Deadlines, with the same age.
@@ -183,10 +258,14 @@ you can add someone you just met before you forget it.
 - "Who is Léa to Anne?" — `get_document` on a Person also lists their Ties, read from their side
   ("daughter: Léa"), leaving out anyone in the Private folder.
 - "What have I written about Anne?" — `search_documents`, `get_document`.
+- "Who lives at the Smiths'?" — `get_document` on a Household gives its name, aliases and its
+  members by name, with the days each lived there when set (a past Until marks a former member), leaving
+  out anyone in the Private folder; nothing of a member's Addresses or
+  Contact details.
 
 ### What Claude sees of a Person
 
-Claude reads a Person's name, aliases, Relationship, Tags, Occasions, Ties, body, and any Field you
+Claude reads a Person's name, Given and Family name, aliases, Relationship, Tags, Occasions, Ties, body, and any Field you
 added to Person yourself, and it can change those; it can add an Occasion.
 
 Claude never sees a Person's **Addresses** or **Contact details**, current or former, from any

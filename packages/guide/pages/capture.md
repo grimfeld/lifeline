@@ -65,8 +65,9 @@ searching:
   [Settings](settings.md) decides; both are always understood.
 - **`#`** picks one of the Command's options (`!mood #great`), or adds a Tag. It suggests both.
   Some options answer to other words too: a mood reads `#awful`, `#bof` or `#génial`.
-- **`@`** links a Document by its exact title (`@Dune`), and suggests only Documents of the kind
-  that Command links to.
+- **`@`** links a Document by its id, title or alias, ignoring case and accents (`@Dune`, or
+  `@Marco` for Marc), and suggests only Documents of the kind that Command links to. Where a
+  detail takes several People (With, For), repeat it to add more: `with:Marc with:Léa`.
 - **`key:`** gives any other detail by its name: `estimate:30`, `notes:"oat milk"`. With nothing
   typed after a space, the palette suggests the details not given yet.
 - **Quotes** turn the marks off: `"Buy #1 fan gift"` stays as written. A mark counts only with a

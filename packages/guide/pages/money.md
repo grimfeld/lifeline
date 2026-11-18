@@ -148,7 +148,9 @@ what you believe you have left.
 Through the Lifeline connector, Claude can:
 
 - "Add a €12.50 expense for lunch at Café Rio" — `ledger_add`. It needs an Account and a Category
-  unless the payee is one you've used before.
+  unless the payee is one you've used before. It can fill **For** too ("…a gift for Zoé"): each
+  person by name, alias or id, each found once in People. A name that is no one, or more than one
+  person, refuses the whole call and nothing is recorded; the answer says whom it found.
 - "Spend €20 from Eating out" — `pocket_spend`; it tells you what's left.
 - "Add this receipt" (from a photo you share) — `prices_receipt`. Claude reads the receipt;
   Lifeline doesn't. Missing Shops or Products are made first with `prices_shop_add` and

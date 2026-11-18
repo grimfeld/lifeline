@@ -7,7 +7,7 @@ import {
   DialogTitle,
   toast,
 } from "@lifeline/ui";
-import { todayStr, type CommandDef, type CommandDialogProps } from "@lifeline/core";
+import { peopleArg, peopleIn, peopleNamed, todayStr, type CommandDef, type CommandDialogProps } from "@lifeline/core";
 import { Check, ListChecks, ListTodo, Plus } from "lucide-react";
 import { TaskDialog } from "./components/TaskDialog";
 import { dueItems } from "./domain/occurrences";
@@ -88,6 +88,7 @@ export const taskCommands: CommandDef[] = [
       { key: "project", label: "Project", kind: "link", linkType: PROJECT, hint: "The Project it serves." },
       { key: "milestone", label: "Milestone", kind: "text", hint: "One of the Project's Milestones, by id or title. Needs a Project." },
       { key: "lane", label: "Lane", kind: "text", hint: "One of the Project's Board Lanes, by id or title; the first Lane when omitted. Needs a Project. A done Lane ticks the task." },
+      peopleArg("for", "For", "The People it is for"),
     ],
     returnsDocument: true,
     async invoke(a) {
@@ -101,6 +102,7 @@ export const taskCommands: CommandDef[] = [
       if (recurrence && a.lane !== undefined) throw new Error("Lane: a recurring task stands in no Lane; it may take a Project and a Milestone");
       const milestone = project && a.milestone !== undefined ? await resolveInProject("milestone", project, a.milestone as string) : null;
       const lane = project && a.lane !== undefined ? await resolveInProject("lane", project, a.lane as string) : null;
+      const people = peopleIn(a, "for");
       const id = await addTask({
         title: a.title as string,
         date: (a.date as string | undefined) ?? null,
@@ -111,10 +113,11 @@ export const taskCommands: CommandDef[] = [
         project,
         milestone: milestone?.id ?? null,
         lane: lane?.id ?? null,
+        for: people,
       });
       if (lane) await settleForLane({ id, completedOn: null }, !!lane.done);
       const when = recurrence ? "recurring" : a.date ? `on ${a.date}` : "unassigned";
-      return { id, message: `Added task “${a.title}” (${when})` };
+      return { id, message: `Added task “${a.title}” (${when})${await peopleNamed("for", people)}` };
     },
   },
   {

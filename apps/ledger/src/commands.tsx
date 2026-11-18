@@ -1,4 +1,4 @@
-import { pickLinked, todayStr, type CommandDef, type CommandDialogProps } from "@lifeline/core";
+import { pickLinked, peopleArg, peopleIn, peopleNamed, todayStr, type CommandDef, type CommandDialogProps } from "@lifeline/core";
 import { ArrowLeftRight, ChartLine, Landmark, ListChecks, PiggyBank, Plus, Wand2 } from "lucide-react";
 import { ACCOUNT, BUDGET_HREF, CATEGORY, REGISTER_HREF, REPORTS_HREF, RULES_HREF } from "./domain/types";
 import { completeEntry } from "./domain/entry";
@@ -32,6 +32,7 @@ export const ledgerCommands: CommandDef[] = [
       { key: "payee", label: "Payee", kind: "text" },
       { key: "note", label: "Note", kind: "longtext" },
       { key: "tags", label: "Tags", kind: "list" },
+      peopleArg("for", "For", "The People it was for"),
     ],
     returnsDocument: true,
     async invoke(a) {
@@ -46,9 +47,10 @@ export const ledgerCommands: CommandDef[] = [
         await allTransactions(),
       );
       if (accounts.find((x) => x.id === entry.accountId)?.archived) throw new Error("The payee's last account is archived; name the account");
-      const id = await addTransaction({ ...entry, payee: entry.payee ?? "", note: (a.note as string | undefined) ?? "", tags: a.tags as string[] | undefined });
+      const people = peopleIn(a, "for");
+      const id = await addTransaction({ ...entry, payee: entry.payee ?? "", note: (a.note as string | undefined) ?? "", tags: a.tags as string[] | undefined, for: people });
       const category = categories.find((c) => c.id === entry.categoryId)?.title ?? "";
-      return { id, message: `Added ${kind} of ${formatCents(entry.amount)} on ${entry.date}${category ? ` (${category})` : ""}` };
+      return { id, message: `Added ${kind} of ${formatCents(entry.amount)} on ${entry.date}${category ? ` (${category})` : ""}${await peopleNamed("for", people)}` };
     },
   },
   { id: "ledger.transfer", title: "Add transfer", keywords: ["transfer", "move money", "savings"], icon: ArrowLeftRight, dialog: AddTransferDialog },
