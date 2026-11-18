@@ -20,7 +20,7 @@ export const EXCHANGE_KINDS: readonly { value: ExchangeKind; label: string }[] =
 /** A stored kind as one of the four: anything else (a Base's typo) reads as a call. */
 export const exchangeKindOf = (v: unknown): ExchangeKind => (EXCHANGE_KINDS.some((k) => k.value === v) ? (v as ExchangeKind) : "call");
 
-const labelOf = (kind: unknown) => EXCHANGE_KINDS.find((k) => k.value === exchangeKindOf(kind))!.label;
+export const labelOf = (kind: unknown) => EXCHANGE_KINDS.find((k) => k.value === exchangeKindOf(kind))!.label;
 
 /** "Call · Grandma", "Message · Marc, Léa"; "Call · nobody" once its People are all gone. */
 export function exchangeTitle(kind: unknown, names: readonly string[]): string {
