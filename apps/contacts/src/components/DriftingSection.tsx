@@ -37,8 +37,9 @@ export function DriftingSection({ rows, source, onSourceChange }: { rows: readon
         <ul className="grid min-w-0 gap-2">
           {rows.map((row) => (
             <li key={row.person.id} className="flex min-w-0 items-center gap-2">
-              <PersonRowLink personId={row.person.id} className="flex-1">
-                <span className="min-w-0 flex-1 truncate font-medium">{row.person.title}</span>
+              {/* The name keeps a line's start, wrapping onto lines of its own; how and when go under it when the row is narrow (ADR 0065). */}
+              <PersonRowLink personId={row.person.id} className="flex-1 flex-wrap">
+                <span className="min-w-0 flex-1 basis-32 font-medium">{row.person.title}</span>
                 <RelationshipLabel>{row.person.relationship}</RelationshipLabel>
                 {row.last === null ? (
                   <span className="text-muted-foreground shrink-0 text-xs">{driftLine(row, source)}</span>

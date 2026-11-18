@@ -1,14 +1,14 @@
 import { test, expect, type Page } from "@playwright/test";
 import { inCore } from "./support/core";
 
-/** Drifting (#420): People with a Relationship not seen for 90 days; leave someone out, bring them back. Who drifts, and in what order, is drifting.test's. */
+/** Drifting (#420, ADR 0131): People with a Relationship not in touch for 90 days; leave someone out, bring them back. Who drifts, and in what order, is drifting.test's. */
 
 async function workLocally(page: Page) {
   const local = page.getByRole("button", { name: "Work locally" });
   await local.waitFor({ timeout: 8000 }).then(() => local.click(), () => {});
 }
 
-test("someone not seen lately is Drifting, and leaving them out removes them until their page brings them back", async ({ page }) => {
+test("someone not in touch lately is Drifting, and leaving them out removes them until their page brings them back", async ({ page }) => {
   await page.goto("/app/people");
   await workLocally(page);
   // Dates are relative to now, so the specs never age.
@@ -68,4 +68,28 @@ test("Not mentioned counts the Days that link instead, and Everyone's drifting b
   } else await drifting.getByRole("radio", { name: "Not mentioned" }).click();
   await expect(drifting.getByText("Quiet Qui")).toBeVisible();
   await expect(row).toContainText(/drifting · 1[45]\d days/);
+});
+
+test("a call keeps someone off Drifting, and a row says how they were last in touch", async ({ page }) => {
+  await page.goto("/app/people");
+  await workLocally(page);
+  await inCore(
+    page,
+    async (core) => {
+      const day = (back: number) => new Date(Date.now() - back * 864e5).toISOString().slice(0, 10);
+      const person = async (title: string) => (await core.createDocument({ type: "contacts_person", title, fields: { relationship: "grandmother" } })).id as string;
+      const gran = await person("Called Gran");
+      await core.createDocument({ type: "event", title: "Saw Gran", fields: { date: day(200), with: [gran] } });
+      await core.createDocument({ type: "contacts_exchange", title: "", fields: { kind: "call", date: day(10), with: [gran] } });
+      const ida = await person("Faded Ida");
+      await core.createDocument({ type: "event", title: "Saw Ida", fields: { date: day(140), with: [ida] } });
+      await core.createDocument({ type: "contacts_exchange", title: "", fields: { kind: "call", date: day(120), with: [ida] } });
+    },
+    undefined,
+  );
+  const drifting = page.getByRole("region", { name: "Drifting" });
+  await expect(drifting.getByRole("radio", { name: "Not in touch" })).toHaveAttribute("aria-checked", "true");
+  await expect(drifting.getByRole("radio", { name: "Not seen" })).toHaveCount(0);
+  await expect(drifting.getByRole("link", { name: /Faded Ida/ })).toContainText("call · 120 days ago");
+  await expect(drifting.getByText("Called Gran")).toHaveCount(0);
 });

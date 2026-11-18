@@ -20,7 +20,7 @@ Workspace, A to Z under a letter each (a name that starts with no letter goes un
   **Upcoming** Card on any Screen, as a list, with its own number of days ahead.
 - **Badges** on each row in Everyone: what they are to you, their next Occasion when it is in the
   next 30 days ("Birthday in 9 days · turns 61"), **drifting** with how many days when they are in
-  Drifting (below), counted the way Drifting is switched (Not seen or Not mentioned), and their Tags.
+  Drifting (below), counted the way Drifting is switched (Not in touch or Not mentioned), and their Tags.
 - **Search** matches a name or any alias, ignoring case and accents.
 - **Tidy given names…** — a notice above Upcoming, shown only while some Person has their given name
   typed as an alias: their name starts with one of their own aliases ("Anne Dupont", alias "Anne") and they
@@ -35,10 +35,15 @@ Workspace, A to Z under a letter each (a name that starts with no letter goes un
 ### Drifting
 
 **Drifting** sits above Everyone and answers "who have I lost touch with?". It lists the People
-who have a **Relationship** and whom you have **not seen in 90 days** (a fixed window, with no setting): first anyone you have
-never seen ("Never seen"), then the longest unseen, each with how many days it has been. Switch
-it to **Not mentioned** to count the Days that link to them instead of the Events. Anyone
-without a Relationship is not listed. It is only a list: Lifeline never reminds you.
+who have a **Relationship** and whom you have **not been in touch with in 90 days** (a fixed window, with no
+setting). In touch means seen (an Event with them) or talked (an **Exchange** with them, see below),
+whichever was later: someone you call every week but rarely see is not drifting. First comes anyone
+you have never been in touch with ("Never in touch"), then the longest out of touch, each saying how
+you last were and when: "call · 120 days ago", "seen · 140 days ago". Seen wins a day you both saw
+and called them. The switch reads **Not in touch** (the default) or **Not mentioned**, which counts
+the Days that link to them instead ("mentioned · 150 days ago", "Never mentioned"). Anyone without a
+Relationship is not listed, and logging an Exchange doesn't add them. It is only a list: Lifeline
+never reminds you.
 
 **Leave out** on a row, or **Excluded from Drifting** on a Person's page (under **Edit**) and in their Peek,
 takes them out of Drifting, for someone you don't mean to see again. Untick it on their page to
@@ -70,12 +75,16 @@ Below, two columns (one after the other on a phone):
 - **About them** — the body: what you know of them, written with `[[links]]` and `#tags` like
   any page.
 - **Reports** — **Last seen** (the last day of an Event that links to them, through its **With**
-  or a `[[link]]` in its notes) and **Last
-  mentioned** (the last Day that links to them), side by side and never added together. Seen
+  or a `[[link]]` in its notes), **Last talked** (the last day of an Exchange with them in its
+  **With**) and **Last mentioned** (the last Day that links to them), side by side and never
+  added together. Seen
   counts an Event once per day it is on, every day of a trip, and nothing in the future; Tasks
   and Occasions never count. **Top seen** (who was on the most days of Events) shows on each
   [Journal](journal.md) period, as **People · Top seen**. A type can also choose **Seen count**, a
   **Seen heatmap** and **Not seen lately** in its editor, and each can be placed as a Report Card.
+  Talked has the same five: **Last talked**, **Talked count**, **Top talked**, **Not talked
+  lately** and a **Talked heatmap**. It counts an Exchange's day once however many there were,
+  nothing to come, and only through its **With**: a `[[link]]` in what was said doesn't count.
 - **Timeline** — everything that links to them, by month, newest first: Events and Exchanges with them, Tasks
   and Transactions for them, books they recommended, and the Days and notes that name them, each
   once, saying what it is and how it links ("via With", "mentioned", or "via the Smiths" for a link
@@ -169,7 +178,7 @@ mother in another town is his Tie, not a member, and Mary keeps her own name and
   **Add household** takes a name and opens its page.
 - **A Household's page** — its name, underlined with dashes (click it to rename it; every
   `[[link]]` to it follows), its **Members**, its **Aliases** and **About it**, its body, then its
-  own **Reports** (**Last seen** and **Last mentioned**) and **Timeline**: what links to the
+  own **Reports** (**Last seen**, **Last talked** and **Last mentioned**) and **Timeline**: what links to the
   Household itself, by name, each opening in a Peek. **Add member** finds a Person by name or
   alias; the cross beside a member takes them out, with Undo.
   Each member's name opens their page. The calendar button beside a member sets **Since** and
@@ -192,7 +201,8 @@ mother in another town is his Tie, not a member, and Mary keeps her own name and
   where you can change its aliases, members and Tags; **Open** goes to its page.
 - **A link to a Household counts for its members.** "Dinner at `[[the Smiths]]`" in a Day or an
   Event stands on each member's **Timeline** ("via the Smiths") and counts toward their **Last
-  seen** and **Last mentioned**, so toward **Drifting** too, as if you had named each of them. A
+  seen** and **Last mentioned**, so toward **Drifting** too, as if you had named each of them.
+  A Household in an Exchange's With counts toward each member's **Last talked** the same way. A
   Day or Event that names someone and their Household is one entry, as the direct link.
 - **A link counts for whoever lived there on its date.** The Day's date, or an Event's days, decide
   which members it reaches (Since and Until included), so a past dinner keeps counting for someone
@@ -226,8 +236,10 @@ takes them out of With, and an Exchange left with nobody stays, as "Call · nobo
   its day's **Daylog**: "Called Grandma", "Video call with Grandma", "Messaged Grandma", "Letter ·
   Grandma", several People joined ("Called Grandma, Grandpa"). It never stands on the Calendar,
   the Schedule, the Agenda or Today: it is not an Event.
+- **What it counts toward** — each of its People's **Last talked** (see Reports, above), so it keeps
+  them off **Drifting**: a call 10 days ago means they are not drifting, however long since you saw them.
 - **Links in what was said** — `[[Lucie]]` in its body puts the Exchange on Lucie's Timeline as
-  "mentioned". Being told about someone is not talking to them.
+  "mentioned". Being told about someone is not talking to them: it counts toward no Report of hers.
 - **Its Peek** — click it on a Timeline (or in a Base of Exchanges) to change its With, Kind, Day
   and what was said, or **Delete exchange** (with Undo).
 
@@ -288,8 +300,8 @@ you just hung up from.
 - "Whose birthday is coming up?" — `people_upcoming` is the Upcoming Report for the next days,
   with the age each Birthday reaches; `agenda` lists Occasions too, as `occasion` entries apart
   from Deadlines, with the same age.
-- "When did I last see Anne?" — `get_document` on a Person adds their Last seen and Last
-  mentioned, from what Claude is allowed to read.
+- "When did I last see Anne?" — `get_document` on a Person adds their Last seen, Last talked and
+  Last mentioned, from what Claude is allowed to read.
 - "Who is Léa to Anne?" — `get_document` on a Person also lists their Ties, read from their side
   ("daughter: Léa"), leaving out anyone in the Private folder.
 - "I called Grandma, she said the hip surgery went well" — `people_exchange_add`, with the People
