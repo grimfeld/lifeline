@@ -430,7 +430,7 @@ test("a Time blocker moved in its Peek, then left by a link and come back to, sh
 
 // --- Complete, and focus after Remove block, in the Time block section (F2, F10) ---
 
-test("a recurring Task's chip on the phone's Week is completed from its Peek: that occurrence is done, the next is not", async ({ page }) => {
+test("a recurring Task's chip on the phone's Week is completed from its Peek: that occurrence is done, the next is not", { tag: "@also-phone" }, async ({ page }) => {
   const title = `Water plants ${Date.now()}`;
   await page.goto("/calendar?view=week&d=2026-11-09");
   await workLocally(page);

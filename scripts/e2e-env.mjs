@@ -7,6 +7,17 @@ import { join } from "node:path";
 export const PW_BROWSERS = "/opt/pw-browsers";
 
 /**
+ * The UI checks (ADR 0129): specs about how screens look and read, run nightly at both
+ * widths in their own projects, never in the delivery gate.
+ */
+export const UI_CHECK_SPECS = ["screens.spec.ts", "a11y-names.spec.ts"];
+/**
+ * Every spec the gate projects never run: the UI checks and the Demo. Read by
+ * playwright.config.ts, scripts/e2e-widths.test.mjs and check.yml's e2e-plan.
+ */
+export const NIGHTLY_SPECS = [...UI_CHECK_SPECS, "demo.spec.ts"];
+
+/**
  * Resolves whether nothing listens on `port` at `host`. A machine without that
  * address family (EADDRNOTAVAIL, or EAFNOSUPPORT where IPv6 is compiled out) has
  * nothing listening there either; any other error (EADDRINUSE, EACCES…) is busy.
