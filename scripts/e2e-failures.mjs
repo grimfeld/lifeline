@@ -25,17 +25,21 @@ export function cases(report) {
 
 /** "file:line title" lines grouped by file, each with the projects it failed in. */
 function list(found) {
-  const byCase = new Map();
-  for (const c of found) {
-    const key = `${c.file}:${c.line} ${c.title}`;
-    byCase.set(key, [...(byCase.get(key) ?? []), c.project]);
-  }
+  /** file → `line title` → { line, title, projects } */
   const byFile = new Map();
-  for (const [key, projects] of byCase) {
-    const file = key.slice(0, key.indexOf(":"));
-    byFile.set(file, [...(byFile.get(file) ?? []), `  - \`${key.slice(0, key.indexOf(" "))}\` ${key.slice(key.indexOf(" ") + 1)} (${[...new Set(projects)].sort().join(", ")})`]);
+  for (const c of found) {
+    const cases = byFile.get(c.file) ?? new Map();
+    byFile.set(c.file, cases);
+    const key = `${c.line} ${c.title}`;
+    if (!cases.has(key)) cases.set(key, { line: c.line, title: c.title, projects: new Set() });
+    cases.get(key).projects.add(c.project);
   }
-  return [...byFile].sort(([a], [b]) => a.localeCompare(b)).flatMap(([file, lines]) => [`- \`${file}\``, ...lines]);
+  return [...byFile]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .flatMap(([file, cases]) => [
+      `- \`${file}\``,
+      ...[...cases.values()].map(({ line, title, projects }) => `  - \`${file}:${line}\` ${title} (${[...projects].sort().join(", ")})`),
+    ]);
 }
 
 /** The Markdown naming the failing (and flaky) cases of these reports, linking the run. */
