@@ -81,9 +81,9 @@ test("Travel 30 attached before an Event from its Peek follows the Event when it
   // The Event's Peek lists the band; its own Peek says "Before <Event>" and offers Detach.
   const bandId = await inCore(page, async (core, e: string) => ((await core.documentsOf("time_blocker")).find((b) => b.attachedTo === e)!.id as string), id);
   await inCore(page, async (core, docId: string) => core.openPeek(docId), id);
-  await page.getByRole("dialog").first().getByRole("button", { name: travel, exact: true }).click();
+  await page.getByRole("dialog").first().getByRole("link", { name: travel, exact: true }).click();
   const bandPeek = page.getByRole("dialog").first();
-  await expect(bandPeek.getByRole("button", { name: title, exact: true })).toBeVisible();
+  await expect(bandPeek.getByRole("link", { name: title, exact: true })).toBeVisible();
   await expect(bandPeek.getByText(new RegExp(`^Before ${title}$`))).toBeVisible();
   await bandPeek.getByRole("button", { name: "Detach", exact: true }).click();
   await expect.poll(() => attached(page, id)).toEqual([]);

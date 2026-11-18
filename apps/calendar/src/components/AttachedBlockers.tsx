@@ -1,8 +1,8 @@
 import type { DateStr } from "@lifeline/core";
+import { DocLink } from "@lifeline/editor";
 import { describeBeside, SIDE_LABELS } from "../domain/attached";
 import { blockerSpan } from "../domain/blockers";
 import { useAttachedBlockers } from "../data/attached";
-import { PeekLink } from "./PeekLink";
 
 /**
  * An Event's attached blockers, listed in its Peek (CONTEXT.md "Attached
@@ -21,7 +21,7 @@ export function AttachedBlockers({ eventId, eventDay }: { eventId: string; event
           return (
             <li key={b.id} className="flex min-w-0 items-baseline gap-2 text-sm">
               <span className="text-muted-foreground shrink-0 text-xs">{b.side && SIDE_LABELS[b.side]}</span>
-              <PeekLink id={b.id}>{b.title}</PeekLink>
+              <DocLink doc={b} className="min-w-0 text-primary underline-offset-4 hover:underline [overflow-wrap:anywhere]">{b.title}</DocLink>
               {span && <span className="text-muted-foreground shrink-0 text-xs tabular-nums">{describeBeside(span, eventDay)}</span>}
             </li>
           );
