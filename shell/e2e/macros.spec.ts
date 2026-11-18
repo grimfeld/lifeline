@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { CORE_URL } from "./support/seed";
 import { inCore } from "./support/core";
+import { openPalette } from "./support/palette";
 
 /**
  * Macros (CONTEXT.md "Macro", ADR 0092): made in Settings → Macros from
@@ -76,7 +77,7 @@ test("deleting a Macro is undone from its toast", async ({ page }) => {
 });
 
 async function runFromPalette(page: Page, name: string) {
-  await page.keyboard.press("Control+k");
+  await openPalette(page);
   await page.getByRole("combobox").fill(name);
   await page.getByRole("option", { name: new RegExp(name) }).click();
 }

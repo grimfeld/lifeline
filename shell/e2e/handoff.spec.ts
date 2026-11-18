@@ -337,6 +337,7 @@ test("a URL Handoff becomes a Place, its URL kept in the Place's url Field — o
   // A type homed in no Module sits under Other; with no url Field, the URL is the body.
   const recipe = `Tarte Tatin ${stamp}`;
   const recipeUrl = "https://recipes.example.org/tarte-tatin";
+  await page.goto("/"); // from elsewhere: a hash change alone is no new Handoff
   await page.goto(`/handoff#${encodeHandoff({ title: recipe, text: "", url: recipeUrl })}`);
   await workLocally(page);
   await page.getByRole("combobox", { name: "Intake" }).click();

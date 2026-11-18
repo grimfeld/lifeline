@@ -275,6 +275,9 @@ test("Remove block in a Task's Peek keeps the Task and its chip, with its own Un
   await page.keyboard.press("Escape");
   await expect(peek).toBeHidden();
 
+  // A fresh visit for the other Task, so the closing Peek's hand-back is not in the way.
+  await page.goto("/calendar?view=week&d=2026-11-09");
+  await workLocally(page);
   await page.locator('[data-col="2026-11-10"] [data-focus-key]').filter({ hasText: title }).first().click();
   ({ peek, timing } = await expectTaskPeek(page, title));
   await timing.getByRole("button", { name: "Remove block" }).click();
@@ -433,6 +436,9 @@ test("another App's Timed item its App does not move, and an iCal subscription's
   await expect(peek).toBeHidden();
 
   // An iCal item: a read-only card with nothing to edit, the focus back on it once closed.
+  // A fresh visit, so the closing Peek's hand-back of the focus is not in the way.
+  await page.goto("/calendar?view=week&d=2026-11-09");
+  await workLocally(page);
   const item = page.locator('[data-col="2026-11-10"] [data-focus-key]').filter({ hasText: standup }).first();
   await item.focus();
   await page.keyboard.press("Enter");
