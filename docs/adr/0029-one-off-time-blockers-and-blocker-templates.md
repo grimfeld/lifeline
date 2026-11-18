@@ -1,3 +1,8 @@
+---
+status: accepted
+amended-by: ADR 0119 (the deferred option — a one-off blocker may now be attached to an Event)
+---
+
 # Time blockers come in a weekly and a one-off shape; only the one-off is dragged
 
 Travel to the dentist, prep before a call: hours that are *taken* but on one day only, and that the user wants to drop onto the Schedule and drag around — not a weekly rule (ADR 0027), not an Event (content on every surface, filtered by Tags, shown in the month grid). We extend `time_blocker` with a second shape: a **one-off** carries a `date` instead of `weekdays`; it paints one band on that day and, unlike a weekly band, may be moved and resized on the Schedule through the Timed `reschedule` hook. A **Blocker template** (`blocker_template`: title, length, colour) sits in the Schedule palette beside the Event templates and, dropped on an hour, creates a one-off blocker there and forgets itself — the same `useTemplates()` / `createFromTemplate()` pair Event templates use, with the template flagged `background` so the surface knows what it will make.

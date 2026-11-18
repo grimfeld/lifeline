@@ -9,7 +9,16 @@ const types = new Map<string, DocumentTypeDef>();
 const docs = new Map<string, Document>();
 const commands: OwnedCommand[] = [];
 const macros: MacroRecord[] = [];
-const core = vi.hoisted(() => ({ putDocument: vi.fn(), saveMacro: vi.fn(), createDocument: vi.fn() }));
+// The Calendar writes an Event (and any attached blockers) through putDocuments: each row is handed to the putDocument spy.
+const core = vi.hoisted(() => {
+  const c = {
+    putDocument: vi.fn(),
+    putDocuments: async (inputs: unknown[]) => {
+      for (const input of inputs) await c.putDocument(input);
+    }, saveMacro: vi.fn(), createDocument: vi.fn(),
+  };
+  return c;
+});
 
 vi.mock("@lifeline/core", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@lifeline/core")>();
