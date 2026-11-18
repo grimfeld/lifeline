@@ -1,4 +1,5 @@
 import type { DateStr } from "@lifeline/core";
+import { cn, linkStyle } from "@lifeline/ui";
 import { DocLink } from "@lifeline/editor";
 import { describeBeside, SIDE_LABELS } from "../domain/attached";
 import { blockerSpan } from "../domain/blockers";
@@ -21,7 +22,7 @@ export function AttachedBlockers({ eventId, eventDay }: { eventId: string; event
           return (
             <li key={b.id} className="flex min-w-0 items-baseline gap-2 text-sm">
               <span className="text-muted-foreground shrink-0 text-xs">{b.side && SIDE_LABELS[b.side]}</span>
-              <DocLink doc={b} className="min-w-0 text-primary underline-offset-4 hover:underline [overflow-wrap:anywhere]">{b.title}</DocLink>
+              <DocLink doc={b} className={cn(linkStyle, "min-w-0 [overflow-wrap:anywhere]")}>{b.title}</DocLink>
               {span && <span className="text-muted-foreground shrink-0 text-xs tabular-nums">{describeBeside(span, eventDay)}</span>}
             </li>
           );

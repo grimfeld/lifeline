@@ -178,6 +178,22 @@ describe("a band edited while its Event moves keeps the edit", () => {
     expect(row).toMatchObject({ title: "Taxi", date: "2026-08-26", start: "08:30", end: "09:00", attachedTo: ev, side: "before" });
   });
 
+  it("a band dragged between the move's read and its write keeps its new gap, and follows from there", async () => {
+    const ev = await dentist();
+    const b = await attach(ev, "before");
+    blockerReads.after = () => rescheduleTimeBlocker(b, { date: "2026-08-24", start: "08:00", endDate: "2026-08-24", end: "08:30" });
+    await moveEvent(ev, "2026-08-26");
+    expect(await band(b)).toEqual({ date: "2026-08-26", start: "08:00", endDate: "2026-08-26", end: "08:30" });
+  });
+
+  it("a band detached while its Event moves stays where it was dragged to", async () => {
+    const ev = await dentist();
+    const b = await attach(ev, "before");
+    blockerReads.after = async () => void (await detachBlocker(b));
+    await moveEvent(ev, "2026-08-26");
+    expect((await allTimeBlockers()).find((x) => x.id === b)).toMatchObject({ date: "2026-08-24", start: "08:30", attachedTo: null });
+  });
+
   it("a retitle landing while the Event is made all day survives its detach", async () => {
     const ev = await dentist();
     const b = await attach(ev, "before");

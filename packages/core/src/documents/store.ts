@@ -150,24 +150,44 @@ export async function putDocument<T extends Document = Document>(input: Document
   return row;
 }
 
+/** What a patch may never set: a Document's identity and the parts derived when a whole row is written. */
+const UNPATCHABLE = ["body", "title", "tags", "type", "workspace", "deleted"] as const;
+
+/** Plain Fields to set on a stored Document, as `patchDocument` sets them: never its body, title, Tags, type, Workspace or tombstone. */
+export type DocumentFields = Record<string, unknown> & { [K in (typeof UNPATCHABLE)[number]]?: never };
+
 /**
- * Plain Fields to set on a stored Document (as `patchDocument` sets them),
- * merged onto the row as it is when the write lands. Never its body, title or
- * Tags: those are derived when a whole row is written.
+ * A change to some plain Fields of a stored Document, merged onto the row as
+ * it is when the write lands. Given as a function of that row (read in the
+ * same write), it can move a Field from where it stands now; null leaves the
+ * row alone.
  */
-export type DocumentPatch = RecordPatch;
+export interface DocumentPatch {
+  id: string;
+  patch: DocumentFields | ((current: Document) => DocumentFields | null);
+}
+
+/** `fields`, refused when it names one of the `UNPATCHABLE` keys (the type says so; this holds for untyped callers too). */
+function patchable(fields: DocumentFields | null): DocumentFields | null {
+  const bad = fields && UNPATCHABLE.find((k) => k in fields);
+  if (bad) throw new Error(`A patch cannot set a Document's ${bad}`);
+  return fields;
+}
 
 /**
  * Several Documents written as one, as `putDocument` writes each: every one
  * stored, or none (an Event and the blockers attached to it, which must never
- * land half-moved). One LWW clock for all. `patches` change only the Fields
- * they name on Documents already stored, read in the same write, so an edit
- * made in the meantime is kept; a Document gone by then is left gone.
+ * land half-moved). One LWW clock for all. `patches` change only the plain
+ * Fields they name on Documents already stored, each worked out from its row
+ * as read inside the same write, so an edit made in the meantime is kept; a
+ * Document gone by then is left gone, and a patch naming its body, title,
+ * Tags, type, Workspace or tombstone refuses the whole write.
  */
 export async function putDocuments(inputs: readonly DocumentInput[], patches: readonly DocumentPatch[] = []): Promise<Document[]> {
   const rows: Document[] = [];
   for (const input of inputs) rows.push(await rowOf(input));
-  await putAll<Document>(DOCUMENTS, rows, patches);
+  const checked: RecordPatch<Document>[] = patches.map(({ id, patch }) => ({ id, patch: (current) => patchable(typeof patch === "function" ? patch(current) : patch) }));
+  await putAll<Document>(DOCUMENTS, rows, checked);
   return rows;
 }
 

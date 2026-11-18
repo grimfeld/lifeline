@@ -1,6 +1,6 @@
 import { useMemo } from "react";
-import { getDocument, patchDocument, removeDocumentsWhere, type DocumentInput, type DocumentPatch } from "@lifeline/core";
-import { attachmentOf, DETACHED, flushSpan, followedSpan, isAttachedTo, liveAttachmentTo, sameSpan } from "../domain/attached";
+import { getDocument, patchDocument, removeDocumentsWhere, type Document, type DocumentInput, type DocumentPatch } from "@lifeline/core";
+import { attachmentOf, DETACH_PATCH, flushSpan, followedSpan, isAttachedTo, liveAttachmentTo, sameSpan } from "../domain/attached";
 import { blockerSpan } from "../domain/blockers";
 import { normalizeEvent, spanOf } from "../domain/events";
 import { durationOf } from "../domain/templates";
@@ -64,29 +64,25 @@ export async function attachedBlockersOf(eventId: string): Promise<TimeBlocker[]
 /**
  * The attached blockers of an Event that moves from `was` to `now`, each as
  * the patch of its times that puts it where it now stands (`followedSpan`),
- * ready to write in the same batch as the Event: only the times, so an edit
- * made to a band in the meantime is kept. None when either is all day (a
- * blocker follows only a timed Event; made all day, it is detached instead —
- * #519), and none, without reading a blocker, when the Event did not move.
+ * ready to write in the same batch as the Event. Each is worked out from the
+ * band as it is when that write lands, so a band dragged, retitled or detached
+ * in the meantime keeps the edit and follows (or not) from there. None when
+ * either is all day (a blocker follows only a timed Event; made all day, it is
+ * detached instead — #519), and none, without reading a blocker, when the
+ * Event did not move.
  */
 export async function blockersFollowing(was: Event, now: Event): Promise<DocumentPatch[]> {
   const [old, next] = [spanOf(was), spanOf(now)];
   if (!old || !next || sameSpan(old, next)) return [];
-  const out: DocumentPatch[] = [];
-  for (const b of await attachedBlockersOf(was.id)) {
+  const follow = (row: Document) => {
+    const b = row as TimeBlocker;
     const span = blockerSpan(b);
-    const side = attachmentOf(b)?.side;
-    if (!span || !side) continue;
-    const to = followedSpan(old, next, span, side);
-    if (sameSpan(to, span)) continue;
-    out.push({ id: b.id, patch: { date: to.date, endDate: to.endDate, start: to.start, end: to.end } });
-  }
-  return out;
-}
-
-/** Whether `eventId` names an Event that is still there. */
-async function eventExists(eventId: string): Promise<boolean> {
-  return (await getDocument(eventId))?.type === EVENT_TYPE;
+    const at = attachmentOf(b);
+    if (!span || at?.eventId !== was.id) return null;
+    const to = followedSpan(old, next, span, at.side);
+    return sameSpan(to, span) ? null : { date: to.date, endDate: to.endDate, start: to.start, end: to.end };
+  };
+  return (await attachedBlockersOf(was.id)).map((b) => ({ id: b.id, patch: follow }));
 }
 
 /**
@@ -112,7 +108,7 @@ export async function removeAttachedBlockers(eventId: string): Promise<void> {
  * writes beside it. Empty when nothing is attached.
  */
 export async function blockersDetachedFrom(eventId: string): Promise<DocumentPatch[]> {
-  return (await attachedBlockersOf(eventId)).map((b) => ({ id: b.id, patch: DETACHED }));
+  return (await attachedBlockersOf(eventId)).map((b) => ({ id: b.id, patch: DETACH_PATCH }));
 }
 
 /** The one-off blockers attached to an Event, live (its Peek lists them). */
@@ -132,8 +128,8 @@ export async function detachBlocker(id: string): Promise<() => Promise<void>> {
   if (!b) throw new Error("That blocker is gone");
   const was = await liveAttachment(b);
   if (!was) return async () => {};
-  await patchDocument(id, DETACHED);
+  await patchDocument(id, DETACH_PATCH);
   return async () => {
-    if (await eventExists(was.eventId)) await patchDocument(id, { attachedTo: was.eventId, side: was.side });
+    if (liveAttachmentTo(was, await getDocument(was.eventId))) await patchDocument(id, { attachedTo: was.eventId, side: was.side });
   };
 }

@@ -36,7 +36,7 @@ export function sameSpan(a: TimedSpan, b: TimedSpan): boolean {
 }
 
 /** The patch that clears a blocker's link and side: what "detached" means on disk. */
-export const DETACHED = { attachedTo: null, side: null } as const;
+export const DETACH_PATCH = { attachedTo: null, side: null } as const;
 
 /** The span a band of `minutes` takes flush against one edge of an Event: ending at its start, or starting at its end. */
 export function flushSpan(event: TimedSpan, minutes: number, side: BlockerSide): TimedSpan {

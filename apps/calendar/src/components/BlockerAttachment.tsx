@@ -1,4 +1,4 @@
-import { Button, toast } from "@lifeline/ui";
+import { Button, cn, linkStyle, toast } from "@lifeline/ui";
 import { useDocument, type PeekProps } from "@lifeline/core";
 import { DocLink } from "@lifeline/editor";
 import { attachmentOf, liveAttachmentTo, SIDE_LABELS } from "../domain/attached";
@@ -31,7 +31,7 @@ export function BlockerAttachment({ doc }: PeekProps) {
     <div className="flex min-w-0 flex-wrap items-center gap-2">
       <p className="min-w-0 flex-1 text-sm break-words">
         {SIDE_LABELS[attachment.side]}{" "}
-        <DocLink doc={event} className="text-primary underline-offset-4 hover:underline [overflow-wrap:anywhere] font-semibold">
+        <DocLink doc={event} className={cn(linkStyle, "font-semibold [overflow-wrap:anywhere]")}>
           {event.title}
         </DocLink>
       </p>

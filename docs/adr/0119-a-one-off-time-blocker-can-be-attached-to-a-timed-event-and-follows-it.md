@@ -21,11 +21,11 @@ ADR 0029 left a one-off blocker tied to nothing: when the dentist moved, the tra
 ## Consequences
 
 - `time_blocker` gains `attachedTo` and `side`; a weekly blocker never carries them, and one with a link but no valid side reads plain (`attachmentOf`).
-- Core gains `putDocuments`, an all-or-none write of several Documents.
+- Core gains `putDocuments`, an all-or-none write of several Documents. Beside whole rows it takes patches: changes to some plain Fields of Documents already stored (never a body, title, Tags, type, Workspace or tombstone), each worked out from the row as read inside the same transaction. The bands that follow or detach are written that way — a band's new times are its own shift applied to where it stands when the write lands — so a band retitled, dragged or detached while its Event moves keeps that edit, and a band deleted meanwhile stays deleted.
 - The two Fields are hidden as well as guarded: Bases and the Vault's text never show them, since only the Calendar can tell that a link to a gone Event reads as detached. Hidden is not unlinked: `attachedTo` is a Link field and feeds the link index like any other (as the Ledger's transfer accounts and an Essay's material do), so the Event's Backlinks and the Graph list its bands, "via" the field. The band's Peek is Core's read-only one, with the App's line ("Before **Dentist**", **Detach**) above it through Core's new `peekAside` (ADR 0085: the App draws only what it owns; Core still lists the Fields), so a plain blocker's Peek is unchanged.
 - The Event dialog collects Before…/After… picks while the Event is created or edited and writes them with it, in the same `putDocuments`.
 - Deleting the Event deletes its attached blockers, through the blocker type's `onDelete`; the Schedule's delete offers one undo that brings them back, other deletes none (#519).
-- A Workspace move takes the bands with the Event, as `followers` (ADR 0118's hook runs after the move is written) (#519).
+- A Workspace move takes the bands with the Event, as its `followers` (the hook of ADR 0048's move: what goes with a Document to another Workspace) (#519).
 - Making the Event all day detaches its bands, leaving them where they stand (#519).
 - A link to a gone Event reads as detached, and the band is never deleted for it (#519).
 - Deferred to #496: Event templates that come with attached blockers ("Dentist" always brings travel), and Claude creating or attaching them. Claude's moves already carry them.
