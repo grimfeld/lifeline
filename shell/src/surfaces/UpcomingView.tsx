@@ -80,7 +80,7 @@ function Tick({ item }: { item: DayWork }) {
  * One row: its lead (a time, "All day"), a tick for work, and the rest a button
  * that opens the row's actions. The tick is beside the button, never inside it.
  */
-function Row({ color, lead, tick, menu, children, onOpen, faded, late }: { color?: string; lead: React.ReactNode; tick?: React.ReactNode; menu?: React.ReactNode; children: React.ReactNode; onOpen: (el: HTMLElement, placeAt: HTMLElement) => void; faded?: boolean; late?: boolean }) {
+function Row({ color, lead, tick, menu, onMenu, children, onOpen, faded, late }: { color?: string; lead: React.ReactNode; tick?: React.ReactNode; menu?: React.ReactNode; onMenu?: () => void; children: React.ReactNode; onOpen: (el: HTMLElement, placeAt: HTMLElement) => void; faded?: boolean; late?: boolean }) {
   const c = color ?? "var(--muted-foreground)";
   // What opens takes the focus back to the row's button; a read-only card's popover sits beside the narrow lead, so the row's width is free for it.
   const button = useRef<HTMLButtonElement>(null);
@@ -91,6 +91,10 @@ function Row({ color, lead, tick, menu, children, onOpen, faded, late }: { color
       className={cn("hover:bg-accent/60 relative flex min-h-9 cursor-pointer items-center gap-2 rounded-md border-l-[3px] px-2 text-sm", faded && "opacity-60", late && "text-destructive")}
       style={{ borderLeftColor: c, background: `color-mix(in oklab, ${c} 10%, transparent)` }}
       onClick={open}
+      onContextMenu={onMenu && ((e) => {
+        e.preventDefault();
+        onMenu();
+      })}
     >
       <span ref={leadRef} className="text-muted-foreground w-16 shrink-0 py-1.5 text-xs tabular-nums">{lead}</span>
       {tick}
@@ -115,7 +119,7 @@ function Row({ color, lead, tick, menu, children, onOpen, faded, late }: { color
  * one line, today and the day in view aside. Day-granular: no hours, no bands.
  *
  * It only reads and ticks — no drag, nothing added on a tap. A row opens its
- * actions: a work item's menu, or the Peek of an Event or a block's work.
+ * Peek: an Event's, or a work item's; a work item's menu is on a right-click.
  */
 export function UpcomingView({ ctx }: { ctx: CalendarCtx }) {
   const { anchor, today, tags, openDay } = ctx;
@@ -261,7 +265,8 @@ export function UpcomingView({ ctx }: { ctx: CalendarCtx }) {
                         late={w.urgency === "overdue" && !w.completedOn}
                         tick={<Tick item={w} />}
                         menu={<WorkMenu item={w} open={menuFor === w.key} onOpenChange={(o) => setMenuFor(o ? w.key : null)} onMove={move.start} />}
-                        onOpen={() => setMenuFor(w.key)}
+                        onOpen={(el, at) => openItem({ kind: "work", item: w }, el, at)}
+                        onMenu={() => setMenuFor(w.key)}
                       >
                         <span className={cn("truncate", w.completedOn && "line-through")}>
                           <ItemMark mark={w.mark} />

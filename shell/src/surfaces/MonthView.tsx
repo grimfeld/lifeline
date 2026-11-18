@@ -75,8 +75,8 @@ function TimedChip({ item, onOpen, onStep }: { item: SurfaceTimedItem; onOpen: (
   );
 }
 
-/** A work item: tap for its menu, drag (long press on a phone) to Move it. */
-function WorkChip({ item, onTap, onStep, menu }: { item: DayWork; onTap: () => void; onStep: (step: Step) => void; menu: React.ReactNode }) {
+/** A work item: tap for its Peek, right-click for its menu, drag (long press on a phone) to Move it. */
+function WorkChip({ item, onTap, onMenu, onStep, menu }: { item: DayWork; onTap: (el: HTMLElement) => void; onMenu: () => void; onStep: (step: Step) => void; menu: React.ReactNode }) {
   const done = !!item.completedOn;
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `item:${item.key}`, data: { item }, disabled: done });
   return (
@@ -87,7 +87,7 @@ function WorkChip({ item, onTap, onStep, menu }: { item: DayWork; onTap: () => v
       data-focus-key={`item:${item.key}`}
       onKeyDown={(e) => {
         const k = itemKey(e, "week");
-        if (k?.open) onTap();
+        if (k?.open) onTap(e.currentTarget);
         else if (k && !done) onStep(k);
       }}
       className={cn(
@@ -97,10 +97,16 @@ function WorkChip({ item, onTap, onStep, menu }: { item: DayWork; onTap: () => v
         done && "text-muted-foreground line-through",
         item.urgency === "overdue" && !done && "text-destructive",
       )}
-      onClick={(e) => {
-        // The day cell opens the day; a chip's own tap belongs to its menu.
+      onContextMenu={(e) => {
+        // Right-click, or the menu key: Complete, Push, Move and Unplace, which the Peek does not carry.
+        e.preventDefault();
         e.stopPropagation();
-        onTap();
+        onMenu();
+      }}
+      onClick={(e) => {
+        // The day cell opens the day; a chip's own tap opens its Peek.
+        e.stopPropagation();
+        onTap(e.currentTarget);
       }}
     >
       <span className="size-1.5 shrink-0 rounded-full" style={{ background: item.color ?? "var(--muted-foreground)" }} />
@@ -248,7 +254,8 @@ export function MonthView({ ctx }: { ctx: CalendarCtx }) {
       key={item.key}
       item={item}
       onStep={(st) => stepWork(item, st)}
-      onTap={() => !drag.recent() && setMenuFor(item.key)}
+      onTap={(el) => !drag.recent() && open({ kind: "work", item }, el)}
+      onMenu={() => setMenuFor(item.key)}
       menu={<WorkMenu item={item} open={menuFor === item.key} onOpenChange={(o) => setMenuFor(o ? item.key : null)} onMove={move.start} />}
     />
   );

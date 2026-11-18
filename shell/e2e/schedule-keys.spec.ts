@@ -490,3 +490,32 @@ test("a Chore's Time block opens the Chore's Peek with the block's timing", asyn
   await expect(timing.getByRole("combobox", { name: "Start" })).toHaveValue("16:00");
   await expect(peek.getByRole("combobox", { name: "Schedule" }), "the Chore's own Fields are there").toBeVisible();
 });
+
+// --- a work chip on Month and Upcoming opens its Peek; the menu stays on a right-click (#540) ---
+
+for (const view of ["month", "upcoming"] as const) {
+  test(`a Task's chip in ${view} opens its Peek with the Time block section on a click and on Enter; Push and Move stay on its menu`, async ({ page }) => {
+    const title = `Chip in ${view} ${Date.now()}`;
+    await addTask(page, title, { block: false });
+    await page.goto(`/calendar?view=${view}&d=2026-11-09`);
+    await workLocally(page);
+    const chip = view === "month" ? page.locator("[data-focus-key]", { hasText: title }) : page.getByRole("button", { name: title, exact: true });
+
+    await chip.click();
+    let { peek, timing } = await expectTaskPeek(page, title);
+    await expect(timing.getByText("Give it a time")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(peek).toBeHidden();
+
+    await chip.focus();
+    await page.keyboard.press("Enter");
+    ({ peek, timing } = await expectTaskPeek(page, title));
+    await expect(timing).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(peek).toBeHidden();
+
+    await chip.click({ button: "right" });
+    await expect(page.getByRole("menuitem", { name: "Push" })).toBeVisible();
+    await expect(page.getByRole("menuitem", { name: "Move to day…" })).toBeVisible();
+  });
+}
