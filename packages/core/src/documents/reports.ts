@@ -44,6 +44,11 @@ export const REPORT_KINDS: ReportKindDef[] = [
   { kind: "lastSeen", label: "Last seen", family: "document", source: "seen", shape: "last", description: "The last day of an Event that links to it", params: {} },
   { kind: "seenCount", label: "Seen count", family: "document", source: "seen", shape: "count", description: "Days of Events that link to it, this year and in all", params: {} },
   { kind: "seenHeatmap", label: "Seen heatmap", family: "document", source: "seen", shape: "heatmap", description: "The days of Events that link to it over the last 12 months", params: {} },
+  { kind: "topTalked", label: "Top talked", family: "ranking", source: "talked", shape: "top", description: "Who is on the most days of Exchanges with them", params: { n: 5 } },
+  { kind: "quietTalked", label: "Not talked lately", family: "ranking", source: "talked", shape: "quiet", description: "Talked with before, but on no Exchange's day for a while", params: { n: 5, days: 90 } },
+  { kind: "lastTalked", label: "Last talked", family: "document", source: "talked", shape: "last", description: "The last day of an Exchange with it", params: {} },
+  { kind: "talkedCount", label: "Talked count", family: "document", source: "talked", shape: "count", description: "Days of Exchanges with it, this year and in all", params: {} },
+  { kind: "talkedHeatmap", label: "Talked heatmap", family: "document", source: "talked", shape: "heatmap", description: "The days of Exchanges with it over the last 12 months", params: {} },
 ];
 
 export function reportKind(kind: ReportKind): ReportKindDef {

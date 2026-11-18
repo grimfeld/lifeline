@@ -217,14 +217,15 @@ describe("agenda", () => {
 });
 
 describe("get_document of a Person: Reports", () => {
-  it("gives Last seen and Last mentioned, counting no Private Day", async () => {
+  it("gives Last seen, Last talked and Last mentioned, counting no Private Day", async () => {
     const day = (id: string, title: string, body: string, folder = "") => ({ id, type: "daily", title, folder, tags: [], body, createdAt: "", updatedAt: "", deleted: 0 }) as unknown as Document;
     types.set("daily", { id: "daily", label: "Days", builtIn: true, titleRule: "name", body: "required", fields: [], linkable: false } as unknown as DocumentTypeDef);
     docs.set("d1", day("d1", "2026-11-01", "Lunch with [[Anne Dupont]]"));
     docs.set("d2", day("d2", "2026-11-05", "Wrote to [[Anne Dupont]]", "Private"));
-    const out = (await runTool("get_document", { id: "p1" })) as { detail: { reports: { lastMentioned: { last?: string; allTime: number }; lastSeen: { last?: string } } } };
+    const out = (await runTool("get_document", { id: "p1" })) as { detail: { reports: { lastMentioned: { last?: string; allTime: number }; lastSeen: { last?: string }; lastTalked: { allTime: number } } } };
     expect(out.detail.reports.lastMentioned).toMatchObject({ last: "2026-11-01", allTime: 1 });
     expect(out.detail.reports.lastSeen.last).toBeUndefined();
+    expect(out.detail.reports.lastTalked).toMatchObject({ allTime: 0 });
   });
 });
 

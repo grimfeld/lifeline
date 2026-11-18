@@ -93,7 +93,7 @@ function RankList({ index, rows, quiet, onOpen }: { index: LinkIndex; rows: Rank
   );
 }
 
-/** One Document's own Reports, in its type's order and words (a Place's Last visited): last mentioned, counts, heatmap. Nothing when the type chose none. */
+/** One Document's own Reports, in its type's order and words (a Place's Last visited): last mentioned, seen or talked, counts, heatmap. Nothing when the type chose none. */
 export function DocumentReports({
   index,
   def,
@@ -110,13 +110,14 @@ export function DocumentReports({
   const chosen = reportsIn(def, "document");
   const mentioned = useMemo(() => documentFigures(index, docId, today, sourceOf("mentioned", today)), [index, docId, today]);
   const seen = useMemo(() => documentFigures(index, docId, today, sourceOf("seen", today)), [index, docId, today]);
+  const talked = useMemo(() => documentFigures(index, docId, today, sourceOf("talked", today)), [index, docId, today]);
   if (chosen.length === 0) return null;
   return (
     <section className="grid min-w-0 gap-2 text-sm">
       {heading && <h3 className={cn(HEADING, "mb-0")}>Reports</h3>}
       {chosen.map((r) => {
         const k = reportKind(r.kind);
-        const f = k.source === "seen" ? seen : mentioned;
+        const f = { mentioned, seen, talked }[k.source];
         if (k.shape === "heatmap") return <MentionHeatmap key={r.kind} days={f.days} today={today} unit={reportWords(k.source, def).heatmap} />;
         if (k.shape === "last") return <FigureLine key={r.kind} label={reportLabel(r.kind, def)} value={lastText(f)} />;
         return <FigureLine key={r.kind} label={reportWords(k.source, def).count} value={`${f.thisYear} this year · ${f.allTime} in all`} numeric />;

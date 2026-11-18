@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { formatHuman } from "../dates";
 import { buildLinkIndex } from "./links";
-import { DEFAULT_REPORTS, agoText, periodReportsOf, reportLabel, seenSummary, documentFigures, lastText, reportWords, mentionDays, notMentionedSince, rankingRows, seenDays, sourceOf, talkedDays, reportsIn, reportsOf, topMentioned } from "./reports";
+import { DEFAULT_REPORTS, REPORT_KINDS, agoText, periodReportsOf, reportLabel, seenSummary, documentFigures, lastText, reportWords, mentionDays, notMentionedSince, rankingRows, seenDays, sourceOf, talkedDays, reportsIn, reportsOf, topMentioned } from "./reports";
 import type { Document, DocumentTypeDef } from "./types";
 import { PERSON_TYPE } from "../people";
 import { EXCHANGE_TYPE } from "./sourceDays";
@@ -262,6 +262,20 @@ describe("Talked (ADR 0131)", () => {
   it("feeds the kinds and figures through its source", () => {
     expect(documentFigures(tidx, "gran", today, sourceOf("talked", today))).toMatchObject({ last: "2026-10-11", allTime: 2 });
     expect(reportWords("talked")).toEqual({ count: "Talked", heatmap: "days talked", linker: "Exchange" });
+  });
+  it("mirrors Seen's kinds one for one in the catalogue, so the Reports editor offers them", () => {
+    const talked = REPORT_KINDS.filter((k) => k.source === "talked").map((k) => [k.kind, k.label, k.shape]);
+    expect(talked).toEqual([
+      ["topTalked", "Top talked", "top"],
+      ["quietTalked", "Not talked lately", "quiet"],
+      ["lastTalked", "Last talked", "last"],
+      ["talkedCount", "Talked count", "count"],
+      ["talkedHeatmap", "Talked heatmap", "heatmap"],
+    ]);
+  });
+  it("ranks Top talked and Not talked in N days", () => {
+    expect(rankingRows(tidx, "person", { kind: "topTalked" }, {}, today).map((r) => [r.docId, r.count])).toEqual([["gran", 2], ["paul", 2], ["tom", 1]]);
+    expect(rankingRows(tidx, "person", { kind: "quietTalked", days: 30 }, {}, today).map((r) => r.docId)).toEqual(["tom", "paul"]);
   });
 });
 

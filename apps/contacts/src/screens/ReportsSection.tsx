@@ -3,9 +3,9 @@ import { DocumentReports } from "@lifeline/editor";
 import { Section } from "../components/Section";
 
 /**
- * A Person's or a Household's Reports (ADR 0112, ADR 0117): Last seen and
- * Last mentioned by default, as its type chooses them. Two figures, never
- * added together.
+ * A Person's or a Household's Reports (ADR 0112, ADR 0117, ADR 0131): Last
+ * seen, Last talked and Last mentioned by default, as its type chooses them.
+ * Three figures, never added together.
  */
 export function ReportsSection({ doc }: { doc: Document }) {
   const index = useLinkIndex();
