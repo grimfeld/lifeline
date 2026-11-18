@@ -2,7 +2,7 @@ import { useRef } from "react";
 import { Button, DatePicker, Field, QuickTiming, TimeField, toast } from "@lifeline/ui";
 import { addDays, closePeek, formatHuman, formatTime, SNAP_MIN, todayStr, type HoursTapped } from "@lifeline/core";
 import { Check, Trash2 } from "lucide-react";
-import { blockEnd, blockLasting, blockNudged, type BlockTime } from "./blockTiming";
+import { blockEnd, blockLasting, blockNudged, type BlockTime } from "./blockTime";
 import { blockVisit } from "./peekVisit";
 import { offerUndo, useRedraw } from "./visitSection";
 import { useMoveDialog, useWorkActions } from "../surfaces/WorkMenu";

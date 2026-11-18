@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { blockEnd, blockLasting, blockNudged, blockOfTapped } from "./blockTiming";
+import { blockEnd, blockLasting, blockNudged, blockOfTapped } from "./blockTime";
 
 describe("a Time block's timing in the Peek (#537)", () => {
   const block = { date: "2026-11-10", start: "10:00", len: 60 };

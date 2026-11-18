@@ -22,8 +22,8 @@ import {
   type WholeWhen,
   type WorkOnHours,
 } from "@lifeline/core";
-import { blockEnd, blockOfTapped, type BlockTime } from "./blockTiming";
-import { contractWhen, timedControls } from "./timedTiming";
+import { blockEnd, blockOfTapped, type BlockTime } from "./blockTime";
+import { contractWhen, timedControls } from "./timedWhen";
 import { toastWriteFailed, writeQueue, type WriteQueue } from "./writeQueue";
 
 /**

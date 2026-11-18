@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { timedControls, timedAllDay, timedEndingAt, timedNudged, timedOnDay, timedStartingAt } from "./timedTiming";
+import { timedControls, timedAllDay, timedEndingAt, timedNudged, timedOnDay, timedStartingAt } from "./timedWhen";
 
 describe("a Timed item's timing in the Peek (#538)", () => {
   it("moves its start by a nudge, keeping its length, across midnight too", () => {
