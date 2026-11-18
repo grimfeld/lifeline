@@ -148,8 +148,7 @@ test("[[Chez Janou]], [[place:Lidl Prado]] and an alias land on Places, whose pa
   await expect.poll(async () => (await placeNamed(page, "Chez Janou"))?.body).toBe("The pastis bar upstairs.");
 });
 
-test("the phone's capture sheet offers Add place", async ({ page, isMobile }) => {
-  test.skip(!isMobile, "the capture sheet is the phone's");
+test("the phone's capture sheet offers Add place", { tag: "@phone" }, async ({ page }) => {
   await page.goto("/app/places");
   await workLocally(page);
   await page.getByRole("button", { name: "Capture" }).click();

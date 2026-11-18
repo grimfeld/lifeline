@@ -52,19 +52,11 @@ async function onlyOurs(page: Page) {
 const listed = (page: Page) => page.getByRole("list", { name: "Places" }).getByRole("link", { name: /^(Chez Janou|Café de Flore|Café Kitsuné)/ });
 
 /** Switch the Places screen to one of its lists: a switch on the desk, a select under Filters on a phone. */
-async function showList(page: Page, phone: boolean, name: "All" | "To try" | "Closed") {
-  if (phone) {
-    await page.getByRole("button", { name: /^Filters/ }).click();
-    await page.getByRole("combobox", { name: "Which places" }).click();
-    await page.getByRole("option", { name, exact: true }).click();
-    await page.keyboard.press("Escape");
-    await expect(page.getByRole("combobox", { name: "Which places" })).toBeHidden();
-  } else {
-    await page.getByRole("radio", { name, exact: true }).click();
-  }
+async function showList(page: Page, name: "All" | "To try" | "Closed") {
+  await page.getByRole("radio", { name, exact: true }).click();
 }
 
-test("To try has its own list, and filters World's map with a Kind; a past Event At it clears it, a future one does not", async ({ page, isMobile }) => {
+test("To try has its own list, and filters World's map with a Kind; a past Event At it clears it, a future one does not", async ({ page }) => {
   await page.goto("/app/places");
   await workLocally(page);
   await onlyOurs(page);
@@ -72,7 +64,7 @@ test("To try has its own list, and filters World's map with a Kind; a past Event
   const flore = await makePlace(page, "Café de Flore", { kind: "cafe", toTry: true, geo: [48.854, 2.3325] });
   await makePlace(page, "Café Kitsuné", { kind: "cafe", geo: [48.863, 2.337] });
 
-  await showList(page, isMobile, "To try");
+  await showList(page, "To try");
   await expect(listed(page)).toHaveText([/^Café de Flore/, /^Chez Janou/]);
 
   // The map: three Places, two To try, one of them a café.
@@ -90,11 +82,11 @@ test("To try has its own list, and filters World's map with a Kind; a past Event
   await eventAt(page, flore, -1);
   await page.goto("/app/places");
   await workLocally(page);
-  await showList(page, isMobile, "To try");
+  await showList(page, "To try");
   await expect(listed(page)).toHaveText([/^Chez Janou/]);
 });
 
-test("a closed Place leaves the map and the lists, shows under Closed with its backlinks, and is reopened", async ({ page, isMobile }) => {
+test("a closed Place leaves the map and the lists, shows under Closed with its backlinks, and is reopened", async ({ page }) => {
   await page.goto("/app/places");
   await workLocally(page);
   await onlyOurs(page);
@@ -113,9 +105,9 @@ test("a closed Place leaves the map and the lists, shows under Closed with its b
   await page.goto("/app/places");
   await workLocally(page);
   await expect(listed(page)).toHaveText([/^Café de Flore/]);
-  await showList(page, isMobile, "To try");
+  await showList(page, "To try");
   await expect(listed(page)).toHaveCount(0);
-  await showList(page, isMobile, "Closed");
+  await showList(page, "Closed");
   await expect(listed(page)).toHaveText([/^Chez Janou/]);
 
   await page.goto("/module/people");
@@ -149,7 +141,8 @@ test("a Place gone to before is marked To try again, and opening its page keeps 
   await expect(page.getByRole("region", { name: "Details" }).getByRole("checkbox", { name: "To try" })).toBeChecked();
 });
 
-test("the Places screen sorts by last visit, the Places never visited last", async ({ page, isMobile }) => {
+// On a phone the sort sits in the Filters sheet: this case is the Places screen's phone filters' cover.
+test("the Places screen sorts by last visit, the Places never visited last", { tag: "@also-phone" }, async ({ page, isMobile }) => {
   await page.goto("/app/places");
   await workLocally(page);
   await onlyOurs(page);
