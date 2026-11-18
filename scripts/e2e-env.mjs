@@ -1,5 +1,5 @@
 // Helpers for shell/playwright.config.ts, kept apart so node --test can reach them.
-import { existsSync, linkSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, linkSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir, totalmem } from "node:os";
 import { join } from "node:path";
@@ -75,7 +75,7 @@ export function slotCount(env = process.env, memory = totalmem()) {
 }
 
 /** Whether process `pid` still runs (EPERM: it does, as another user's). */
-export function alive(pid) {
+function alive(pid) {
   try {
     process.kill(pid, 0);
     return true;
@@ -87,52 +87,75 @@ export function alive(pid) {
 const slotFile = (dir, i) => join(dir, `slot-${i}.json`);
 const readSlot = (file) => {
   try {
-    return JSON.parse(readFileSync(file, "utf8"));
+    const held = JSON.parse(readFileSync(file, "utf8"));
+    return Number.isInteger(held?.pid) && held.pid > 0 && typeof held.worktree === "string" ? held : undefined;
   } catch {
-    return undefined; // gone, or half written by a run taking it this instant
+    return undefined;
   }
 };
+/** A run's worktree as the waiting line shows it: printable characters only. */
+const printable = (text) => text.replace(/[\u0000-\u001f\u007f-\u009f]/g, "?");
+
+/**
+ * Clears slot file `file` when the run in it is gone, or it isn't a lock at all (another
+ * program's file, or one a crash left unreadable). Done under `<file>.reclaim`, a directory
+ * only one run can create, so two runs that find the same dead lock can't both clear it and
+ * then each take the slot; the lock is read again under it, in case a live run took the slot
+ * since. A `.reclaim` older than a minute was left by a run killed mid-clear, and goes.
+ */
+function clearIfDead(file, isAlive, now = Date.now()) {
+  const mutex = `${file}.reclaim`;
+  try {
+    if (now - statSync(mutex).mtimeMs > 60_000) rmSync(mutex, { recursive: true, force: true });
+  } catch {
+    // No mutex: the usual case.
+  }
+  try {
+    mkdirSync(mutex);
+  } catch {
+    return; // Another run is clearing it.
+  }
+  try {
+    const held = readSlot(file);
+    if (existsSync(file) && (!held || !isAlive(held.pid))) rmSync(file, { force: true });
+  } finally {
+    rmSync(mutex, { recursive: true, force: true });
+  }
+}
 
 /**
  * Takes the first free one of `count` slots in `dir`: a lock file holding the run's pid and
- * worktree, created only if absent. A lock whose process is gone is free: it is moved aside
- * under a name of this run's own, checked, and only then removed, so two runs that find the
- * same dead lock can't both take its slot. Returns `{ slot, release }`, or `{ holders }`
+ * worktree. It is written whole under a name of this run's own, then linked in as the slot,
+ * which fails when the slot is taken: no run ever sees a half-written lock. A lock whose
+ * process is gone is free (`clearIfDead`). Returns `{ slot, release }`, or `{ holders }`
  * when every slot is taken.
  */
 export function tryTakeSlot({ dir, count, pid = process.pid, worktree, isAlive = alive }) {
   mkdirSync(dir, { recursive: true });
+  const mine = join(dir, `run-${pid}.json`);
+  writeFileSync(mine, JSON.stringify({ pid, worktree }));
   const holders = [];
-  for (let i = 0; i < count; i++) {
-    const file = slotFile(dir, i);
-    const held = readSlot(file);
-    if (held && !isAlive(held.pid)) {
-      const aside = `${file}.${pid}.stale`;
+  try {
+    for (let i = 0; i < count; i++) {
+      const file = slotFile(dir, i);
+      if (existsSync(file)) clearIfDead(file, isAlive);
       try {
-        renameSync(file, aside);
-        const moved = readSlot(aside);
-        // Another run took the slot between the read and the move: put its lock back.
-        if (moved?.pid !== held.pid) linkSync(aside, file);
-        unlinkSync(aside);
-      } catch {
-        // Another run moved it first.
+        linkSync(mine, file);
+        return {
+          slot: i,
+          release: () => {
+            if (readSlot(file)?.pid === pid) rmSync(file, { force: true });
+          },
+        };
+      } catch (e) {
+        if (e.code !== "EEXIST") throw e;
+        holders.push(readSlot(file) ?? { pid: 0, worktree: `${file} (unreadable; cleared on the next try)` });
       }
     }
-    try {
-      writeFileSync(file, JSON.stringify({ pid, worktree }), { flag: "wx" });
-      return {
-        slot: i,
-        release: () => {
-          if (readSlot(file)?.pid === pid) rmSync(file, { force: true });
-        },
-      };
-    } catch (e) {
-      if (e.code !== "EEXIST") throw e;
-      const now = readSlot(file);
-      if (now) holders.push(now);
-    }
+    return { holders };
+  } finally {
+    rmSync(mine, { force: true });
   }
-  return { holders };
 }
 
 /**
@@ -143,7 +166,7 @@ export function tryTakeSlot({ dir, count, pid = process.pid, worktree, isAlive =
  */
 export async function takeSlot({
   count,
-  dir = join(tmpdir(), "lifeline-e2e-slots"),
+  dir = join(tmpdir(), `lifeline-e2e-slots-${process.getuid?.() ?? "user"}`),
   worktree,
   pid = process.pid,
   isAlive = alive,
@@ -160,7 +183,7 @@ export async function takeSlot({
       if (said) log(`e2e: slot ${got.slot + 1} of ${count} is free; starting`);
       return got.slot;
     }
-    const line = got.holders.map((h) => `${h.worktree} (pid ${h.pid})`).sort().join(", ");
+    const line = got.holders.map((h) => `${printable(h.worktree)} (pid ${h.pid})`).sort().join(", ");
     if (line !== said) {
       log(`e2e: all ${count} slots are taken, by ${line}; waiting for one (E2E_SLOTS sets the count, shell/e2e/README.md)`);
       said = line;

@@ -77,7 +77,9 @@ memory (three on a 15 GB container). When every slot is taken, it names the runs
 (worktree and process id) and waits for one to finish. A run that crashes or is killed frees
 its slot for the next taker. `E2E_SLOTS=<n>` sets the count, and `E2E_SLOTS=0` turns the limit
 off. CI and `--list` never take one. The locks are files in the temp directory
-(`lifeline-e2e-slots/`). In a cloud container the config launches the Chromium in
+(`lifeline-e2e-slots-<uid>/`).
+
+In a cloud container the config launches the Chromium in
 `/opt/pw-browsers` on its own, whatever build it is: never run `playwright install` there,
 and never change that directory. The two Demo builds start only when the run includes the `demo` or
 `demo-setup` project (no `--project` at all, or one of those).

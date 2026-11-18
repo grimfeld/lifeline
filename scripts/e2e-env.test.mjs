@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
-import { mkdtempSync, readdirSync as ls } from "node:fs";
+import { mkdtempSync, readdirSync as ls, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { portFree, preinstalledChromium, slotCount, takeSlot, tryTakeSlot } from "./e2e-env.mjs";
@@ -84,6 +84,30 @@ test("the slot of a run that died is taken back without waiting, and nothing is 
   const got = tryTakeSlot({ dir, count: 1, pid: 12, worktree: "/b", isAlive: (pid) => pid !== 11 });
   assert.equal(got.slot, 0);
   assert.deepEqual(ls(dir), ["slot-0.json"]);
+});
+
+test("a file in a slot that is no lock (a crash, another program) is cleared, not waited on forever", () => {
+  const dir = slotDir();
+  writeFileSync(join(dir, "slot-0.json"), "");
+  assert.equal(tryTakeSlot({ dir, count: 1, pid: 12, worktree: "/b", isAlive: () => true }).slot, 0);
+});
+
+test("a live run's lock is never cleared, and a run's release leaves another run's lock alone", () => {
+  const dir = slotDir();
+  const first = tryTakeSlot({ dir, count: 1, pid: 11, worktree: "/a", isAlive: () => true });
+  assert.ok("holders" in tryTakeSlot({ dir, count: 1, pid: 12, worktree: "/b", isAlive: () => true }));
+  // Run 11 died and run 12 took its slot; 11's release, late, must not free 12's slot.
+  tryTakeSlot({ dir, count: 1, pid: 12, worktree: "/b", isAlive: (pid) => pid !== 11 });
+  first.release();
+  assert.equal(JSON.parse(readFileSync(join(dir, "slot-0.json"), "utf8")).pid, 12);
+});
+
+test("a run clearing a dead lock holds the slot's reclaim lock: another run finding it leaves the slot alone", () => {
+  const dir = slotDir();
+  tryTakeSlot({ dir, count: 1, pid: 11, worktree: "/a", isAlive: () => true });
+  writeFileSync(join(dir, "slot-0.json.reclaim"), ""); // stands in for the other run's mutex
+  const got = tryTakeSlot({ dir, count: 1, pid: 12, worktree: "/b", isAlive: (pid) => pid !== 11 });
+  assert.deepEqual(got.holders, [{ pid: 11, worktree: "/a" }]);
 });
 
 test("a waiting run says who holds the slots once, again when that changes, and starts when one frees", async () => {

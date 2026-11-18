@@ -20,7 +20,8 @@ async function freeBase() {
 // Taken once, here in the main process; the workers load this file again with E2E_SLOT
 // already set. CI runs one run per runner, and a listing starts no server: neither waits.
 if (!process.env.E2E_SLOT && !process.env.CI && !process.argv.includes("--list")) {
-  const slot = await takeSlot({ count: slotCount(), worktree: fileURLToPath(new URL("..", import.meta.url)).replace(/[\\/]$/, "") });
+  const worktree = fileURLToPath(new URL("..", import.meta.url)).replace(/[\\/]$/, "");
+  const slot = await takeSlot({ count: slotCount(), worktree });
   process.env.E2E_SLOT = slot === undefined ? "none" : String(slot);
 }
 
