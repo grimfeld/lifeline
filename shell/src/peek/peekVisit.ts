@@ -1,6 +1,29 @@
-import { addTimeBlock, completeSurfaceItem, forgetTiming, moveTimeBlock, noteTiming, onPeekClosed, removeTimeBlock, timedTimingKey, unplaceItem, wholeWhenOf, type HoursTapped, type TimedWhen, type WholeWhen, type WorkOnHours } from "@lifeline/core";
+import {
+  addTimeBlock,
+  canMoveTimed,
+  canRescheduleTimed,
+  completeSurfaceItem,
+  forgetTiming,
+  moveTimeBlock,
+  moveTimedItem,
+  noteTiming,
+  onPeekClosed,
+  removeTimeBlock,
+  removeTimedItem,
+  rescheduleTimedItem,
+  timedTimingKey,
+  unplaceItem,
+  wholeWhenOf,
+  type DateStr,
+  type HoursTapped,
+  type TimedItem,
+  type TimedWhen,
+  type TimeStr,
+  type WholeWhen,
+  type WorkOnHours,
+} from "@lifeline/core";
 import { blockEnd, blockOfTapped, type BlockTime } from "./blockTiming";
-import { contractWhen } from "./timedTiming";
+import { contractWhen, timedControls } from "./timedTiming";
 import { toastWriteFailed, writeQueue, type WriteQueue } from "./writeQueue";
 
 /**
@@ -13,26 +36,28 @@ import { toastWriteFailed, writeQueue, type WriteQueue } from "./writeQueue";
 const visits = new Map<HoursTapped, BlockVisit | TimedVisit>();
 onPeekClosed(() => visits.clear());
 
+/** A block's day and hours, as the placement operations take them. */
+type Span = { start: TimeStr; end: TimeStr };
+
 /** The placement operations a block visit writes through (ADR 0028); a test passes its own. */
 export interface BlockOps {
-  add: (appId: string, itemId: string, date: string, span: { start: string; end: string }) => Promise<string>;
-  move: (placementId: string, date: string, span: { start: string; end: string }) => Promise<unknown>;
+  add: (appId: string, itemId: string, date: DateStr, span: Span) => Promise<string>;
+  move: (placementId: string, date: DateStr, span: Span) => Promise<unknown>;
   unplace: (placementId: string) => Promise<unknown>;
   /** Complete the item (by its item id, so an Occurrence of a recurring Task is the one done); the placements it cleared. */
   complete: (appId: string, itemId: string) => Promise<readonly string[]>;
   remove: (placementId: string) => Promise<() => Promise<unknown>>;
-  /** A write that failed: the queue carries on. */
-  failed: (e: unknown) => void;
 }
 
-const placementOps: BlockOps = { add: addTimeBlock, move: moveTimeBlock, unplace: unplaceItem, complete: (appId, itemId) => completeSurfaceItem({ appId, itemId }), remove: removeTimeBlock, failed: toastWriteFailed };
+const placementOps: BlockOps = { add: addTimeBlock, move: moveTimeBlock, unplace: unplaceItem, complete: (appId, itemId) => completeSurfaceItem({ appId, itemId }), remove: removeTimeBlock };
 
 /** A Time block's timing as the Peek's Undo knows it. */
-type Placed = { date: string; start: string; end: string };
+type Placed = Span & { date: DateStr };
 const placed = (b: BlockTime & { start: string }): Placed => ({ date: b.date, start: b.start, end: blockEnd(b) });
 
 /** A work item's visit (#537): the block that was tapped, or the one this visit made from a chip. */
 export interface BlockVisit {
+  readonly kind: "work";
   readonly time: BlockTime;
   readonly hasBlock: boolean;
   /** Whether this visit completed the item. */
@@ -48,16 +73,16 @@ export interface BlockVisit {
 }
 
 /** The visit of a tapped work item: the same one again while the Peek stays open. */
-export function blockVisit(tapped: HoursTapped & { kind: "work" }, today: string, ops: BlockOps = placementOps): BlockVisit {
+export function blockVisit(tapped: HoursTapped & { kind: "work" }, today: DateStr, ops: BlockOps = placementOps, failed: (e: unknown) => void = toastWriteFailed): BlockVisit {
   const known = visits.get(tapped);
-  if (known && "hasBlock" in known) return known;
-  const visit = newBlockVisit(tapped.item, blockOfTapped(tapped.item, today), ops);
+  if (known?.kind === "work") return known;
+  const visit = newBlockVisit(tapped.item, blockOfTapped(tapped.item, today), ops, failed);
   visits.set(tapped, visit);
   return visit;
 }
 
-function newBlockVisit(item: WorkOnHours, initial: BlockTime, ops: BlockOps): BlockVisit {
-  const queue: WriteQueue = writeQueue(ops.failed);
+function newBlockVisit(item: WorkOnHours, initial: BlockTime, ops: BlockOps, failed: (e: unknown) => void): BlockVisit {
+  const queue: WriteQueue = writeQueue(failed);
   let time = initial;
   let blockId: string | null = item.placementId && item.start ? item.placementId : null;
   let hasBlock = blockId !== null;
@@ -67,6 +92,7 @@ function newBlockVisit(item: WorkOnHours, initial: BlockTime, ops: BlockOps): Bl
   const timingKey = () => (made || !item.placementId ? `block:chip:${item.appId}/${item.itemId}` : `block:${item.placementId}`);
 
   return {
+    kind: "work",
     get time() {
       return time;
     },
@@ -149,34 +175,53 @@ function queued<U>(queue: WriteQueue, act: () => Promise<U>): Promise<U | null> 
   );
 }
 
+/** The Timed hooks a Timed item's visit writes through (ADR 0056); a test passes its own. */
+export interface TimedOps {
+  /** Write a new when: the whole of it where the App reschedules, its day where it only moves. */
+  put: (w: WholeWhen) => Promise<unknown>;
+  /** Delete the item, with the Undo its App gives. */
+  remove: () => Promise<() => Promise<unknown>>;
+}
+
+/** The item's own App's hooks, as far as it allows (`timedControls`). */
+export function timedOpsOf(item: TimedItem): TimedOps {
+  const controls = timedControls(item, { reschedule: canRescheduleTimed(item.appId), move: canMoveTimed(item.appId) });
+  return {
+    put: (w) => (controls === "retime" ? rescheduleTimedItem(item, contractWhen(w)) : moveTimedItem(item, w.date)),
+    remove: () => removeTimedItem(item),
+  };
+}
+
 /** A Timed item's visit (#538): its when as last written. */
 export interface TimedVisit {
+  readonly kind: "timed";
   readonly when: WholeWhen;
-  /** Write a new when at once through `put` (its App's hook), noted to the Peek for its one Undo. */
-  write: (next: WholeWhen, put: (w: WholeWhen) => Promise<unknown>) => void;
-  /** Delete the item through `del` once the writes are done, with the Undo `del` gives (null if it failed). */
-  remove: <U>(del: () => Promise<U>) => Promise<U | null>;
+  /** Write a new when at once, noted to the Peek for its one Undo. */
+  write: (next: WholeWhen) => void;
+  /** Delete the item once the writes are done, with the Undo its App gives (null if it failed). */
+  remove: () => Promise<(() => Promise<unknown>) | null>;
   /** Every write queued so far, done. */
   settled: () => Promise<void>;
 }
 
 /** The visit of a tapped Timed item: the same one again while the Peek stays open. */
-export function timedVisit(tapped: HoursTapped & { kind: "timed" }, failed: (e: unknown) => void = toastWriteFailed): TimedVisit {
+export function timedVisit(tapped: HoursTapped & { kind: "timed" }, ops: TimedOps = timedOpsOf(tapped.item), failed: (e: unknown) => void = toastWriteFailed): TimedVisit {
   const known = visits.get(tapped);
-  if (known && "when" in known) return known;
+  if (known?.kind === "timed") return known;
   const item = tapped.item;
   const initial = wholeWhenOf(item);
   const queue = writeQueue(failed);
   let when = initial;
   const key = timedTimingKey(item);
   const visit: TimedVisit = {
+    kind: "timed",
     get when() {
       return when;
     },
     settled: queue.settled,
-    write(next, put) {
+    write(next) {
       when = next;
-      queue.run(() => put(next));
+      queue.run(() => ops.put(next));
       noteTiming<TimedWhen>({
         key,
         label: item.title,
@@ -184,14 +229,14 @@ export function timedVisit(tapped: HoursTapped & { kind: "timed" }, failed: (e: 
         after: contractWhen(next),
         restore: async () => {
           await queue.settled();
-          await put(initial);
+          await ops.put(initial);
         },
       });
     },
-    remove(del) {
+    remove() {
       // Deleting has its own Undo: the visit's timing Undo no longer covers it.
       forgetTiming(key);
-      return queued(queue, del);
+      return queued(queue, ops.remove);
     },
   };
   visits.set(tapped, visit);

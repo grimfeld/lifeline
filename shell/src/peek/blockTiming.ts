@@ -1,4 +1,4 @@
-import { BLOCK_DEFAULT_MIN, blockEndAt, DAY_MIN, nudgeClock, SNAP_MIN, type DateStr, type WorkOnHours } from "@lifeline/core";
+import { BLOCK_DEFAULT_MIN, blockEndAt, DAY_MIN, nudgeClock, SNAP_MIN, type DateStr, type TimeStr, type WorkOnHours } from "@lifeline/core";
 import { minutesBetween } from "../surfaces/hours";
 
 /**
@@ -8,7 +8,7 @@ import { minutesBetween } from "../surfaces/hours";
  */
 export interface BlockTime {
   date: DateStr;
-  start: string | null;
+  start: TimeStr | null;
   len: number;
 }
 
@@ -31,6 +31,6 @@ export function blockLasting(b: BlockTime, min: number): BlockTime {
 }
 
 /** Where it ends: its length after its start, at most midnight. */
-export function blockEnd(b: BlockTime & { start: string }): string {
+export function blockEnd(b: BlockTime & { start: TimeStr }): TimeStr {
   return blockEndAt(b.start, b.len);
 }

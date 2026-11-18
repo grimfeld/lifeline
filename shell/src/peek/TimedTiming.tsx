@@ -1,5 +1,4 @@
-import { useReducer } from "react";
-import { Button, Checkbox, DatePicker, Field, formatLength, QuickTiming, TimeField, toastWithUndo } from "@lifeline/ui";
+import { Button, Checkbox, DatePicker, Field, formatLength, QuickTiming, TimeField } from "@lifeline/ui";
 import {
   addDays,
   canMoveTimed,
@@ -8,9 +7,6 @@ import {
   closePeek,
   describeEnd,
   describeDayAndTime,
-  moveTimedItem,
-  removeTimedItem,
-  rescheduleTimedItem,
   SNAP_MIN,
   spanLength,
   todayStr,
@@ -19,7 +15,8 @@ import {
 } from "@lifeline/core";
 import { Trash2 } from "lucide-react";
 import { timedVisit } from "./peekVisit";
-import { contractWhen, timedControls, timedAllDay, timedEndingAt, timedNudged, timedOnDay, timedStartingAt } from "./timedTiming";
+import { offerUndo, useRedraw } from "./visitSection";
+import { timedControls, timedAllDay, timedEndingAt, timedNudged, timedOnDay, timedStartingAt } from "./timedTiming";
 
 /**
  * The **timing section** of a Peek opened from the hours on a Timed item its
@@ -39,23 +36,20 @@ export function TimedTiming({ tapped }: { tapped: HoursTapped & { kind: "timed" 
   const item = tapped.item;
   // The visit keeps the when, so Back from a link shows what was last written (F1).
   const visit = timedVisit(tapped);
-  const [, changed] = useReducer((n: number) => n + 1, 0);
+  const redraw = useRedraw();
   const { when } = visit;
+  // The visit writes through the hook the App has: a reschedule writes the whole when, a move only the day.
   const controls = timedControls(item, { reschedule: canRescheduleTimed(item.appId), move: canMoveTimed(item.appId) });
-  /** Through the hook the App has: a reschedule writes the whole when, a move only the day. */
-  const put = (w: WholeWhen) => (controls === "retime" ? rescheduleTimedItem(item, contractWhen(w)) : moveTimedItem(item, w.date));
 
   function write(next: WholeWhen) {
-    visit.write(next, put);
-    changed();
+    visit.write(next);
+    redraw();
   }
 
   function remove() {
-    const removed = visit.remove(() => removeTimedItem(item));
+    const removed = visit.remove();
     closePeek();
-    void removed.then((undo) => {
-      if (undo) toastWithUndo(`${item.title} deleted`, undo);
-    });
+    offerUndo(`${item.title} deleted`, removed);
   }
 
   const tomorrow = addDays(todayStr(), 1);

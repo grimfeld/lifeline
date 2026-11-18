@@ -1,9 +1,10 @@
-import { useReducer, useRef } from "react";
-import { Button, DatePicker, Field, QuickTiming, TimeField, toast, toastWithUndo } from "@lifeline/ui";
+import { useRef } from "react";
+import { Button, DatePicker, Field, QuickTiming, TimeField, toast } from "@lifeline/ui";
 import { addDays, closePeek, formatHuman, formatTime, SNAP_MIN, todayStr, type HoursTapped } from "@lifeline/core";
 import { Check, Trash2 } from "lucide-react";
 import { blockEnd, blockLasting, blockNudged, type BlockTime } from "./blockTiming";
 import { blockVisit } from "./peekVisit";
+import { offerUndo, useRedraw } from "./visitSection";
 import { useMoveDialog, useWorkActions } from "../surfaces/WorkMenu";
 
 /**
@@ -26,10 +27,11 @@ export function BlockTiming({ tapped }: { tapped: HoursTapped & { kind: "work" }
   const item = tapped.item;
   // The visit keeps the timing, so Back from a link goes on where it was (F1).
   const visit = blockVisit(tapped, todayStr());
-  const [, changed] = useReducer((n: number) => n + 1, 0);
+  const redraw = useRedraw();
   const { time, hasBlock } = visit;
   const done = !!item.completedOn || visit.completed;
   const section = useRef<HTMLElement>(null);
+  const startField = useRef<HTMLInputElement>(null);
   // The row's own actions, as Month's and Upcoming's right-click menu has them: the way a phone reaches them.
   // A chip's day is the item's own, so Move and Unplace act on it; a block's day is the section's Day.
   // Each acts on the item as tapped, so the Peek closes once it has.
@@ -42,27 +44,30 @@ export function BlockTiming({ tapped }: { tapped: HoursTapped & { kind: "work" }
     a.run();
   };
 
+  /** Where the focus goes once the control that had it unmounts: the Start field while the section stays, else the Peek itself (F10). */
+  function keepFocus() {
+    const peek = section.current?.closest<HTMLElement>('[role="dialog"]') ?? null;
+    queueMicrotask(() => requestAnimationFrame(() => (startField.current ?? peek)?.focus()));
+  }
+
   function complete() {
     void visit.complete().then((ok) => {
       if (ok) toast.success(`${item.title} done`);
-      changed();
+      // Completing takes the Complete button away, and the section too once its block has gone.
+      keepFocus();
+      redraw();
     });
   }
 
   function write(next: BlockTime) {
     visit.write(next);
-    changed();
+    redraw();
   }
 
   function remove() {
-    // The button unmounts with the block: focus goes to what stays, the Start field or the Peek itself (F10).
-    const peek = section.current?.closest<HTMLElement>('[role="dialog"]') ?? null;
-    const undone = visit.remove();
-    changed();
-    queueMicrotask(() => requestAnimationFrame(() => (section.current?.querySelector<HTMLElement>('[role="combobox"]') ?? peek)?.focus()));
-    void undone.then((undo) => {
-      if (undo) toastWithUndo("Block removed — the task stays", undo);
-    });
+    keepFocus();
+    offerUndo("Block removed — the task stays", visit.remove());
+    redraw();
   }
 
   const tomorrow = addDays(todayStr(), 1);
@@ -105,7 +110,7 @@ export function BlockTiming({ tapped }: { tapped: HoursTapped & { kind: "work" }
               <DatePicker required value={time.date} onChange={(d) => d && write({ ...time, date: d })} />
             </Field>
             <Field label="Start">
-              <TimeField required={hasBlock} value={time.start ?? ""} onChange={(s) => s && write({ ...time, start: s })} />
+              <TimeField ref={startField} required={hasBlock} value={time.start ?? ""} onChange={(s) => s && write({ ...time, start: s })} />
             </Field>
           </div>
           {time.start ? (

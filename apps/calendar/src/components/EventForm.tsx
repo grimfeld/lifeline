@@ -1,4 +1,4 @@
-import { useId, useState, type MutableRefObject } from "react";
+import { useId, useImperativeHandle, useState, type MutableRefObject } from "react";
 import { Field, TagInput, Textarea, useCommitDraft } from "@lifeline/ui";
 import { noteTiming, normalizeTag, useTagVocabulary } from "@lifeline/core";
 import { PeopleField } from "@lifeline/editor";
@@ -66,7 +66,7 @@ function EditingForm({ event, idPrefix, flushRef }: { event: Event; idPrefix?: s
   const [unfinished, setUnfinished] = useState<WhenForm | null>(null);
   const notes = useCommitDraft(event.notes ?? "", (n) => editEvent(event.id, { notes: n }), { delay: WRITE_DELAY });
   // The Peek's Delete awaits what is still pending before it takes its snapshot.
-  if (flushRef) flushRef.current = async () => void (await Promise.all([written.commit(), notes.commit()]));
+  useImperativeHandle(flushRef, () => async () => void (await Promise.all([written.commit(), notes.commit()])));
   const when = unfinished ?? written.draft;
   const ownPrefix = useId();
   return (

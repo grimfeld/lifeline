@@ -11,7 +11,6 @@ function fakeOps() {
     unplace: vi.fn(async () => undefined),
     complete: vi.fn(async (): Promise<readonly string[]> => []),
     remove: vi.fn(async () => async () => undefined),
-    failed: vi.fn(),
   } satisfies BlockOps;
   return ops;
 }
@@ -94,17 +93,18 @@ describe("a Peek visit keeps its Timed item's time across a link and Back (F1)",
 
   it("a Timed item moved, left and returned to, shows its new time; the Undo puts back the first", async () => {
     const put = vi.fn(async () => undefined);
+    const ops = { put, remove: vi.fn(async () => async () => undefined) };
     const tapped: HoursTapped = { kind: "timed", item: session };
     openPeek("session-doc", { tapped });
 
-    const first = timedVisit(tapped);
-    first.write({ ...first.when, start: "07:15", end: "08:15" }, put);
+    const first = timedVisit(tapped, ops);
+    first.write({ ...first.when, start: "07:15", end: "08:15" });
     pushPeek("other-doc");
     backPeek();
 
-    const again = timedVisit(tapped);
+    const again = timedVisit(tapped, ops);
     expect(again.when).toEqual({ date: "2026-11-10", start: "07:15", endDate: "2026-11-10", end: "08:15" });
-    again.write({ ...again.when, start: "07:30", end: "08:30" }, put);
+    again.write({ ...again.when, start: "07:30", end: "08:30" });
     await again.settled();
 
     const changes = closeForUndo();
@@ -133,11 +133,14 @@ describe("a Peek visit completes its item by id (F2)", () => {
   it("a failed completion leaves the visit not completed", async () => {
     const ops = fakeOps();
     ops.complete.mockRejectedValueOnce(new Error("no"));
+    const failed = vi.fn();
     const tapped: HoursTapped = { kind: "work", item: occurrence };
     openPeek("task-doc", { tapped });
-    const visit = blockVisit(tapped, "2026-11-09", ops);
+    const visit = blockVisit(tapped, "2026-11-09", ops, failed);
     expect(await visit.complete()).toBe(false);
     expect(visit.completed).toBe(false);
+    await visit.settled();
+    expect(failed, "the failure is said").toHaveBeenCalledOnce();
   });
 });
 
