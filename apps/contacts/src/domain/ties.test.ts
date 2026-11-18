@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Person, Tie } from "./types";
-import { PRESETS, kindOfWords, otherNameOf, tieCandidates, tieDraft, tieQuestions, tiesSeenFrom } from "./ties";
+import { PRESETS, genderOf, kindOfWords, presetWords, otherNameOf, tieCandidates, tieDraft, tieQuestions, tiesSeenFrom } from "./ties";
 
 const person = (id: string, title: string) => ({ id, title }) as Person;
 const anne = person("p1", "Anne");
@@ -78,5 +78,39 @@ describe("Tie kinds read from words (#608)", () => {
     expect(PRESETS.map((p) => p.word).join(" ")).toBe(
       "daughter son child sister brother sibling mother father parent wife husband partner granddaughter grandson grandchild grandmother grandfather grandparent niece nephew aunt uncle cousin",
     );
+  });
+});
+
+describe("Gender reading and the chip's inverse word (#609)", () => {
+  const preset = (word: string) => PRESETS.find((p) => p.word === word)!;
+  const ties = (...ts: Tie[]) => ts;
+
+  it("reads a Person as female from the words that name them in kinded Ties", () => {
+    // Anne is Léa's mother; Anne is Marc's wife.
+    expect(genderOf("p1", ties(tie("t1", "p1", "p2", "mother", "daughter"), tie("t2", "p3", "p1", "husband", "wife")))).toBe("female");
+  });
+  it("reads male from son/brother/…, from either end of the stored Tie", () => {
+    expect(genderOf("p2", ties(tie("t1", "p1", "p2", "mother", "son")))).toBe("male");
+  });
+  it("is neutral with mixed words, neutral words, no Ties, or free words", () => {
+    expect(genderOf("p1", ties(tie("t1", "p1", "p2", "mother", "daughter"), tie("t2", "p1", "p3", "father", "son")))).toBe("neutral");
+    expect(genderOf("p1", ties(tie("t1", "p1", "p2", "parent", "child")))).toBe("neutral");
+    expect(genderOf("p1", ties(tie("t1", "p1", "p2", "cousin", "cousin")))).toBe("neutral");
+    expect(genderOf("p1", [])).toBe("neutral");
+    expect(genderOf("p1", ties(tie("t1", "p1", "p2", "godmother", "godson")))).toBe("neutral");
+  });
+  it("counts a Tie's stored kind even when its words are free ('mum')", () => {
+    expect(genderOf("p1", ties({ ...tie("t1", "p1", "p2", "mum", "daughter"), kind: "parent" } as Tie))).toBe("neutral");
+    expect(genderOf("p2", ties({ ...tie("t1", "p1", "p2", "mum", "daughter"), kind: "parent" } as Tie))).toBe("female");
+  });
+  it("tapping 'daughter' gives mother, father or parent after the page's Person", () => {
+    expect(presetWords(preset("daughter"), "female")).toEqual({ label: "daughter", ownLabel: "mother", kind: "parent" });
+    expect(presetWords(preset("daughter"), "male")).toEqual({ label: "daughter", ownLabel: "father", kind: "parent" });
+    expect(presetWords(preset("daughter"), "neutral")).toEqual({ label: "daughter", ownLabel: "parent", kind: "parent" });
+  });
+  it("gives the kind's other words for the other chips", () => {
+    expect(presetWords(preset("mother"), "male")).toEqual({ label: "mother", ownLabel: "son", kind: "child" });
+    expect(presetWords(preset("cousin"), "female")).toEqual({ label: "cousin", ownLabel: "cousin", kind: "cousin" });
+    expect(presetWords(preset("niece"), "neutral")).toEqual({ label: "niece", ownLabel: "aunt or uncle", kind: "auntUncle" });
   });
 });

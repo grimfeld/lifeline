@@ -129,3 +129,40 @@ export const tieDraft = (row: TieRow | undefined): TieDraft => (row ? { otherId:
 export function otherNameOf(people: readonly Pick<Person, "id" | "title">[], otherId: string, row: Pick<TieRow, "otherName"> | undefined): string {
   return people.find((p) => p.id === otherId)?.title ?? row?.otherName ?? "";
 }
+
+/** A Tie's kind: the one it carries, else the one its words read as. */
+export const tieKindOf = (t: Pick<Tie, "labelA" | "labelB" | "kind">): TieKind | undefined => t.kind ?? kindOfWords(t.labelA, t.labelB);
+
+export type Gender = "female" | "male" | "neutral";
+
+/**
+ * A Person's gender as their own kinded Ties say it (ADR 0130): female or male
+ * when every gendered preset word that names them is of one gender, else
+ * neutral. Neutral words ("parent", "cousin") say nothing. Nothing is asked.
+ */
+export function genderOf(personId: string, ties: readonly Tie[]): Gender {
+  const seen = new Set<Gender>();
+  for (const t of ties) {
+    const kind = tieKindOf(t);
+    if (!kind || (t.a !== personId && t.b !== personId)) continue;
+    const mine = t.a === personId;
+    const word = norm(mine ? t.labelA : t.labelB);
+    // The words of the end that names them: a's words when they are `a`.
+    const words = mine ? KIND_WORDS[kind].a : KIND_WORDS[kind].b;
+    if (words[0] === words[1]) continue;
+    if (word === words[0]) seen.add("female");
+    else if (word === words[1]) seen.add("male");
+  }
+  const [only, ...rest] = seen;
+  return only && rest.length === 0 ? only : "neutral";
+}
+
+const GENDER_INDEX: Record<Gender, 0 | 1 | 2> = { female: 0, male: 1, neutral: 2 };
+
+/**
+ * What a tapped chip fills, from this Person's page: the other's word, this
+ * Person's inverse word (gendered by `own`), and the kind read from this Person.
+ */
+export function presetWords(preset: Preset, own: Gender): { label: string; ownLabel: string; kind: TieKind } {
+  return { label: preset.word, ownLabel: KIND_WORDS[preset.kind].a[GENDER_INDEX[own]], kind: preset.kind };
+}
