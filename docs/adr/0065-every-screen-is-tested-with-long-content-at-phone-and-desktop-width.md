@@ -1,6 +1,7 @@
 ---
 status: accepted
 superseded-by: ADR 0096 (in part — "not in CI")
+amended-by: ADR 0129 (in part — the layout check runs nightly, not at delivery)
 ---
 
 # Every screen is tested with long content at phone and desktop width

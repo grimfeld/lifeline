@@ -34,7 +34,7 @@ async function peekNoteOverDay(page: Page, notes: { title: string; body: string 
   return peek;
 }
 
-test("a Peek's body is read until written; what is typed is kept, and the page's own editor is left alone", async ({ page }) => {
+test("a Peek's body is read until written; what is typed is kept, and the page's own editor is left alone", { tag: "@also-phone" }, async ({ page }) => {
   const title = `Peek body ${Date.now()}`;
   const peek = await peekNoteOverDay(page, [{ title, body: "First line." }]);
 

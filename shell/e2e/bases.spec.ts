@@ -58,8 +58,7 @@ const stored = (page: Page, typeId: string, title: string) =>
     return d ? { status: d.status, note: d.note } : null;
   }, { typeId, title });
 
-test("a table cell edits from the keyboard: Enter opens it, Escape puts the focus back on it", async ({ page, isMobile }) => {
-  test.skip(isMobile, "a keyboard case: the desk");
+test("a table cell edits from the keyboard: Enter opens it, Escape puts the focus back on it", async ({ page }) => {
   const typeId = await makeBase(page, 1);
   await page.goto(`/base/${typeId}`);
   await workLocally(page);
@@ -92,8 +91,7 @@ test("a Board card moves to another column from its Move menu, without a drag", 
   await expect.poll(() => stored(page, typeId, "Row 1")).toEqual({ status: "done", note: "" });
 });
 
-test("a long Base opens with a page of rows and draws more as it scrolls", async ({ page, isMobile }) => {
-  test.skip(isMobile, "the table's paging is the same at any width");
+test("a long Base opens with a page of rows and draws more as it scrolls", async ({ page }) => {
   const typeId = await makeBase(page, 450);
   await page.goto(`/base/${typeId}`);
   await workLocally(page);

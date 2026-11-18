@@ -1,7 +1,7 @@
 ---
 status: accepted
 supersedes: ADR 0065 (in part — "not in CI")
-amended-by: ADR 0126 (in part — who starts a batch and who merges it)
+amended-by: ADR 0126 (in part — who starts a batch and who merges it), ADR 0129 (in part — the integration run's e2e is the delivery gate only)
 ---
 
 # PRs land on master in batches through an integration branch, gated by one full CI run

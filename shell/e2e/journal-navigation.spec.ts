@@ -10,9 +10,7 @@ import { CORE_URL } from "./support/seed";
  */
 
 test.describe("Journal navigation · the sidebar stays (#206)", () => {
-  // The side column is a desk feature: hidden below `lg`.
-  test.skip(({ viewport }) => (viewport?.width ?? 0) < 1024, "the Journal sidebar is hidden below lg");
-
+  // Desktop only (no phone tag): the side column is hidden below `lg`.
   test("a date with no Day keeps the calendar, Reviews and On this day, without Links or Backlinks", async ({ page }) => {
     await seedJournal(page, { days: { "2000-02-14": "A year ago today.", "2001-02-13": "The day before." } });
 
@@ -82,8 +80,6 @@ test.describe("Journal navigation · the sidebar stays (#206)", () => {
 
 /** The calendar pages by itself (#210): its arrows move the calendar, never the open Day. */
 test.describe("Journal navigation · the calendar pages by itself (#210)", () => {
-  test.skip(({ viewport }) => (viewport?.width ?? 0) < 1024, "the Journal sidebar is hidden below lg");
-
   const DAY = "/app/journal?d=2001-02-14";
   const atDay = (page: Page) => expect(page).toHaveURL((u) => u.pathname + u.search === DAY);
 
@@ -151,8 +147,6 @@ test.describe("Journal navigation · the calendar pages by itself (#210)", () =>
  * Day marks nothing.
  */
 test.describe("Journal navigation · the calendar zooms out (#211)", () => {
-  test.skip(({ viewport }) => (viewport?.width ?? 0) < 1024, "the Journal sidebar is hidden below lg");
-
   const DAYS = {
     "1997-06-02": "The earliest.",
     "1999-05-01": TEMPLATE, // made, never written in: marks neither May nor 1999
@@ -275,7 +269,6 @@ test.describe("Journal navigation · written Days (#205)", () => {
   });
 
   test("the sidebar calendar marks only written Days", async ({ page }) => {
-    test.skip(!hasSidebar(page), "the Journal sidebar is hidden below lg");
     await seedJournal(page, { days: DAYS });
     await openDay(page, "1999-03-05");
     // The day cells are named by their date, and a written Day's name ends ", written".
@@ -288,7 +281,6 @@ test.describe("Journal navigation · written Days (#205)", () => {
   });
 
   test("the header's strip of days marks only written Days", async ({ page }) => {
-    test.skip((page.viewportSize()?.width ?? 0) < 1280, "the strip of days shows from xl");
     await seedJournal(page, { days: DAYS });
     await openDay(page, "1999-03-05");
     const strip = page.getByRole("group", { name: "Days around" });
@@ -368,8 +360,7 @@ test.describe("Journal navigation · the nearest written Days (#208)", () => {
  * one row first, in human form; Enter opens that page and makes nothing.
  */
 test.describe("Journal navigation · a date typed in the palette (#207)", () => {
-  // The palette is opened with Mod+K, on the desk only (ADR 0021).
-  test.skip(({ isMobile }) => isMobile, "the palette is not opened on a phone");
+  // Desktop only (no phone tag): the palette is opened with Mod+K, on the desk (ADR 0021).
   // Labels read as in the spec ("Tuesday 14 March 2023"), whatever this machine's locale.
   test.use({ locale: "en-GB" });
 
@@ -444,7 +435,6 @@ test.describe("Journal navigation · a date typed in the palette (#207)", () => 
  * away (#212).
  */
 test.describe("Journal navigation · Go to date and the review Commands (#212)", () => {
-  test.skip(({ isMobile }) => isMobile, "the palette is not opened on a phone");
   test.use({ locale: "en-GB" });
 
   const palette = (page: Page) => page.getByRole("dialog");
@@ -509,7 +499,6 @@ test.describe("Journal navigation · Go to date and the review Commands (#212)",
  * while typing: Esc leaves the editor first.
  */
 test.describe("Journal navigation · keyboard paging (#213)", () => {
-  test.skip(({ isMobile }) => isMobile, "keyboard paging is the desk's: a phone pages with its dock");
   // May–July 1997: a stretch nothing else in the store uses.
   const DAYS = {
     "1997-05-02": "Swifts are back.",

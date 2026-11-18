@@ -1,21 +1,52 @@
-# Layout tests
+# E2E tests
 
-Every screen, at phone (`mobile`, 360px) and desktop (`desktop`, 1280px) width,
-over a store filled with the longest content a person could type (ADR 0065).
+Two kinds of case live here (ADR 0129):
+
+- **The delivery gate** proves user flows work. A PR runs the gate specs it changes, and every
+  integration PR runs the whole gate. Logic (rules, variants, edge cases) belongs in unit
+  tests next to the code, not here.
+- **The nightly checks** run only on master each night (`.github/workflows/e2e.yml`): the
+  layout test `screens.spec.ts` (every screen over the longest content a person could type,
+  ADR 0065), `a11y-names.spec.ts`, and the Demo (`demo.spec.ts`). CI never runs them for a
+  PR, so run the rows you touched before pushing.
+
+| Project | Runs | When |
+|---|---|---|
+| `desktop` (1280px) | every gate case except those tagged `@phone` | delivery, nightly |
+| `mobile` (360px) | gate cases tagged `@phone` or `@also-phone` | delivery, nightly |
+| `nightly-desktop`, `nightly-mobile` | `screens.spec.ts`, `a11y-names.spec.ts`, every case at its width | nightly |
+| `demo` (with `demo-setup`) | `demo.spec.ts`, widths set per case | nightly |
 
 ```sh
-pnpm test:e2e                                                        # everything, from the repo root
-pnpm --filter @lifeline/shell test:e2e --project=mobile -g Tasks      # one screen, one width
-pnpm --filter @lifeline/shell test:e2e --only-changed=origin/master  # the specs your branch changes
-pnpm test:e2e:quiet --project=mobile -g Tasks                         # dot reporter, for agents
+pnpm test:e2e                                                          # everything, from the repo root
+pnpm --filter @lifeline/shell test:e2e --project=desktop --project=mobile  # the delivery gate
+pnpm --filter @lifeline/shell test:e2e --project=nightly-mobile -g Tasks   # one screen's layout, one width
+pnpm --filter @lifeline/shell test:e2e --only-changed=origin/master    # the specs your branch changes
+pnpm test:e2e:quiet --project=desktop people.spec.ts                    # dot reporter, for agents
 ```
 
 No `--` before the flags: pnpm would hand it to Playwright, which then reads them as
-file filters. A PR runs only the specs it changes, three times each
+file filters. A PR runs only the gate specs it changes, three times each
 (`.github/workflows/check.yml`, `e2e-changed`), or once on four runners past 150 cases. The
-whole suite runs on master each night and on every integration PR (`pnpm integrate`, ADR
-0096). Both split it four ways with `--shard`, and each shard runs the setup projects its
-cases need. Run the layout test locally before pushing a change that touches a screen.
+whole gate runs on every integration PR (`pnpm integrate`, ADR 0096), and everything runs on
+master each night. Both split it four ways with `--shard`, and each shard runs the setup
+projects its cases need. A red nightly run opens (or comments on) a `ready-for-agent` issue
+naming the failing cases (`scripts/e2e-failures.mjs`).
+
+## Widths
+
+A gate case runs at desktop width. A case whose flow differs on the phone carries a tag:
+
+```ts
+test("on a phone, Add household sits in the Phone dock", { tag: "@phone" }, async ({ page }) => { … });   // phone only
+test("an empty hour opens the Event dialog", { tag: "@also-phone" }, async ({ page, isMobile }) => { … }); // both widths
+test.describe("Vault · the phone drawer", { tag: "@phone" }, () => { … });                                 // a whole describe
+```
+
+Never pick a width with `test.skip(isMobile)`, `!isMobile` or a viewport check:
+`scripts/e2e-widths.test.mjs` fails on it in a gate spec. Inside an `@also-phone` case,
+`isMobile` may still choose how to act (a tap or a click). The nightly specs set their widths
+themselves and are exempt.
 
 Each run starts its own servers on the first free three ports from 1421 on (1421, 1424,
 1427…), so runs in several worktrees at once don't collide; `E2E_PORT` picks the first of
@@ -45,7 +76,7 @@ and never change that directory. The two Demo builds start only when the run inc
   `getByRole("button", { name: `Remove ${personTitle}`, exact: true })`. A pattern
   (`/^Remove /`) also matches neighbouring controls that seeded data adds, such as a Tag
   chip's `Remove tag …`.
-- `screens.spec.ts` lists the screens (`SCREENS`). **Add a row for every new
+- `screens.spec.ts` (nightly) lists the screens (`SCREENS`). **Add a row for every new
   screen**; the last test fails when a registered screen has none.
 - `support/layout.ts` is the check. It reports:
   - `spill` — text drawn outside a box that contains it,
@@ -63,7 +94,7 @@ and never change that directory. The two Demo builds start only when the run inc
 
 ## The Demo
 
-`demo.spec.ts` runs in its own `demo` project, against a production build of
+`demo.spec.ts` runs nightly in its own `demo` project, against a production build of
 the Demo (`vite build` with `VITE_DEMO=1`, served by `vite preview` on
 the port after the app's, 1422 by default) — never the layout seed. Each case runs at
 phone (360px) and desktop (1280px) width. Run it before pushing a change that
