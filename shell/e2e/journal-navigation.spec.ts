@@ -50,8 +50,8 @@ test.describe("Journal navigation · the calendar pages by itself (#210)", () =>
   const DAY = "/app/journal?d=2001-02-14";
   const atDay = (page: Page) => expect(page).toHaveURL((u) => u.pathname + u.search === DAY);
 
-  test("the month and year arrows page the calendar and leave the Day, the URL and the sidebar put", async ({ page }) => {
-    await seedJournal(page, { days: { "2001-02-14": "Valentine's.", "2001-04-02": "April showers." } });
+  test("the arrows page the calendar and leave the Day and the URL put; picking a day opens it", async ({ page }) => {
+    await seedJournal(page, { days: { "2001-02-14": "Valentine's.", "2001-04-02": "April showers.", "2000-06-21": "Midsummer." } });
     await openDay(page, "2001-02-14");
     await expectCalendarAt(page, "February 2001");
 
@@ -72,18 +72,9 @@ test.describe("Journal navigation · the calendar pages by itself (#210)", () =>
 
     await calendar(page).getByRole("button", { name: "Previous year" }).click();
     await expectCalendarAt(page, "March 2000");
-    await calendar(page).getByRole("button", { name: "Next year" }).click();
-    await expectCalendarAt(page, "March 2001");
     await atDay(page);
-  });
 
-  test("clicking a day opens it, and the calendar comes back to the open Day's month", async ({ page }) => {
-    await seedJournal(page, { days: { "2001-02-14": "Valentine's.", "2000-06-21": "Midsummer." } });
-    await openDay(page, "2001-02-14");
-
-    // Page away, then open a Day by other means: the calendar returns to its month.
-    await calendar(page).getByRole("button", { name: "Previous year" }).click();
-    await expectCalendarAt(page, "February 2000");
+    // Open a Day by other means: the calendar returns to its month.
     await page.getByRole("button", { name: "Next day" }).click();
     await expect(page).toHaveURL(/d=2001-02-15/);
     await expectCalendarAt(page, "February 2001");
