@@ -7,7 +7,7 @@ import {
   canRescheduleTimed,
   closePeek,
   describeEnd,
-  describeTimedWhen,
+  describeDayAndTime,
   moveTimedItem,
   removeTimedItem,
   rescheduleTimedItem,
@@ -15,10 +15,11 @@ import {
   spanLength,
   todayStr,
   type HoursTapped,
+  type WholeWhen,
 } from "@lifeline/core";
 import { Trash2 } from "lucide-react";
 import { timedVisit } from "./peekVisit";
-import { contractWhen, timedControls, timedAllDay, timedEndingAt, timedNudged, timedOnDay, timedStartingAt, type WhenTime } from "./timedTiming";
+import { contractWhen, timedControls, timedAllDay, timedEndingAt, timedNudged, timedOnDay, timedStartingAt } from "./timedTiming";
 
 /**
  * The **timing section** of a Peek opened from the hours on a Timed item its
@@ -42,9 +43,9 @@ export function TimedTiming({ tapped }: { tapped: HoursTapped & { kind: "timed" 
   const { when } = visit;
   const controls = timedControls(item, { reschedule: canRescheduleTimed(item.appId), move: canMoveTimed(item.appId) });
   /** Through the hook the App has: a reschedule writes the whole when, a move only the day. */
-  const put = (w: WhenTime) => (controls === "retime" ? rescheduleTimedItem(item, contractWhen(w)) : moveTimedItem(item, w.date));
+  const put = (w: WholeWhen) => (controls === "retime" ? rescheduleTimedItem(item, contractWhen(w)) : moveTimedItem(item, w.date));
 
-  function write(next: WhenTime) {
+  function write(next: WholeWhen) {
     visit.write(next, put);
     changed();
   }
@@ -96,7 +97,7 @@ export function TimedTiming({ tapped }: { tapped: HoursTapped & { kind: "timed" 
         </>
       ) : (
         <>
-          <p className="text-sm">{describeTimedWhen(when)}</p>
+          <p className="text-sm">{describeDayAndTime(when)}</p>
           <p className="text-muted-foreground text-xs">{item.fixed ? "A weekly blocker is a rule — change it on the Events screen's Blockers tab." : "Its App keeps this time: it can't be moved from here."}</p>
         </>
       )}

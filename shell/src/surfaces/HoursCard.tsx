@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import { Popover, PopoverAnchor, PopoverContent, Sheet, SheetContent, SheetTitle, usePhone } from "@lifeline/ui";
-import { appById, describeTimedWhen, type HoursTapped } from "@lifeline/core";
-import { timedWhenOf } from "../peek/timedTiming";
+import { appById, describeDayAndTime, wholeWhenOf, type HoursTapped } from "@lifeline/core";
 import { useOpenedFromItem } from "./itemKeys";
 
 /** Anchors the popover to an element that may re-render away: keep its last box. */
@@ -25,9 +24,9 @@ function whenOf(tapped: HoursTapped): string {
     const { item } = tapped;
     const day = item.displayDate ?? item.date;
     if (!day) return "Not placed";
-    return describeTimedWhen({ date: day, start: item.start ?? null, end: item.start ? (item.end ?? null) : null });
+    return describeDayAndTime({ date: day, start: item.start ?? null, end: item.start ? (item.end ?? null) : null });
   }
-  return describeTimedWhen(timedWhenOf(tapped.item));
+  return describeDayAndTime(wholeWhenOf(tapped.item));
 }
 
 /**

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { formatHuman } from "../dates";
-import { nudgeClock, blockEndAt, allDayLead, isMissedMarker, clockMinutes, clockOf, lastDayCovered, momentAfter, spanLength, cutEdges, describeSpan, describeTimedWhen, formatTime, minutesUntil, pieceLead, spanEndingAt, spanIsValid, spanWithEnd, spanLasting, spanMovedTo, startDayMovedTo } from "./timed";
+import { nudgeClock, blockEndAt, allDayLead, isMissedMarker, clockMinutes, clockOf, lastDayCovered, momentAfter, spanLength, cutEdges, describeSpan, describeDayAndTime, formatTime, minutesUntil, pieceLead, spanEndingAt, spanIsValid, spanWithEnd, spanLasting, spanMovedTo, startDayMovedTo, wholeWhenOf, type TimedItem } from "./timed";
 
 describe("formatTime", () => {
   it("reads a clock time in the locale's style", () => {
@@ -204,23 +204,37 @@ describe("a Time block's end", () => {
   });
 });
 
-describe("describeTimedWhen", () => {
+describe("describeDayAndTime", () => {
   const t = formatTime;
   const day = formatHuman("2026-08-10");
 
   it("reads a timed item as day · start – end", () => {
-    expect(describeTimedWhen({ date: "2026-08-10", start: "10:00", endDate: "2026-08-10", end: "11:00" })).toBe(`${day} · ${t("10:00")} – ${t("11:00")}`);
+    expect(describeDayAndTime({ date: "2026-08-10", start: "10:00", endDate: "2026-08-10", end: "11:00" })).toBe(`${day} · ${t("10:00")} – ${t("11:00")}`);
   });
 
   it("reads an item with no end as day · start", () => {
-    expect(describeTimedWhen({ date: "2026-08-10", start: "10:00", endDate: "2026-08-10", end: null })).toBe(`${day} · ${t("10:00")}`);
+    expect(describeDayAndTime({ date: "2026-08-10", start: "10:00", endDate: "2026-08-10", end: null })).toBe(`${day} · ${t("10:00")}`);
   });
 
   it("reads an all-day item as day · all day", () => {
-    expect(describeTimedWhen({ date: "2026-08-10", start: null, endDate: "2026-08-10", end: null })).toBe(`${day} · all day`);
+    expect(describeDayAndTime({ date: "2026-08-10", start: null, endDate: "2026-08-10", end: null })).toBe(`${day} · all day`);
   });
 
   it("names the end day when the item ends on another", () => {
-    expect(describeTimedWhen({ date: "2026-08-10", start: "22:00", endDate: "2026-08-11", end: "06:00" })).toBe(`${day} · ${t("22:00")} – Tue ${t("06:00")}`);
+    expect(describeDayAndTime({ date: "2026-08-10", start: "22:00", endDate: "2026-08-11", end: "06:00" })).toBe(`${day} · ${t("22:00")} – Tue ${t("06:00")}`);
+  });
+});
+
+describe("wholeWhenOf", () => {
+  const item = (over: Partial<TimedItem>): TimedItem => ({ key: "calendar/b", appId: "calendar", itemId: "b", title: "Focus", date: "2026-11-10", start: "10:00", end: "11:00", ...over });
+
+  it("is the whole item, whichever piece was tapped (ADR 0090)", () => {
+    const night = item({ date: "2026-11-11", start: "00:00", end: "06:00", span: { date: "2026-11-10", start: "22:00", endDate: "2026-11-11", end: "06:00" } });
+    expect(wholeWhenOf(night)).toEqual({ date: "2026-11-10", start: "22:00", endDate: "2026-11-11", end: "06:00" });
+  });
+
+  it("is the item's own day and hours when it reports no span", () => {
+    expect(wholeWhenOf(item({}))).toEqual({ date: "2026-11-10", start: "10:00", endDate: "2026-11-10", end: "11:00" });
+    expect(wholeWhenOf(item({ start: null, end: null }))).toEqual({ date: "2026-11-10", start: null, endDate: "2026-11-10", end: null });
   });
 });

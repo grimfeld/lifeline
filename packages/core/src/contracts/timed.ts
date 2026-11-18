@@ -138,6 +138,15 @@ function wholeOf(piece: Pick<TimedItem, "date" | "start" | "end" | "span">): Tim
   return piece.span ?? { date: piece.date, start: piece.start ?? "00:00", endDate: piece.date, end: piece.end ?? piece.start ?? "00:00" };
 }
 
+/** A Timed item's when in full (#538): always an end day, the end null where the item has none. */
+export type WholeWhen = Required<TimedWhen>;
+
+/** The whole of an item from any of its pieces (ADR 0090): a piece of an item across days gives the item, from its start. */
+export function wholeWhenOf(t: Pick<TimedItem, "date" | "start" | "end" | "span">): WholeWhen {
+  if (t.span) return { ...t.span, end: t.end === null ? null : t.span.end };
+  return { date: t.date, start: t.start, endDate: t.date, end: t.start ? t.end : null };
+}
+
 /**
  * Where a timed item lands when one of its pieces is dropped at a day and
  * time (ADR 0090): the whole span moves by the drop offset, keeping its
@@ -520,11 +529,12 @@ export function describeSpan(span: TimedSpan): string {
 }
 
 /**
- * A Timed item's day and time on one line: "Mon, Aug 10 · 10:00 – 11:00",
- * "… · 10:00" with no end, "… · all day", or "… · 22:00 – Tue 06:00" when it
- * ends another day. The Peek's timing section and the hours card share it.
+ * A day and time on one line, a Timed item's or a work item's block:
+ * "Mon, Aug 10 · 10:00 – 11:00", "… · 10:00" with no end, "… · all day", or
+ * "… · 22:00 – Tue 06:00" when it ends another day. The Peek's timing section
+ * and the hours card share it.
  */
-export function describeTimedWhen(w: { date: DateStr; start: TimeStr | null; endDate?: DateStr; end: TimeStr | null }): string {
+export function describeDayAndTime(w: { date: DateStr; start: TimeStr | null; endDate?: DateStr; end: TimeStr | null }): string {
   const day = formatHuman(w.date);
   if (!w.start) return `${day} · all day`;
   if (!w.end) return `${day} · ${formatTime(w.start)}`;

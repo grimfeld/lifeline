@@ -1,6 +1,6 @@
-import { addTimeBlock, completeSurfaceItem, forgetTiming, moveTimeBlock, noteTiming, onPeekClosed, removeTimeBlock, timedTimingKey, unplaceItem, type HoursTapped, type TimedWhen, type WorkOnHours } from "@lifeline/core";
+import { addTimeBlock, completeSurfaceItem, forgetTiming, moveTimeBlock, noteTiming, onPeekClosed, removeTimeBlock, timedTimingKey, unplaceItem, wholeWhenOf, type HoursTapped, type TimedWhen, type WholeWhen, type WorkOnHours } from "@lifeline/core";
 import { blockEnd, blockOfTapped, type BlockTime } from "./blockTiming";
-import { contractWhen, timedWhenOf, type WhenTime } from "./timedTiming";
+import { contractWhen } from "./timedTiming";
 import { toastWriteFailed, writeQueue, type WriteQueue } from "./writeQueue";
 
 /**
@@ -151,9 +151,9 @@ function queued<U>(queue: WriteQueue, act: () => Promise<U>): Promise<U | null> 
 
 /** A Timed item's visit (#538): its when as last written. */
 export interface TimedVisit {
-  readonly when: WhenTime;
+  readonly when: WholeWhen;
   /** Write a new when at once through `put` (its App's hook), noted to the Peek for its one Undo. */
-  write: (next: WhenTime, put: (w: WhenTime) => Promise<unknown>) => void;
+  write: (next: WholeWhen, put: (w: WholeWhen) => Promise<unknown>) => void;
   /** Delete the item through `del` once the writes are done, with the Undo `del` gives (null if it failed). */
   remove: <U>(del: () => Promise<U>) => Promise<U | null>;
   /** Every write queued so far, done. */
@@ -165,7 +165,7 @@ export function timedVisit(tapped: HoursTapped & { kind: "timed" }, failed: (e: 
   const known = visits.get(tapped);
   if (known && "when" in known) return known;
   const item = tapped.item;
-  const initial = timedWhenOf(item);
+  const initial = wholeWhenOf(item);
   const queue = writeQueue(failed);
   let when = initial;
   const key = timedTimingKey(item);

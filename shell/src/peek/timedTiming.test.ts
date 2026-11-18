@@ -1,20 +1,7 @@
 import { describe, expect, it } from "vitest";
-import type { TimedItem } from "@lifeline/core";
-import { timedControls, timedAllDay, timedEndingAt, timedNudged, timedOnDay, timedStartingAt, timedWhenOf } from "./timedTiming";
-
-const item = (over: Partial<TimedItem>): TimedItem => ({ key: "calendar/b", appId: "calendar", itemId: "b", title: "Focus", date: "2026-11-10", start: "10:00", end: "11:00", ...over });
+import { timedControls, timedAllDay, timedEndingAt, timedNudged, timedOnDay, timedStartingAt } from "./timedTiming";
 
 describe("a Timed item's timing in the Peek (#538)", () => {
-  it("is the whole item, whichever piece was tapped (ADR 0090)", () => {
-    const night = item({ date: "2026-11-11", start: "00:00", end: "06:00", span: { date: "2026-11-10", start: "22:00", endDate: "2026-11-11", end: "06:00" } });
-    expect(timedWhenOf(night)).toEqual({ date: "2026-11-10", start: "22:00", endDate: "2026-11-11", end: "06:00" });
-  });
-
-  it("is the item's own day and hours when it reports no span", () => {
-    expect(timedWhenOf(item({}))).toEqual({ date: "2026-11-10", start: "10:00", endDate: "2026-11-10", end: "11:00" });
-    expect(timedWhenOf(item({ start: null, end: null }))).toEqual({ date: "2026-11-10", start: null, endDate: "2026-11-10", end: null });
-  });
-
   it("moves its start by a nudge, keeping its length, across midnight too", () => {
     const w = { date: "2026-11-10", start: "23:30", endDate: "2026-11-11", end: "00:30" };
     expect(timedNudged(w, 15)).toEqual({ date: "2026-11-10", start: "23:45", endDate: "2026-11-11", end: "00:45" });
