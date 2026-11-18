@@ -10,8 +10,7 @@ import { CORE_URL } from "./support/seed";
  */
 
 test.describe("Journal navigation · the sidebar stays (#206)", () => {
-  // The side column is a desk feature: hidden below `lg`.
-
+  // Desktop only (no phone tag): the side column is hidden below `lg`.
   test("a date with no Day, and a period with no review, keep the calendar, Reviews and On this day, without Links or Backlinks", async ({ page }) => {
     await seedJournal(page, {
       persons: ["Ada Lovelace"],
@@ -48,7 +47,6 @@ test.describe("Journal navigation · the sidebar stays (#206)", () => {
 
 /** The calendar pages by itself (#210): its arrows move the calendar, never the open Day. */
 test.describe("Journal navigation · the calendar pages by itself (#210)", () => {
-
   const DAY = "/app/journal?d=2001-02-14";
   const atDay = (page: Page) => expect(page).toHaveURL((u) => u.pathname + u.search === DAY);
 
@@ -111,7 +109,6 @@ test.describe("Journal navigation · the calendar pages by itself (#210)", () =>
  * Day marks nothing. Which years are listed and marked is `calendarZoom.test.ts`'s.
  */
 test.describe("Journal navigation · the calendar zooms out (#211)", () => {
-
   const DAYS = {
     "1997-06-02": "The earliest.",
     "1999-05-01": TEMPLATE, // made, never written in: marks neither May nor 1999
@@ -219,7 +216,7 @@ test.describe("Journal navigation · the nearest written Days (#208)", () => {
  * each form reads as, and what offers no row, is `periods.test.ts`'s (`journalPageOf`).
  */
 test.describe("Journal navigation · a date typed in the palette (#207)", () => {
-  // The palette is opened with Mod+K, on the desk only (ADR 0021).
+  // Desktop only (no phone tag): the palette is opened with Mod+K, on the desk (ADR 0021).
   // Labels read as in the spec ("Tuesday 14 March 2023"), whatever this machine's locale.
   test.use({ locale: "en-GB" });
 
