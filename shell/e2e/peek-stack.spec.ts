@@ -3,9 +3,9 @@ import { pressMod } from "./support/keys";
 import { CORE_URL } from "./support/seed";
 
 /**
- * The Peek's back stack (ADR 0085): following a link inside a Peek replaces
- * what it shows, with a way back, and `Ctrl+Enter` on a wikilink in an editor
- * peeks it. Driven from a Day in the Journal, where both start.
+ * A Peek opened by `Ctrl+Enter` on a wikilink in a Day's editor hands the
+ * focus back to the editor when it closes. The back stack inside a Peek and
+ * which keys peek a link are unit tests (core's peek.test.ts, the editor's peekLink.test.ts).
  */
 
 const DAY_START = "Thinking about [[";
@@ -50,45 +50,6 @@ async function cursorInLink(page: Page, title: string) {
   await pressMod(page, "Home");
   for (let i = 0; i < DAY_START.length + 2; i++) await page.keyboard.press("ArrowRight");
 }
-
-test("Ctrl+Enter on a link in a Day peeks it; a link inside the Peek replaces it, and back returns", async ({ page }) => {
-  const { a, b } = await seedDay(page, String(Date.now()));
-
-  await cursorInLink(page, a);
-  await pressMod(page, "Enter");
-  const peekA = page.getByRole("dialog", { name: a });
-  await expect(peekA).toBeVisible();
-  await expect(peekA.getByRole("button", { name: "Back" }), "nothing to go back to yet").toHaveCount(0);
-
-  await peekA.getByRole("link", { name: b }).click();
-  const peekB = page.getByRole("dialog", { name: b });
-  await expect(peekB).toBeVisible();
-  await expect(page.getByRole("dialog"), "a Peek never opens over another Peek").toHaveCount(1);
-  await expect(page).toHaveURL(/\/app\/journal/);
-
-  await peekB.getByRole("button", { name: "Back" }).click();
-  await expect(page.getByRole("dialog", { name: a })).toBeVisible();
-  await expect(page.getByRole("dialog", { name: a }).getByRole("button", { name: "Back" })).toHaveCount(0);
-
-  // Closing clears the stack: the next Peek starts anew, with nothing behind it.
-  await page.getByRole("dialog", { name: a }).getByRole("button", { name: "Close" }).click();
-  await expect(page.getByRole("dialog")).toHaveCount(0);
-  await cursorInLink(page, a);
-  await pressMod(page, "Enter");
-  await expect(page.getByRole("dialog", { name: a })).toBeVisible();
-  await expect(page.getByRole("dialog", { name: a }).getByRole("button", { name: "Back" })).toHaveCount(0);
-});
-
-test("Ctrl+Enter away from a link keeps the editor's own binding", async ({ page }) => {
-  await seedDay(page, String(Date.now()));
-  const line = page.locator(".cm-content .cm-line", { hasText: "Thinking about" }).first();
-  await expect(line).toBeVisible();
-  await line.click({ position: { x: 4, y: 4 } });
-  const lines = await page.locator(".cm-content .cm-line").count();
-  await pressMod(page, "Enter");
-  await expect(page.locator(".cm-content .cm-line")).toHaveCount(lines + 1);
-  await expect(page.getByRole("dialog")).toHaveCount(0);
-});
 
 test("a Peek opened from a link by keyboard gives focus back to where it came from on Escape", async ({ page }) => {
   const { a } = await seedDay(page, String(Date.now()));

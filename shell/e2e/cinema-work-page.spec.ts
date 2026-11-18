@@ -3,8 +3,8 @@ import { inCore } from "./support/core";
 
 /**
  * The Cinema's Work page (ADR 0110): every film and series has a page of its
- * own. A Gallery tile opens it, its Fields are edited in place there, and a
- * Peek of the work links through to it.
+ * own. A Gallery tile opens it, and its Fields are edited in place there. A
+ * Peek's way through to its page is library-work-page.spec.ts's.
  */
 
 async function workLocally(page: Page) {
@@ -40,15 +40,4 @@ test("Cinema: a Gallery tile opens the work's page, where a Field edited in plac
 
   await page.reload();
   await expect(page.getByLabel("Reason")).toHaveValue("A recommendation.");
-});
-
-test("Cinema: a work's Peek links through to its page", async ({ page }) => {
-  await page.goto("/vault");
-  await workLocally(page);
-  const title = `Solaris ${Date.now()}`;
-  const id = await putMovie(page, title);
-  await inCore(page, async (core, docId: string) => core.openPeek(docId), id);
-  await page.getByRole("dialog").getByRole("button", { name: /^Open/ }).click();
-  await expect(page).toHaveURL(new RegExp(`/app/cinema/works/${id}$`));
-  await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible();
 });
