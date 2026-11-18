@@ -494,6 +494,38 @@ function peekWithPerson(type: string, key: string) {
 }
 
 /**
+ * An Exchange (ADR 0131) with many long-named People and the longest body a
+ * person could type, so its derived title runs long; with `peek`, its Peek
+ * opened (With's chips wrapping, the body below), else the Log an exchange
+ * dialog opened from a Person's page with them all in With and the body typed.
+ */
+function longExchange(peek: boolean) {
+  return async (page: Page) => {
+    await workLocally(page);
+    const body = Array.from({ length: 40 }, (_, i) => `${longText(`Line ${i + 1} of what was said`)}.`).join("\n\n");
+    const { exchangeId, names } = await inCore(
+      page,
+      async (core, a: { names: string[]; body: string }) => {
+        const ids: string[] = [];
+        for (const title of a.names) ids.push((await core.createDocument({ type: "contacts_person", title })).id as string);
+        const x = await core.createDocument({ type: "contacts_exchange", title: "", body: a.body, fields: { kind: "video", date: core.todayStr(), with: ids } });
+        return { exchangeId: x.id as string, names: a.names };
+      },
+      { names: Array.from({ length: 8 }, (_, i) => longText(`Exchange person ${i + 1}`)), body },
+    );
+    if (peek) {
+      await inCore(page, async (core, id: string) => void core.openPeek(id), exchangeId);
+      await expect(page.getByRole("dialog").getByRole("button", { name: `Remove ${names[7]}`, exact: true })).toBeVisible();
+      return;
+    }
+    await page.getByRole("button", { name: "Log exchange" }).click();
+    const dialog = page.getByRole("dialog", { name: "Log an exchange" });
+    await dialog.getByLabel("What was said").fill(body);
+    await expect(dialog.getByRole("button", { name: "Save", exact: true })).toBeEnabled();
+  };
+}
+
+/**
  * An attached blocker's Peek (#497): "Before <Event>" over an Event with the
  * longest title a person could type, and its Detach beside it.
  */
@@ -1321,6 +1353,9 @@ const SCREENS: ScreenCase[] = [
   { name: "Household", path: "/app/people/household/:id", type: "contacts_household", afterOpen: async (page) => { await workLocally(page); await expect(page.getByText("No members yet.")).toBeVisible(); } },
   { name: "Household · former members", path: "/app/people/household/:id", type: "contacts_household", afterOpen: async (page) => { await longHouseholds(page); await formerMember(page); } },
   { name: "Household · members", path: "/app/people/household/:id", type: "contacts_household", afterOpen: async (page) => { await longHouseholds(page); await expect(page.getByTestId("member").first()).toBeVisible(); } },
+  // An Exchange (ADR 0131): its Peek with many People and the longest body, and the Log an exchange dialog from a Person's page.
+  { name: "Exchange · Peek", path: "/app/people", afterOpen: longExchange(true) },
+  { name: "Person · Log an exchange", path: "/app/people/person/:id", type: "contacts_person", afterOpen: longExchange(false) },
   { name: "Thoughts", path: "/app/thoughts" },
   { name: "Thought", path: "/app/thoughts/:id", type: "thought" },
   { name: "Notes · Sources", path: "/app/notes" },

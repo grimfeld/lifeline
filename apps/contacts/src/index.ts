@@ -5,6 +5,7 @@ import { contactsCommands } from "./commands";
 import { exchangeTypeDef, householdTypeDef, personTypeDef, tieTypeDef } from "./types";
 import { PersonPeek } from "./components/PersonFields";
 import { HouseholdPeek } from "./components/HouseholdMembers";
+import { ExchangePeek } from "./components/ExchangePeek";
 import { AddPersonDialog } from "./components/AddPersonDialog";
 import { UpcomingCard } from "./components/UpcomingReport";
 import { RelationshipsCard } from "./cards/RelationshipsCard";
@@ -29,7 +30,7 @@ export const contactsApp: AppManifest = {
   title: "Contacts",
   icon: Users,
   color: "var(--chart-aqua)",
-  types: [{ ...personTypeDef, icon: User, peekEdit: PersonPeek }, { ...tieTypeDef, icon: Link2 }, { ...householdTypeDef, icon: Home, peekEdit: HouseholdPeek }, { ...exchangeTypeDef, icon: Phone }],
+  types: [{ ...personTypeDef, icon: User, peekEdit: PersonPeek }, { ...tieTypeDef, icon: Link2 }, { ...householdTypeDef, icon: Home, peekEdit: HouseholdPeek }, { ...exchangeTypeDef, icon: Phone, peekEdit: ExchangePeek }],
   screens: [
     { id: "contacts.people", title: "People", path: "people", icon: Users, component: PeopleScreen },
     // The Person page: routed, never listed — reached from the Peek's "Open", a Base or the Vault.

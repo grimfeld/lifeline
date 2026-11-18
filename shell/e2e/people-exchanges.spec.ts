@@ -118,3 +118,26 @@ test("an Exchange stands on its People's Timeline, names others as mentioned, ge
   await expect(page.getByText(`Lunch ${g}`).first()).toBeVisible();
   await expect(page.getByText(`Message · ${grandma}`)).toHaveCount(0);
 });
+
+test("an Exchange opened from the Timeline is edited in its Peek, retitled, and deleted with Undo", async ({ page }) => {
+  const name = `Léa ${Date.now()}`;
+  await page.goto("/app/people");
+  await workLocally(page);
+  const id = await makePerson(page, name);
+  await inCore(page, async (core, a: { type: string; id: string }) => void (await core.createDocument({ type: a.type, title: "", body: "She got the job.", fields: { kind: "call", date: core.addDays(core.todayStr(), -3), with: [a.id] } })), { type: EXCHANGE, id });
+  await page.goto(`/app/people/person/${id}`);
+  await workLocally(page);
+
+  await page.getByRole("region", { name: "Timeline" }).getByText(`Call · ${name}`).click();
+  const peek = page.getByRole("dialog", { name: `Call · ${name}` });
+  await expect(peek).toContainText("She got the job.");
+  await peek.getByRole("combobox", { name: "Kind" }).click();
+  await page.getByRole("option", { name: "Video call", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: `Video call · ${name}` })).toBeVisible();
+  await expect.poll(() => exchangesWith(page, id)).toEqual([expect.objectContaining({ kind: "video", title: `Video call · ${name}` })]);
+
+  await page.getByRole("dialog", { name: `Video call · ${name}` }).getByRole("button", { name: "Delete exchange" }).click();
+  await expect.poll(() => exchangesWith(page, id)).toEqual([]);
+  await page.getByRole("button", { name: "Undo" }).click();
+  await expect.poll(() => exchangesWith(page, id)).toEqual([expect.objectContaining({ title: `Video call · ${name}`, body: "She got the job." })]);
+});
