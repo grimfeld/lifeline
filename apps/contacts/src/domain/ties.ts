@@ -188,3 +188,93 @@ export function selectPreset(draft: TieDraft, preset: Preset, own: Gender): TieD
   const { label, ownLabel, kind } = presetWords(preset, own);
   return { ...rest, label, ownLabel, kind };
 }
+
+/**
+ * A suggestion dismissed for good (ADR 0130), held on a Person under
+ * `dismissedTies`: this Person would have been `kind` of `otherId`. Written
+ * on both People of the pair; either one hides it.
+ */
+export interface Dismissal {
+  otherId: string;
+  kind: TieKind;
+}
+
+/** A Person's dismissals as stored, keeping only well-formed ones whatever a row holds. */
+export function dismissalsOf(raw: unknown): Dismissal[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((d): d is Dismissal => typeof d === "object" && d !== null && typeof d.otherId === "string" && typeof d.kind === "string" && Object.hasOwn(KIND_WORDS, d.kind));
+}
+
+/** A Suggested Tie as a Person's page shows it: like a TieRow, before it exists. */
+export interface SuggestedTie {
+  otherId: string;
+  otherName: string;
+  /** What this Person would be to the other, as `TieRow.kind`. */
+  kind: TieKind;
+  /** The other Person's word ("sister": "Lily is Tom's sister"). */
+  label: string;
+  /** This Person's word ("brother"). */
+  ownLabel: string;
+}
+
+/** A Tie that follows: `from` is `to`'s `kind`. */
+interface Deduced {
+  from: string;
+  to: string;
+  kind: TieKind;
+}
+
+/**
+ * The rules (ADR 0130), each one step, in order: for a Person `x` and `of(y, k)`
+ * (the People who are y's k), the People who follow and what they are to `x`.
+ */
+const RULES: ((x: string, of: (y: string, k: TieKind) => string[]) => [string, TieKind][])[] = [
+  // 1. Children of a shared parent are siblings.
+  (x, of) => of(x, "parent").flatMap((p) => of(p, "child").map((c): [string, TieKind] => [c, "sibling"])),
+  // 2. A parent's parent is a grandparent.
+  (x, of) => of(x, "parent").flatMap((p) => of(p, "parent").map((g): [string, TieKind] => [g, "grandparent"])),
+];
+
+const pairKey = (x: string, y: string) => (x < y ? `${x} ${y}` : `${y} ${x}`);
+
+/**
+ * The Ties that follow from the kinded ones, as `personId`'s Ties card offers
+ * them (ADR 0130): derived, never stored. One per pair, by rule order; never for
+ * a pair already tied in any way, a Person to themselves, someone not in
+ * `people` (the current Workspace), or a dismissal either Person holds. In name order.
+ */
+export function suggestedTies(personId: string, ties: readonly Tie[], people: readonly (Pick<Person, "id" | "title"> & { dismissedTies?: unknown })[]): SuggestedTie[] {
+  const byId = new Map(people.map((p) => [p.id, p]));
+  if (!byId.has(personId)) return [];
+  const tied = new Set(ties.map((t) => pairKey(t.a, t.b)));
+  const edges: Deduced[] = [];
+  for (const t of ties) {
+    const kind = tieKindOf(t);
+    if (!kind || !byId.has(t.a) || !byId.has(t.b) || t.a === t.b) continue;
+    edges.push({ from: t.a, to: t.b, kind }, { from: t.b, to: t.a, kind: invertKind(kind) });
+  }
+  const of = (y: string, k: TieKind) => edges.filter((e) => e.to === y && e.kind === k).map((e) => e.from);
+  const dismissed = (by: string, other: string, kind: TieKind) => dismissalsOf(byId.get(by)?.dismissedTies).some((d) => d.otherId === other && d.kind === kind);
+  // Every Person's deductions, rule by rule, so the first rule to give a pair is the one kept, seen from either end.
+  const chosen = new Map<string, Deduced>();
+  for (const rule of RULES) {
+    for (const x of byId.keys()) {
+      for (const [from, kind] of rule(x, of)) {
+        const key = pairKey(from, x);
+        if (from === x || tied.has(key) || chosen.has(key)) continue;
+        // `x` would be `invertKind(kind)` of `from`; `from` would be `kind` of `x`.
+        if (dismissed(x, from, invertKind(kind)) || dismissed(from, x, kind)) continue;
+        chosen.set(key, { from, to: x, kind });
+      }
+    }
+  }
+  const word = (id: string) => GENDER_INDEX[genderOf(id, ties)];
+  return [...chosen.values()]
+    .filter((d) => d.from === personId || d.to === personId)
+    .map((d) => {
+      // Read from the page's Person: the other is `kind` of them.
+      const [otherId, kind] = d.to === personId ? [d.from, d.kind] : [d.to, invertKind(d.kind)];
+      return { otherId, otherName: byId.get(otherId)!.title, kind: invertKind(kind), label: KIND_WORDS[kind].a[word(otherId)], ownLabel: KIND_WORDS[kind].b[word(personId)] };
+    })
+    .sort((x, y) => x.otherName.localeCompare(y.otherName));
+}
