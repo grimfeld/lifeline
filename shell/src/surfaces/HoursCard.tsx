@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Popover, PopoverAnchor, PopoverContent, Sheet, SheetContent, SheetTitle, usePhone } from "@lifeline/ui";
-import { appById, describeSpan, formatHuman, formatTime, type HoursTapped } from "@lifeline/core";
+import { appById, describeTimedWhen, type HoursTapped } from "@lifeline/core";
+import { timedWhenOf } from "../peek/timedTiming";
 import { useOpenedFromItem } from "./itemKeys";
 
 /** Anchors the popover to an element that may re-render away: keep its last box. */
@@ -18,19 +19,15 @@ function useVirtualAnchor(el: HTMLElement | null) {
   }, [el]);
 }
 
-/** "Tue, Nov 10 · 10:00 – 11:00", or "… · all day": the whole item, from any of its pieces (ADR 0090). */
+/** The whole item's day and time, from any of its pieces (ADR 0090). */
 function whenOf(tapped: HoursTapped): string {
   if (tapped.kind === "work") {
     const { item } = tapped;
     const day = item.displayDate ?? item.date;
     if (!day) return "Not placed";
-    return item.start ? `${formatHuman(day)} · ${formatTime(item.start)}${item.end ? ` – ${formatTime(item.end)}` : ""}` : `${formatHuman(day)} · all day`;
+    return describeTimedWhen({ date: day, start: item.start ?? null, end: item.start ? (item.end ?? null) : null });
   }
-  const { item } = tapped;
-  const span = item.span;
-  if (!item.start) return `${formatHuman(item.date)} · all day`;
-  if (span) return `${formatHuman(span.date)} · ${describeSpan(span)}`;
-  return `${formatHuman(item.date)} · ${formatTime(item.start)}${item.end ? ` – ${formatTime(item.end)}` : ""}`;
+  return describeTimedWhen(timedWhenOf(tapped.item));
 }
 
 /**

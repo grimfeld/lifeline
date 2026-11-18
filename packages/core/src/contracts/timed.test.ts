@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { nudgeClock, blockEndAt, allDayLead, isMissedMarker, clockMinutes, clockOf, lastDayCovered, momentAfter, spanLength, cutEdges, describeSpan, formatTime, minutesUntil, pieceLead, spanEndingAt, spanIsValid, spanWithEnd, spanLasting, spanMovedTo, startDayMovedTo } from "./timed";
+import { formatHuman } from "../dates";
+import { nudgeClock, blockEndAt, allDayLead, isMissedMarker, clockMinutes, clockOf, lastDayCovered, momentAfter, spanLength, cutEdges, describeSpan, describeTimedWhen, formatTime, minutesUntil, pieceLead, spanEndingAt, spanIsValid, spanWithEnd, spanLasting, spanMovedTo, startDayMovedTo } from "./timed";
 
 describe("formatTime", () => {
   it("reads a clock time in the locale's style", () => {
@@ -200,5 +201,26 @@ describe("a Time block's end", () => {
   it("stays on its day: 24:00 at the latest", () => {
     expect(blockEndAt("23:30", 60)).toBe("24:00");
     expect(blockEndAt("23:00", 60)).toBe("24:00");
+  });
+});
+
+describe("describeTimedWhen", () => {
+  const t = formatTime;
+  const day = formatHuman("2026-08-10");
+
+  it("reads a timed item as day · start – end", () => {
+    expect(describeTimedWhen({ date: "2026-08-10", start: "10:00", endDate: "2026-08-10", end: "11:00" })).toBe(`${day} · ${t("10:00")} – ${t("11:00")}`);
+  });
+
+  it("reads an item with no end as day · start", () => {
+    expect(describeTimedWhen({ date: "2026-08-10", start: "10:00", endDate: "2026-08-10", end: null })).toBe(`${day} · ${t("10:00")}`);
+  });
+
+  it("reads an all-day item as day · all day", () => {
+    expect(describeTimedWhen({ date: "2026-08-10", start: null, endDate: "2026-08-10", end: null })).toBe(`${day} · all day`);
+  });
+
+  it("names the end day when the item ends on another", () => {
+    expect(describeTimedWhen({ date: "2026-08-10", start: "22:00", endDate: "2026-08-11", end: "06:00" })).toBe(`${day} · ${t("22:00")} – Tue ${t("06:00")}`);
   });
 });

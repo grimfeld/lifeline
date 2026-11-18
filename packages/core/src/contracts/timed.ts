@@ -520,6 +520,18 @@ export function describeSpan(span: TimedSpan): string {
 }
 
 /**
+ * A Timed item's day and time on one line: "Mon, Aug 10 · 10:00 – 11:00",
+ * "… · 10:00" with no end, "… · all day", or "… · 22:00 – Tue 06:00" when it
+ * ends another day. The Peek's timing section and the hours card share it.
+ */
+export function describeTimedWhen(w: { date: DateStr; start: TimeStr | null; endDate?: DateStr; end: TimeStr | null }): string {
+  const day = formatHuman(w.date);
+  if (!w.start) return `${day} · all day`;
+  if (!w.end) return `${day} · ${formatTime(w.start)}`;
+  return `${day} · ${describeSpan({ date: w.date, start: w.start, endDate: w.endDate ?? w.date, end: w.end })}`;
+}
+
+/**
  * The readout beside an End, ahead of its length: "until 18:00", or "until
  * Tue, Aug 25 06:00" style when it ends on another day. The Event form and
  * a Peek's timing section show it.
