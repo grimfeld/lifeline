@@ -102,8 +102,8 @@ function visitOf(tapped: object): number {
 function TappedTiming({ doc }: { doc: Document }) {
   usePeekStack(); // what was tapped is known while the Peek shows the Document it was opened on
   const tapped = peekTapped();
-  if (tapped?.kind === "work") return schedulablePeekId(tapped.item) === doc.id ? <BlockTiming key={visitOf(tapped)} item={tapped.item} /> : null;
-  if (tapped?.kind === "timed" && timedPeekId(tapped.item) === doc.id && !timedTimingInPeek(tapped.item)) return <TimedTiming key={visitOf(tapped)} item={tapped.item} />;
+  if (tapped?.kind === "work") return schedulablePeekId(tapped.item) === doc.id ? <BlockTiming key={visitOf(tapped)} tapped={tapped} /> : null;
+  if (tapped?.kind === "timed" && timedPeekId(tapped.item) === doc.id && !timedTimingInPeek(tapped.item)) return <TimedTiming key={visitOf(tapped)} tapped={tapped} />;
   return null;
 }
 

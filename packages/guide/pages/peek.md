@@ -15,7 +15,7 @@ sheet from the bottom on a phone. The page behind stays in view.
   Upcoming) or the Agenda Card opens its Peek; so does a Task's or a Chore's Time block or untimed
   chip, with the block's timing above its fields, and a one-off blocker's band or another App's item
   (a Workout Session, a Deadline, an Occasion), with its day and time above — editable only where
-  its App lets it move (a Deadline, to another day). On a phone the sheet leaves the top of the
+  its App lets it move (a Milestone's Deadline, to another day; a Project's own Deadline is the Deadline field in its Peek, with no second picker above it). On a phone the sheet leaves the top of the
   screen to the hours, and what you tapped is scrolled up above it. Closing it brings the focus back
   to the item. A subscription's event has no Peek: it shows a small read-only card.
 - **What it shows** — the Document's type and Module, its fields and its main actions, drawn by
