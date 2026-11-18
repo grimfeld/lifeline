@@ -95,23 +95,21 @@ function nameOf(el: HTMLElement): string {
   return (name ?? "").replace(/\s+/g, " ").trim();
 }
 
+/** Every control named `name` (exactly, or matching), of `role` when given. */
+function controls(name: string | RegExp, role?: string): HTMLElement[] {
+  const selector = role ? (role === "button" ? `button, [role="button"]` : `[role="${role}"]`) : `input, textarea, select, button, [role]`;
+  return [...document.querySelectorAll<HTMLElement>(selector)].filter((el) => (typeof name === "string" ? nameOf(el) === name : name.test(nameOf(el))));
+}
+
 /** The one control named `name` (exactly, or matching), of `role` when given; throws when none or several. */
 export function control(name: string | RegExp, role?: string): HTMLElement {
-  const selector = role ? (role === "button" ? `button, [role="button"]` : `[role="${role}"]`) : `input, textarea, select, button, [role]`;
-  const hits = [...document.querySelectorAll<HTMLElement>(selector)].filter((el) => (typeof name === "string" ? nameOf(el) === name : name.test(nameOf(el))));
-  if (hits.length !== 1) throw new Error(`${hits.length} controls named ${String(name)}${role ? ` (${role})` : ""}: ${[...document.querySelectorAll<HTMLElement>(selector)].map(nameOf).join(" | ")}`);
+  const hits = controls(name, role);
+  if (hits.length !== 1) throw new Error(`${hits.length} controls named ${String(name)}${role ? ` (${role})` : ""}`);
   return hits[0]!;
 }
 
-/** Whether a control named `name` is drawn. */
-export function has(name: string | RegExp, role?: string): boolean {
-  try {
-    control(name, role);
-    return true;
-  } catch {
-    return false;
-  }
-}
+/** Whether any control named `name` is drawn (a guarded Field has none). */
+export const has = (name: string | RegExp, role?: string): boolean => controls(name, role).length > 0;
 
 /** Type `text` into the field named `name`, over what it holds. */
 export async function fill(name: string, text: string): Promise<void> {
