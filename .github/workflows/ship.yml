@@ -67,14 +67,24 @@ jobs:
     if: github.event_name == 'pull_request' && github.event.action == 'opened' && github.event.pull_request.user.login == 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
-      - id: meta
-        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+      # Reads Dependabot's commit metadata itself rather than through dependabot/fetch-metadata,
+      # so repos whose Actions policy allows only their own and GitHub's actions can run it.
       - name: Ship patch and GitHub Actions updates without review
-        if: steps.meta.outputs.update-type == 'version-update:semver-patch' || steps.meta.outputs.package-ecosystem == 'github_actions'
         env:
           GH_TOKEN: ${{ secrets.SHIP_TOKEN }}
+          READ_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
+          HEAD: ${{ github.head_ref }}
         run: |
+          case "$HEAD" in
+            dependabot/github_actions/*) ;;
+            *)
+              # One `update-type:` line per dependency; a grouped PR ships only if all are patches.
+              types=$(GH_TOKEN="$READ_TOKEN" gh api "repos/$GITHUB_REPOSITORY/pulls/$PR/commits" --jq '.[0].commit.message' | sed -n 's/^[ -]*update-type: *//p')
+              if [ -z "$types" ] || echo "$types" | grep -qv '^version-update:semver-patch$'; then
+                echo "Needs review: $(echo "$types" | sort -u | paste -sd, -)"; exit 0
+              fi ;;
+          esac
           [ -n "$GH_TOKEN" ] || { echo "::warning::Add SHIP_TOKEN as a Dependabot secret too; skipping the label."; exit 0; }
           gh api "repos/$GITHUB_REPOSITORY/issues/$PR/labels" -f "labels[]=$SHIP_LABEL" >/dev/null
 
