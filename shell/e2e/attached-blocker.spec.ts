@@ -7,7 +7,7 @@ import { setTime } from "./support/time-field";
 /**
  * An attached blocker (CONTEXT.md, #497): picked from a timed Event's Peek,
  * flush against the Event, and moved with it when the Event is dragged on the
- * Schedule.
+ * Schedule. That an all-day Event takes none is attached.test.ts's.
  */
 
 // The week of Mon 10 Nov 2025, a year before any run's seed (as in event-span.spec.ts):
@@ -101,21 +101,6 @@ test("Travel 30 attached before an Event from its Peek follows the Event when it
 
   // And the Schedule paints it there: the detached band ends an hour and a half above the Event.
   await expect.poll(async () => Math.round(((await event.boundingBox())!.y - (await band.locator("..").boundingBox())!.y) / HOUR_PX * 2) / 2).toBe(1.5);
-});
-
-test("an all-day Event's Peek offers no Before… or After…", async ({ page }) => {
-  await page.goto("/vault");
-  await workLocally(page);
-  const id = await inCore(
-    page,
-    async (core, title: string) => (await core.putDocument({ type: "event", title, date: "2025-11-10", endDate: null, start: null, end: null, notes: "", tags: [] })).id as string,
-    `Fair ${Date.now()}`,
-  );
-  await inCore(page, async (core, docId: string) => core.openPeek(docId), id);
-  const peek = page.getByRole("dialog").first();
-  await expect(peek.getByRole("checkbox", { name: "All day" })).toBeChecked();
-  await expect(peek.getByRole("button", { name: "Before…", exact: true })).toHaveCount(0);
-  await expect(peek.getByRole("button", { name: "After…", exact: true })).toHaveCount(0);
 });
 
 test("a new Event's dialog attaches the blockers picked from Before… and After… as it is added", async ({ page }) => {

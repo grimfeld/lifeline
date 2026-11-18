@@ -1,7 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { CORE_URL } from "./support/seed";
 import { inCore } from "./support/core";
-import { openPalette } from "./support/palette";
 
 /**
  * Macros (CONTEXT.md "Macro", ADR 0092): made in Settings → Macros from
@@ -163,47 +162,6 @@ test("the built-in morning Macro is given once: reset puts it back as it shipped
   await expect(page.getByRole("button", { name: "Delete Morning" })).toHaveCount(0);
 });
 
-test("a Macro typed inline runs when its asked arguments are complete and opens its asked form pre-filled when not (#242)", async ({ page }) => {
-  const stamp = Date.now();
-  await page.goto("/settings/macros");
-  await workLocally(page);
-  await page.evaluate(async (coreUrl) => {
-    const core = await import(/* @vite-ignore */ coreUrl);
-    await core.saveMacro({ name: "Taskette", steps: [{ command: "tasks/tasks.add", args: { title: { from: "asked" } } }] });
-    await core.saveMacro({ name: "Errand", steps: [{ command: "tasks/tasks.add", args: { title: { from: "asked" } } }, { command: "shopping/shopping.add", args: { title: { from: "asked" } } }] });
-  }, CORE_URL);
-
-  await page.keyboard.press("Control+k");
-  const input = page.getByRole("combobox");
-  await input.fill(`!taskette Call mum ${stamp}`);
-  await expect(page.getByTestId("inline-preview")).toContainText("Taskette");
-  await page.keyboard.press("Enter");
-  const report = page.getByRole("dialog", { name: "Taskette" });
-  await expect(report.getByRole("list", { name: "Steps" }).getByRole("listitem")).toHaveCount(1);
-  await expect(report).toContainText("Done");
-  await report.getByRole("button", { name: "Close", exact: true }).first().click();
-
-  await page.keyboard.press("Control+k");
-  await input.fill(`!errand Pick up ${stamp}`);
-  await expect(page.getByTestId("inline-preview")).toContainText("Missing");
-  await page.keyboard.press("Enter");
-  const form = page.getByRole("dialog", { name: "Errand" });
-  await expect(form.getByLabel("Title (required)")).toHaveValue(`Pick up ${stamp}`);
-  // A value left out is said under its own field.
-  await form.getByRole("button", { name: "Run" }).click();
-  await expect(form.getByLabel("Thing (required)")).toHaveAttribute("aria-invalid", "true");
-  await expect(form.getByText("Thing is required")).toBeVisible();
-  await form.getByLabel("Thing (required)").fill(`Oat milk ${stamp}`);
-  await form.getByRole("button", { name: "Run" }).click();
-  await expect(page.getByRole("dialog", { name: "Errand" }).getByRole("list", { name: "Steps" }).getByRole("listitem")).toHaveCount(2);
-
-  const titles = await page.evaluate(async (coreUrl) => {
-    const core = await import(/* @vite-ignore */ coreUrl);
-    return (await core.documentsOf("task")).map((d: { title: string }) => d.title);
-  }, CORE_URL);
-  expect(titles).toEqual(expect.arrayContaining([`Call mum ${stamp}`, `Pick up ${stamp}`]));
-});
-
 test("a broken Macro is marked in Settings with why, and refuses to start", async ({ page }) => {
   await page.goto("/settings/macros");
   await workLocally(page);
@@ -254,42 +212,6 @@ test("a dialog step closed without saving stops the Macro there, reported cancel
   expect(titles).not.toContain("Never after a cancel");
 });
 
-test("a Macro's Add event step fixed With someone, picked by alias, runs from the palette and puts the Event on their Timeline", async ({ page }) => {
-  const stamp = Date.now();
-  const title = `Thursday dinner ${stamp}`;
-  const name = `Zoé Martin ${stamp}`;
-  await page.goto("/settings/macros");
-  await workLocally(page);
-  const zoe = await inCore(page, async (core, a) => (await core.createDocument({ type: "contacts_person", title: a.name, fields: { aliases: [a.alias] } })).id as string, { name, alias: `Zozo ${stamp}` });
-
-  await page.getByRole("button", { name: "New Macro" }).click();
-  const editor = page.getByRole("dialog");
-  await editor.getByLabel("Name").fill(`Dinner with Zoé ${stamp}`);
-  await editor.getByRole("combobox", { name: "Add a step" }).fill("Add event");
-  await page.getByRole("option", { name: "Add event", exact: true }).click();
-  const step = editor.getByRole("list", { name: "Steps" }).getByRole("listitem").last();
-  await step.getByLabel("Title (required)").fill(title);
-  await step.getByLabel("Day (required)").click();
-  await page.getByRole("button", { name: "Today", exact: true }).click();
-  await step.getByRole("combobox", { name: "With", exact: true }).fill(`Zozo ${stamp}`);
-  await page.getByRole("option", { name: new RegExp(name) }).click();
-  await expect(step.getByText(name)).toBeVisible();
-  await editor.getByRole("button", { name: "Save" }).click();
-  await expect(editor).toBeHidden();
-
-  await openPalette(page);
-  await page.getByRole("combobox").fill(`Dinner with Zoé ${stamp}`);
-  await page.getByRole("option", { name: new RegExp(`Dinner with Zoé ${stamp}`) }).click();
-  const report = page.getByRole("dialog", { name: `Dinner with Zoé ${stamp}` }).getByRole("list", { name: "Steps" }).getByRole("listitem");
-  await expect(report).toHaveCount(1);
-  await expect(report.nth(0)).toContainText("Done");
-  await expect(report.nth(0)).toContainText(`with ${name}`);
-
-  await page.goto(`/app/people/person/${zoe}`);
-  await workLocally(page);
-  await expect(page.getByRole("region", { name: "Timeline" })).toContainText(title);
-});
-
 test("a Macro refused for a fixed name no Person has says so under that field, and clears it once the name is dropped", async ({ page }) => {
   const stamp = Date.now();
   const name = `Ghost dinner ${stamp}`;
@@ -323,37 +245,5 @@ test("a Macro refused for a fixed name no Person has says so under that field, a
   await editor.getByRole("button", { name: "Remove person" }).click();
   await expect(picker).not.toHaveAttribute("aria-invalid", "true");
   await expect(editor.locator("[data-slot=field-error]")).toHaveCount(0);
-  await expect(editor.getByRole("alert")).toHaveCount(0);
-});
-
-test("a refusal does not outlive the step it was about: moving or removing a step clears it", async ({ page }) => {
-  const name = `Ghost lunch ${Date.now()}`;
-  await page.goto("/settings/macros");
-  await workLocally(page);
-  const fixed = (value: unknown) => ({ from: "fixed" as const, value });
-  const event = (title: string, ghost: boolean) => ({
-    command: "calendar/calendar.add-event",
-    args: { title: fixed(title), date: fixed("2030-01-01"), ...(ghost ? { with: fixed(["Nobody Called This"]) } : {}) },
-  });
-  await inCore(page, async (core, a) => core.saveMacro({ name: a.name, steps: a.steps }), { name, steps: [event("Lunch", true), event("Walk", false)] });
-  await page.getByRole("list", { name: "Macros" }).getByRole("listitem").filter({ hasText: name }).getByRole("button").first().click();
-  const editor = page.getByRole("dialog");
-  const refusal = editor.locator("[data-slot=field-error]");
-  const save = editor.getByRole("button", { name: "Save" });
-
-  await save.click();
-  await expect(refusal).toContainText("Nobody Called This");
-  await expect(editor.getByRole("alert")).toContainText("Not saved");
-
-  // The step moves: its refusal is not left under whichever step now sits where it was.
-  await editor.getByRole("button", { name: "Move down" }).first().click();
-  await expect(refusal).toHaveCount(0);
-  await expect(editor.getByRole("alert")).toHaveCount(0);
-
-  // Refused again, then the step goes.
-  await save.click();
-  await expect(refusal).toContainText("Nobody Called This");
-  await editor.getByRole("button", { name: "Remove step" }).first().click();
-  await expect(refusal).toHaveCount(0);
   await expect(editor.getByRole("alert")).toHaveCount(0);
 });

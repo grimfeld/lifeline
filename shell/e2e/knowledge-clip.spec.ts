@@ -2,9 +2,10 @@ import { test, expect, type Page } from "@playwright/test";
 import { inCore } from "./support/core";
 
 /**
- * A clip on a Word or Sentence (ADR 0116): attached in its dialog, played once
- * on the reveal of any of its Prompts, replayable, and removable. An item
- * without one reveals as before.
+ * A clip on a Word or Sentence (ADR 0116): recorded or attached in its dialog,
+ * and removable. An item without one reveals as before. Hearing it is
+ * knowledge-listening.spec.ts's case; how the player plays and replays it,
+ * ClipPlayer.test.tsx.
  */
 
 async function workLocally(page: Page) {
@@ -65,42 +66,6 @@ async function practise(page: Page, name: string) {
   await openView(page, "Practice");
   await page.getByRole("button", { name: `Practise ${name}` }).click();
 }
-
-const played = (page: Page) => expect.poll(() => page.getByTestId("clip-audio").evaluate((a: HTMLAudioElement) => a.currentTime > 0 || a.ended || !a.paused));
-
-test("a Word's clip plays on reveal and can be replayed", async ({ page }) => {
-  const name = `Clip word ${Date.now()}`;
-  await newTopic(page, name);
-  await openAdd(page, "Word");
-  await page.getByLabel("Word", { exact: true }).fill("nonno");
-  await page.getByLabel("Meaning").fill("grandfather");
-  await attach(page);
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-
-  await practise(page, name);
-  // Nothing plays or shows before the reveal.
-  await expect(page.getByTestId("clip-replay")).toHaveCount(0);
-  await page.getByRole("button", { name: "Show answer" }).click();
-  await expect(page.getByTestId("clip-replay")).toBeEnabled();
-  await played(page);
-  // The replay starts a new play, so let the first one end (it is a quarter-second long).
-  await expect.poll(() => page.getByTestId("clip-audio").evaluate((a: HTMLAudioElement) => a.ended)).toBe(true);
-  await page.getByTestId("clip-replay").click();
-  await expect.poll(() => page.getByTestId("clip-replay").getAttribute("data-plays")).toBe("2");
-});
-
-test("a Sentence's clip plays on reveal", async ({ page }) => {
-  const name = `Clip sentence ${Date.now()}`;
-  await newTopic(page, name);
-  await openAdd(page, "Sentence");
-  await page.getByLabel("Sentence", { exact: true }).fill("Mio {{nonno}} dorme");
-  await attach(page);
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-
-  await practise(page, name);
-  await page.getByRole("button", { name: "Show answer" }).click();
-  await played(page);
-});
 
 test("removing a clip leaves the item revealing without one; items without a clip are unchanged", async ({ page }) => {
   const name = `Clip removed ${Date.now()}`;

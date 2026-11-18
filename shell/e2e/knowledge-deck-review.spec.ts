@@ -3,7 +3,9 @@ import { inCore } from "./support/core";
 
 /**
  * A Deck of an agent's drafts (ADR 0115): reviewed one by one, and accepted
- * together only once every draft left has been shown.
+ * together only once every draft left has been shown. Its Words are then
+ * practised with another Deck's (#430), an item in both counted once (the
+ * union itself is practice.test.ts's).
  */
 
 async function workLocally(page: Page) {
@@ -11,7 +13,7 @@ async function workLocally(page: Page) {
   await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
 }
 
-test("review a Deck, delete one draft, accept the rest with accept all", async ({ page }) => {
+test("review a Deck, delete one draft, accept the rest with accept all, then practise it mixed with another Deck", async ({ page }) => {
   const topic = `Review ${Date.now()}`;
   await page.goto("/app/languages");
   await workLocally(page);
@@ -70,4 +72,29 @@ test("review a Deck, delete one draft, accept the rest with accept all", async (
     topic,
   );
   expect(words.sort()).toEqual([["alfa", false], ["delta", false], ["gamma", false]]);
+
+  // Mixed with a second Deck sharing "delta", the three Words are practised together, "delta" once.
+  await inCore(
+    page,
+    async (core, name: string) => {
+      const t = (await core.documentsOf("language")).find((d) => (d as { name?: string }).name === name) as { id: string };
+      const w = (await core.documentsOf("language_word")).filter((d) => (d as { languageId?: string }).languageId === t.id) as unknown as { id: string; term: string }[];
+      const id = (term: string) => w.find((x) => x.term === term)!.id;
+      await core.putDocument({ type: "language_deck", title: "Lesson 2", name: "Lesson 2", languageId: t.id, members: [id("delta"), id("gamma")], tags: [] });
+      await core.putDocument({ type: "language_deck", title: "Lesson 3", name: "Lesson 3", languageId: t.id, members: [id("gamma")], tags: [] });
+    },
+    topic,
+  );
+  await page.goto("/app/languages");
+  await workLocally(page);
+  await page.getByRole("button", { name: "Mix decks" }).click();
+  const together = page.getByRole("button", { name: /decks together/ });
+  await expect(together).toBeDisabled();
+  await page.getByRole("button", { name: /Lesson 1/ }).click();
+  await page.getByRole("button", { name: /Lesson 3/ }).click();
+  await expect(together).toBeEnabled();
+  await expect(together).toContainText("6 new"); // 3 Words x 2 Prompts; "gamma" is in both Decks, counted once
+  await together.click();
+  await expect(page.getByText(/Lesson 1 \+ Lesson 3/)).toBeVisible();
+  await expect(page.getByText(/· 6 new/)).toBeVisible();
 });

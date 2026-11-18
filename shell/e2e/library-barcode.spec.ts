@@ -4,7 +4,8 @@ import { test, expect, type Page } from "@playwright/test";
  * Scanning a book's barcode on the phone (#382): the Add dialog offers it where
  * there is a camera and the platform reads barcodes, and a scanned ISBN runs the
  * ISBN search like a typed one. The camera and the BarcodeDetector are stood in
- * for here: `window.__barcode` is what the next frame reads.
+ * for here: `window.__barcode` is what the next frame reads. Where the scan is
+ * offered (the phone, a camera, a browser reading EAN-13) is BarcodeScan.test.tsx's.
  */
 
 async function workLocally(page: Page) {
@@ -65,19 +66,4 @@ test("on the phone, a scanned ISBN fills the Add dialog's search and finds the w
   await expect(dialog.getByLabel("Title")).toHaveValue("9780441172719");
   await expect(dialog.getByLabel("Camera")).toHaveCount(0);
   await expect(dialog.getByRole("button", { name: /^Dune/ })).toBeVisible();
-});
-
-test("the desk is not offered a scan, even with a camera", async ({ page }) => {
-  await fakeCamera(page);
-  const dialog = await openAdd(page);
-  await expect(dialog.getByLabel("Title")).toBeVisible();
-  await expect(dialog.getByRole("button", { name: "Scan barcode" })).toHaveCount(0);
-});
-
-test("a phone whose browser cannot read barcodes is not offered a scan", { tag: "@phone" }, async ({ page }) => {
-  await fakeCamera(page);
-  await page.addInitScript(() => delete (window as unknown as { BarcodeDetector?: unknown }).BarcodeDetector);
-  const dialog = await openAdd(page);
-  await expect(dialog.getByLabel("Title")).toBeVisible();
-  await expect(dialog.getByRole("button", { name: "Scan barcode" })).toHaveCount(0);
 });
