@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { addDays, diffDays, formatHuman, type DateStr } from "../dates";
-import { mentionable, type Backlink, type LinkIndex } from "./links";
-import { dayOf, eventSpan, MAX_SPAN } from "./sourceDays";
+import { mentionable, type Backlink, type LinkIndex, type Reach } from "./links";
+import { dayOf, eventSpan, exchangeDay, MAX_SPAN } from "./sourceDays";
 import type { Document, DocumentTypeDef, ReportKind, ReportSetting, SeenAs } from "./types";
 import { PERSON_TYPE } from "../people";
 
@@ -16,8 +16,8 @@ import { PERSON_TYPE } from "../people";
 export { DAY_TYPE, EVENT_TYPE, EXCHANGE_TYPE, dayOf, isDateStr } from "./sourceDays";
 
 export type ReportFamily = "ranking" | "document";
-/** What a Report counts (ADR 0112): Days that link (Mentioned) or Events that link (Seen). */
-export type ReportSource = "mentioned" | "seen";
+/** What a Report counts (ADR 0112, ADR 0131): Days that link (Mentioned), Events that link (Seen), or Exchanges with it (Talked). */
+export type ReportSource = "mentioned" | "seen" | "talked";
 /** What a kind shows, whatever it counts. */
 export type ReportShape = "top" | "quiet" | "last" | "count" | "heatmap";
 
@@ -117,19 +117,18 @@ export const EVENT_AT_FIELD = "at";
  */
 export const countsAsSeen = (b: Backlink, target: Document | undefined): boolean => !(b.field === EVENT_AT_FIELD && target?.type === PERSON_TYPE);
 
+/** The days a reach counts on, first to last, when it counts at all: what tells Seen from Talked. */
+type CountedSpan = (b: Reach, src: Document | undefined) => { from: DateStr; to: DateStr } | undefined;
+
 /**
- * The distinct days (oldest first, none after `today`) on which Events that
- * reach one Document are on: once per day however many Events, each day of a
- * multi-day Event, nothing in the future. Markers and Tasks are not Events,
- * and an Event's At on a Person is no sighting (`countsAsSeen`). Through a
- * Household (ADR 0117), only the days they were a member.
+ * The distinct days (oldest first, none after `today`) a family counts for one
+ * Document: once per day however many sources, each day of a span, nothing in
+ * the future. Through a Household (ADR 0117), only the days they were a member.
  */
-export function seenDays(index: LinkIndex, docId: string, today: DateStr): DateStr[] {
+function countedDays(index: LinkIndex, docId: string, today: DateStr, spanOf: CountedSpan): DateStr[] {
   const days = new Set<DateStr>();
-  const target = index.byId.get(docId);
   for (const b of index.reaches(docId)) {
-    if (!countsAsSeen(b, target)) continue;
-    const span = eventSpan(index.byId.get(b.sourceId));
+    const span = spanOf(b, index.byId.get(b.sourceId));
     if (!span) continue;
     if (b.via) {
       for (const d of b.days ?? []) if (d <= today) days.add(d);
@@ -142,6 +141,43 @@ export function seenDays(index: LinkIndex, docId: string, today: DateStr): DateS
 }
 
 /**
+ * The distinct days (oldest first, none after `today`) on which Events that
+ * reach one Document are on: once per day however many Events, each day of a
+ * multi-day Event, nothing in the future. Markers and Tasks are not Events,
+ * and an Event's At on a Person is no sighting (`countsAsSeen`). Through a
+ * Household (ADR 0117), only the days they were a member.
+ */
+export function seenDays(index: LinkIndex, docId: string, today: DateStr): DateStr[] {
+  const target = index.byId.get(docId);
+  return countedDays(index, docId, today, (b, src) => (countsAsSeen(b, target) ? eventSpan(src) : undefined));
+}
+
+/** The Exchange's With field (ADR 0131): its People, the one link Talked counts. */
+const EXCHANGE_WITH_FIELD = "with";
+
+const withIds = (src: Document | undefined): unknown[] => (Array.isArray(src?.[EXCHANGE_WITH_FIELD]) ? (src[EXCHANGE_WITH_FIELD] as unknown[]) : []);
+
+/**
+ * Whether a reach is an Exchange talking to its target (ADR 0131): through its
+ * With, directly or through a Household in it. A wikilink in its body is a
+ * Backlink and nothing more: being told about Lucie is not talking to her.
+ */
+const talkedThrough = (b: Reach, src: Document | undefined): boolean => (b.via ? withIds(src).includes(b.via) : b.field === EXCHANGE_WITH_FIELD);
+
+/**
+ * The distinct days (oldest first, none after `today`) of the Exchanges whose
+ * With reaches one Document (ADR 0131): once per day however many Exchanges,
+ * nothing in the future. Through a Household in With (ADR 0117), only the days
+ * they were a member.
+ */
+export function talkedDays(index: LinkIndex, docId: string, today: DateStr): DateStr[] {
+  return countedDays(index, docId, today, (b, src) => {
+    const day = exchangeDay(src);
+    return day && talkedThrough(b, src) ? { from: day, to: day } : undefined;
+  });
+}
+
+/**
  * An Event's last day: its end day, the day before when it ends at 00:00
  * (`lastDayCovered`, ADR 0090), its first when it has no later end; none for
  * any other Document or an undated Event. What Seen counts to, and what says
@@ -151,7 +187,9 @@ export const eventLastDay = (doc: Document | undefined): DateStr | undefined => 
 
 /** The days source of a Report family, as of `today`. */
 export function sourceOf(source: ReportSource, today: DateStr): DaysSource {
-  return source === "seen" ? (index, docId) => seenDays(index, docId, today) : mentionDays;
+  if (source === "seen") return (index, docId) => seenDays(index, docId, today);
+  if (source === "talked") return (index, docId) => talkedDays(index, docId, today);
+  return mentionDays;
 }
 
 /** The words a Report of one source uses: what its count is of, what its heatmap counts, and what links. */
@@ -164,6 +202,7 @@ export interface ReportWords {
 const WORDS: Record<ReportSource, ReportWords> = {
   mentioned: { count: "Days", heatmap: "Days", linker: "Day" },
   seen: { count: "Seen", heatmap: "days seen", linker: "Event" },
+  talked: { count: "Talked", heatmap: "days talked", linker: "Exchange" },
 };
 
 /** The words a Report of one source uses, in the type's own words for Seen (a Place's Visits). */
