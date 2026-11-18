@@ -89,9 +89,6 @@ export async function titlesOf(page: Page, type: string): Promise<string[]> {
   );
 }
 
-/** True when the sidebar is laid out at this width (it is hidden below `lg`, 1024px). */
-export const hasSidebar = (page: Page): boolean => (page.viewportSize()?.width ?? 0) >= 1024;
-
 /** The sidebar's month calendar (desk only). */
 export const calendar = (page: Page): Locator => sidebar(page).getByRole("group", { name: "Calendar" });
 
