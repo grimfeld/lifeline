@@ -1,6 +1,6 @@
-import { PERSON_TYPE, documentsOf, getDocument, putDocument, removeDocument, removeDocumentsWhere, useDocuments } from "@lifeline/core";
+import { PERSON_TYPE, documentsOf, getDocument, patchDocument, putDocument, removeDocument, removeDocumentsWhere, useDocuments } from "@lifeline/core";
 import { TIE, type Tie, type TieKind } from "../domain/types";
-import { invertKind, type TieRow } from "../domain/ties";
+import { dismissalsOf, invertKind, type Dismissal, type SuggestedTie, type TieRow } from "../domain/ties";
 
 /** A Tie as stored, with its keys filled in for a row that lacks them. */
 const normalizeTie = (t: Tie): Tie => ({ ...t, a: t.a ?? "", b: t.b ?? "", labelA: t.labelA ?? "", labelB: t.labelB ?? "" });
@@ -82,4 +82,38 @@ export async function removeTie(id: string): Promise<Tie> {
 /** Undo `removeTie`: the same Tie, live again on both Persons' pages. */
 export async function restoreTie(tie: Tie): Promise<void> {
   await putDocument<Tie>({ ...tie, deleted: 0 } as Tie);
+}
+
+/** Add a Suggested Tie from `personId`'s page (ADR 0130): a real kinded Tie, with the suggestion's words. */
+export async function addSuggestedTie(personId: string, s: Pick<SuggestedTie, "otherId" | "kind" | "label" | "ownLabel">): Promise<Tie> {
+  return addTie({ from: personId, to: s.otherId, label: s.ownLabel, toLabel: s.label, kind: s.kind });
+}
+
+/** Add All: each of a page's suggestions, one after the other; a failure stops there, with those before it added. */
+export async function addAllSuggested(personId: string, suggestions: readonly Pick<SuggestedTie, "otherId" | "kind" | "label" | "ownLabel">[]): Promise<void> {
+  for (const s of suggestions) await addSuggestedTie(personId, s);
+}
+
+/** Change a Person's dismissals from the stored list, so two quick writes never overwrite each other. */
+async function updateDismissals(personId: string, change: (list: Dismissal[]) => Dismissal[]): Promise<void> {
+  const doc = await getDocument(personId);
+  if (!doc || doc.type !== PERSON_TYPE) throw new Error("No such Person");
+  await patchDocument(personId, { dismissedTies: change(dismissalsOf(doc.dismissedTies)) });
+}
+
+/** Both ends of a dismissal: what `personId` would be to the other, and the other to them. */
+const bothEnds = (personId: string, s: Pick<SuggestedTie, "otherId" | "kind">): [string, Dismissal][] => [
+  [personId, { otherId: s.otherId, kind: s.kind }],
+  [s.otherId, { otherId: personId, kind: invertKind(s.kind) }],
+];
+const same = (x: Dismissal, y: Dismissal) => x.otherId === y.otherId && x.kind === y.kind;
+
+/** Dismiss a suggestion for good (ADR 0130), written on both People of the pair so it moves with either. */
+export async function dismissSuggestion(personId: string, s: Pick<SuggestedTie, "otherId" | "kind">): Promise<void> {
+  for (const [id, d] of bothEnds(personId, s)) await updateDismissals(id, (list) => (list.some((x) => same(x, d)) ? list : [...list, d]));
+}
+
+/** Undo `dismissSuggestion`: the suggestion is offered again on both pages. */
+export async function undoDismissal(personId: string, s: Pick<SuggestedTie, "otherId" | "kind">): Promise<void> {
+  for (const [id, d] of bothEnds(personId, s)) await updateDismissals(id, (list) => list.filter((x) => !same(x, d)));
 }

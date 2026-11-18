@@ -59,6 +59,8 @@ export const personTypeDef: DocumentTypeDef = {
     { key: "occasions", label: "Occasions", kind: "json", guarded: true, hidden: true },
     { key: "addresses", label: "Addresses", kind: "json", guarded: true, hidden: true },
     { key: "contactDetails", label: "Contact details", kind: "json", guarded: true, hidden: true },
+    // Suggested Ties dismissed for good (ADR 0130), written on both People of the pair.
+    { key: "dismissedTies", label: "Dismissed suggested ties", kind: "json", guarded: true, hidden: true },
   ],
 };
 
