@@ -1,5 +1,5 @@
 import { useReducer } from "react";
-import { Button, Checkbox, DatePicker, Field, formatLength, QuickTiming, TimeField, toast } from "@lifeline/ui";
+import { Button, Checkbox, DatePicker, Field, formatLength, QuickTiming, TimeField, toastWithUndo } from "@lifeline/ui";
 import {
   addDays,
   canMoveTimed,
@@ -53,7 +53,7 @@ export function TimedTiming({ tapped }: { tapped: HoursTapped & { kind: "timed" 
     const removed = visit.remove(() => removeTimedItem(item));
     closePeek();
     void removed.then((undo) => {
-      if (undo) toast.success(`${item.title} deleted`, { action: { label: "Undo", onClick: () => void undo().catch((e: Error) => toast.error(`Could not bring it back: ${e.message}`)) } });
+      if (undo) toastWithUndo(`${item.title} deleted`, undo);
     });
   }
 

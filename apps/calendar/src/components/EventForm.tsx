@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useId, useState, type MutableRefObject } from "react";
 import { Field, TagInput, Textarea, useCommitDraft } from "@lifeline/ui";
 import { noteTiming, normalizeTag, useTagVocabulary } from "@lifeline/core";
 import { PeopleField } from "@lifeline/editor";
@@ -29,7 +29,7 @@ export type { EventDraft } from "../domain/eventForm";
  */
 export type EventFormProps =
   | { mode: "adding"; draft: EventDraft; onChange: (draft: EventDraft) => void; errors?: WhenFormErrors; idPrefix?: string }
-  | { mode: "editing"; event: Event; idPrefix?: string };
+  | { mode: "editing"; event: Event; idPrefix?: string; flushRef?: MutableRefObject<(() => Promise<void>) | null> };
 
 export function EventForm(props: EventFormProps) {
   if (props.mode === "adding") {
@@ -37,7 +37,7 @@ export function EventForm(props: EventFormProps) {
     return <EventFields value={draft} onChange={({ when, ...rest }) => onChange({ ...draft, ...when, ...rest })} errors={props.errors} idPrefix={props.idPrefix} />;
   }
   // Keyed by the Event: following a link to another one must not carry an edit over.
-  return <EditingForm key={props.event.id} event={props.event} idPrefix={props.idPrefix} />;
+  return <EditingForm key={props.event.id} event={props.event} idPrefix={props.idPrefix} flushRef={props.flushRef} />;
 }
 
 /** What the Peek's timing Undo knows an Event's day and times by. */
@@ -60,11 +60,13 @@ function whenFormOf(e: Event): WhenForm {
   };
 }
 
-function EditingForm({ event, idPrefix }: { event: Event; idPrefix?: string }) {
+function EditingForm({ event, idPrefix, flushRef }: { event: Event; idPrefix?: string; flushRef?: MutableRefObject<(() => Promise<void>) | null> }) {
   // Written once they make an Event; until then the half-made shape stays here, with what is wrong under it.
   const written = useCommitDraft(whenFormOf(event), (w) => setEventWhen(event.id, whenOf(w)), { delay: WRITE_DELAY, equals: sameWhen });
   const [unfinished, setUnfinished] = useState<WhenForm | null>(null);
   const notes = useCommitDraft(event.notes ?? "", (n) => editEvent(event.id, { notes: n }), { delay: WRITE_DELAY });
+  // The Peek's Delete awaits what is still pending before it takes its snapshot.
+  if (flushRef) flushRef.current = async () => void (await Promise.all([written.commit(), notes.commit()]));
   const when = unfinished ?? written.draft;
   const ownPrefix = useId();
   return (

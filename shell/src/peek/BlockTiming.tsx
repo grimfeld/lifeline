@@ -1,5 +1,5 @@
 import { useReducer, useRef } from "react";
-import { Button, DatePicker, Field, QuickTiming, TimeField, toast } from "@lifeline/ui";
+import { Button, DatePicker, Field, QuickTiming, TimeField, toast, toastWithUndo } from "@lifeline/ui";
 import { addDays, formatHuman, formatTime, SNAP_MIN, todayStr, type HoursTapped } from "@lifeline/core";
 import { Check, Trash2 } from "lucide-react";
 import { blockEnd, blockLasting, blockNudged, type BlockTime } from "./blockTiming";
@@ -49,7 +49,7 @@ export function BlockTiming({ tapped }: { tapped: HoursTapped & { kind: "work" }
     changed();
     queueMicrotask(() => requestAnimationFrame(() => (section.current?.querySelector<HTMLElement>('[role="combobox"]') ?? peek)?.focus()));
     void undone.then((undo) => {
-      if (undo) toast.success("Block removed — the task stays", { action: { label: "Undo", onClick: () => void undo().catch((e: Error) => toast.error(`Could not bring it back: ${e.message}`)) } });
+      if (undo) toastWithUndo("Block removed — the task stays", undo);
     });
   }
 

@@ -200,6 +200,29 @@ test("deleting an Event from its Peek acts at once, with its own Undo", async ({
   await expect.poll(() => storedEvent(page, title)).toEqual({ date: "2026-11-10", start: "10:00", end: "11:00" });
 });
 
+test("an Event deleted straight after typing its Notes comes back with them on Undo", async ({ page }) => {
+  const title = `Typed then deleted ${Date.now()}`;
+  await addEvent(page, title);
+  await page.locator("[data-focus-key]", { hasText: title }).click();
+  const peek = await expectEventPeek(page, title);
+  await peek.getByLabel("Notes").fill("Bring the slides");
+  await peek.getByRole("button", { name: "Delete event" }).click();
+  await expect(peek).toBeHidden();
+  await expect.poll(() => storedEvent(page, title)).toBeNull();
+  await page.locator("[data-sonner-toast]", { hasText: `${title} deleted` }).getByRole("button", { name: "Undo" }).click();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        async ({ coreUrl, title }) => {
+          const core = await import(/* @vite-ignore */ coreUrl);
+          return (await core.documentsOf("event")).find((d: { title: string }) => d.title === title)?.notes ?? null;
+        },
+        { coreUrl: CORE_URL, title },
+      ),
+    )
+    .toBe("Bring the slides");
+});
+
 // --- a Task's Time block and untimed chip open the Task's Peek (#537) ---
 
 /** A Task on the Tuesday, with a Time block 14:00–15:00 that day unless `block` is false; `done` makes it record. */

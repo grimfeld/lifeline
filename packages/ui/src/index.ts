@@ -30,6 +30,7 @@ export * from "./components/ui/textarea";
 export * from "./components/ui/time-field";
 export * from "./components/ui/tooltip";
 export { toast } from "sonner";
+export { toastWithUndo } from "./lib/toastWithUndo";
 export * from "./components/ui/card-unavailable";
 export * from "./components/ui/screen-loading";
 export * from "./components/map/MapView";

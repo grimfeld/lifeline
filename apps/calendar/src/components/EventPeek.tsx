@@ -1,8 +1,9 @@
-import { Button, toast } from "@lifeline/ui";
-import { closePeek, forgetTiming, getDocument, putDocument, type DocumentInput, type PeekProps } from "@lifeline/core";
+import { useRef } from "react";
+import { Button, toast, toastWithUndo } from "@lifeline/ui";
+import { closePeek, forgetTiming, removeTimedItem, type PeekProps } from "@lifeline/core";
 import { Trash2 } from "lucide-react";
 import type { Event } from "../domain/types";
-import { deleteEvent } from "../data/repo";
+import { APP_ID } from "../timed";
 import { EventForm, eventTimingKey } from "./EventForm";
 
 /**
@@ -11,22 +12,21 @@ import { EventForm, eventTimingKey } from "./EventForm";
  * change. The title, the user's own Fields and the ways through are the Peek's frame's.
  *
  * Delete acts at once and brings its own Undo, as removal from the hours did
- * (ADR 0056): the timing changed before it is no longer the Peek's to put back.
+ * (ADR 0056): what the Form still holds is written first, so the Undo brings back
+ * the Event as it was left, and the App's Timed `remove` does the deleting.
  */
 export function EventPeek({ doc }: PeekProps) {
+  const flush = useRef<(() => Promise<void>) | null>(null);
   const remove = async () => {
-    const row = await getDocument(doc.id);
+    await flush.current?.();
+    const undo = await removeTimedItem({ appId: APP_ID, itemId: doc.id });
     forgetTiming(eventTimingKey(doc.id));
     closePeek();
-    await deleteEvent(doc.id);
-    if (!row) return;
-    toast.success(`${doc.title} deleted`, {
-      action: { label: "Undo", onClick: () => void putDocument(row as DocumentInput).catch((e: Error) => toast.error(`Could not bring it back: ${e.message}`)) },
-    });
+    toastWithUndo(`${doc.title} deleted`, undo);
   };
   return (
     <div className="grid gap-4">
-      <EventForm mode="editing" event={doc as Event} />
+      <EventForm mode="editing" event={doc as Event} flushRef={flush} />
       <Button variant="destructive" size="sm" className="justify-self-start" onClick={() => void remove().catch((e: Error) => toast.error(`Could not delete it: ${e.message}`))}>
         <Trash2 /> Delete event
       </Button>
