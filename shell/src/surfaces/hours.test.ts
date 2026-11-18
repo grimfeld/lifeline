@@ -15,6 +15,10 @@ describe("sweptRange", () => {
     expect(sweptRange(10.1, 8.6, 0, 24)).toEqual({ startH: 8.5, endH: 10.25 });
   });
 
+  it("reaches midnight from the day's last quarter hour", () => {
+    expect(sweptRange(22.1, 23.99, 0, 24)).toEqual({ startH: 22, endH: 24 });
+  });
+
   it("stays inside the hours shown", () => {
     expect(sweptRange(7.2, 3, 7, 22)).toEqual({ startH: 7, endH: 7.25 });
     expect(sweptRange(20, 30, 7, 22)).toEqual({ startH: 20, endH: 22 });

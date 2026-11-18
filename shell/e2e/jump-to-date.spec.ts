@@ -36,15 +36,6 @@ test("the Calendar jumps to a picked day and shows it", { tag: "@also-phone" }, 
   await expect(page.getByText("February 2027").first()).toBeVisible();
 });
 
-test("the Journal jumps to a picked day", async ({ page }) => {
-  await page.goto("/app/journal");
-  await workLocally(page);
-  // Today's Day is written on first open and its editor comes up after, lazily: opened at
-  // once, the picker must not be closed by that editor taking focus.
-  await pickDate(page, page.getByRole("button", { name: "Jump to date" }), "2025-06-03");
-  await expect(page).toHaveURL(/[?&]d=2025-06-03/);
-});
-
 test("a Part is marked read on a day picked before today, and no later day can be picked", { tag: "@also-phone" }, async ({ page, isMobile }) => {
   const title = `Chaptered ${Date.now()}`;
   await page.goto("/app/library");

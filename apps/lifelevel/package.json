@@ -19,6 +19,7 @@
     "react": "catalog:"
   },
   "devDependencies": {
+    "@lifeline/parts": "workspace:*",
     "@types/react": "catalog:",
     "fake-indexeddb": "catalog:",
     "jsdom": "catalog:",

@@ -114,6 +114,9 @@ importers:
       fake-indexeddb:
         specifier: 'catalog:'
         version: 6.2.6
+      jsdom:
+        specifier: 'catalog:'
+        version: 26.1.0
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
@@ -241,9 +244,18 @@ importers:
         specifier: 'catalog:'
         version: 7.18.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     devDependencies:
+      '@lifeline/parts':
+        specifier: workspace:*
+        version: link:../../packages/parts
       '@types/react':
         specifier: 'catalog:'
         version: 19.3.0
+      fake-indexeddb:
+        specifier: 'catalog:'
+        version: 6.2.6
+      jsdom:
+        specifier: 'catalog:'
+        version: 26.1.0
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
@@ -349,6 +361,9 @@ importers:
         specifier: ^5.4.2
         version: 5.4.2
     devDependencies:
+      '@lifeline/parts':
+        specifier: workspace:*
+        version: link:../../packages/parts
       '@types/react':
         specifier: 'catalog:'
         version: 19.3.0
@@ -395,12 +410,18 @@ importers:
         specifier: 'catalog:'
         version: 3.10.1(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react-is@16.13.1)(react@19.3.1)(redux@5.0.1)
     devDependencies:
+      '@lifeline/parts':
+        specifier: workspace:*
+        version: link:../../packages/parts
       '@types/react':
         specifier: 'catalog:'
         version: 19.3.0
       fake-indexeddb:
         specifier: 'catalog:'
         version: 6.2.6
+      jsdom:
+        specifier: 'catalog:'
+        version: 26.1.0
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
@@ -472,6 +493,9 @@ importers:
         specifier: 'catalog:'
         version: 7.18.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     devDependencies:
+      '@lifeline/parts':
+        specifier: workspace:*
+        version: link:../../packages/parts
       '@types/react':
         specifier: 'catalog:'
         version: 19.3.0
@@ -518,6 +542,9 @@ importers:
       fake-indexeddb:
         specifier: 'catalog:'
         version: 6.2.6
+      jsdom:
+        specifier: 'catalog:'
+        version: 26.1.0
       react:
         specifier: 'catalog:'
         version: 19.3.1
@@ -549,9 +576,18 @@ importers:
         specifier: 'catalog:'
         version: 7.18.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     devDependencies:
+      '@lifeline/parts':
+        specifier: workspace:*
+        version: link:../../packages/parts
       '@types/react':
         specifier: 'catalog:'
         version: 19.3.0
+      fake-indexeddb:
+        specifier: 'catalog:'
+        version: 6.2.6
+      jsdom:
+        specifier: 'catalog:'
+        version: 26.1.0
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
@@ -586,6 +622,9 @@ importers:
       fake-indexeddb:
         specifier: 'catalog:'
         version: 6.2.6
+      jsdom:
+        specifier: 'catalog:'
+        version: 26.1.0
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
@@ -611,12 +650,21 @@ importers:
         specifier: 'catalog:'
         version: 7.18.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     devDependencies:
+      '@lifeline/parts':
+        specifier: workspace:*
+        version: link:../../packages/parts
       '@types/react':
         specifier: 'catalog:'
         version: 19.3.0
       '@types/react-dom':
         specifier: 'catalog:'
         version: 19.3.0(@types/react@19.3.0)
+      fake-indexeddb:
+        specifier: 'catalog:'
+        version: 6.2.6
+      jsdom:
+        specifier: 'catalog:'
+        version: 26.1.0
       react:
         specifier: 'catalog:'
         version: 19.3.1
@@ -676,9 +724,18 @@ importers:
         specifier: 'catalog:'
         version: 7.18.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     devDependencies:
+      '@lifeline/parts':
+        specifier: workspace:*
+        version: link:../../packages/parts
       '@types/react':
         specifier: 'catalog:'
         version: 19.3.0
+      fake-indexeddb:
+        specifier: 'catalog:'
+        version: 6.2.6
+      jsdom:
+        specifier: 'catalog:'
+        version: 26.1.0
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
@@ -707,6 +764,9 @@ importers:
         specifier: 'catalog:'
         version: 3.10.1(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react-is@16.13.1)(react@19.3.1)(redux@5.0.1)
     devDependencies:
+      '@lifeline/parts':
+        specifier: workspace:*
+        version: link:../../packages/parts
       '@types/react':
         specifier: 'catalog:'
         version: 19.3.0
@@ -747,12 +807,18 @@ importers:
         specifier: 'catalog:'
         version: 7.18.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     devDependencies:
+      '@lifeline/parts':
+        specifier: workspace:*
+        version: link:../../packages/parts
       '@types/react':
         specifier: 'catalog:'
         version: 19.3.0
       fake-indexeddb:
         specifier: 'catalog:'
         version: 6.2.6
+      jsdom:
+        specifier: 'catalog:'
+        version: 26.1.0
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
@@ -871,12 +937,18 @@ importers:
         specifier: 'catalog:'
         version: 7.18.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     devDependencies:
+      '@lifeline/parts':
+        specifier: workspace:*
+        version: link:../../packages/parts
       '@types/react':
         specifier: 'catalog:'
         version: 19.3.0
       fake-indexeddb:
         specifier: 'catalog:'
         version: 6.2.6
+      jsdom:
+        specifier: 'catalog:'
+        version: 26.1.0
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
@@ -933,6 +1005,9 @@ importers:
         specifier: 'catalog:'
         version: 7.18.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     devDependencies:
+      '@lifeline/parts':
+        specifier: workspace:*
+        version: link:../../packages/parts
       '@types/react':
         specifier: 'catalog:'
         version: 19.3.0
@@ -942,6 +1017,9 @@ importers:
       fake-indexeddb:
         specifier: 'catalog:'
         version: 6.2.6
+      jsdom:
+        specifier: 'catalog:'
+        version: 26.1.0
       react:
         specifier: 'catalog:'
         version: 19.3.1
@@ -973,9 +1051,18 @@ importers:
         specifier: 'catalog:'
         version: 7.18.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     devDependencies:
+      '@lifeline/parts':
+        specifier: workspace:*
+        version: link:../../packages/parts
       '@types/react':
         specifier: 'catalog:'
         version: 19.3.0
+      fake-indexeddb:
+        specifier: 'catalog:'
+        version: 6.2.6
+      jsdom:
+        specifier: 'catalog:'
+        version: 26.1.0
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
@@ -1013,6 +1100,9 @@ importers:
       fake-indexeddb:
         specifier: 'catalog:'
         version: 6.2.6
+      jsdom:
+        specifier: 'catalog:'
+        version: 26.1.0
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
@@ -1327,9 +1417,21 @@ importers:
       '@types/react':
         specifier: 'catalog:'
         version: 19.3.0
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.3.0(@types/react@19.3.0)
       fake-indexeddb:
         specifier: 'catalog:'
         version: 6.2.6
+      jsdom:
+        specifier: 'catalog:'
+        version: 26.1.0
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.3.1(react@19.3.1)
+      react-router:
+        specifier: 'catalog:'
+        version: 7.18.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
