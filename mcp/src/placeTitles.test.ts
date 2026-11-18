@@ -4,7 +4,7 @@ import { PLACE_TYPE, createDocument, getDocument, initApps, putDocument } from "
 import { manifests } from "./apps";
 import { runTool } from "./handlers";
 
-// Places' titles are unique in every folder (ADR 0119), over the real store, whatever tool renames one.
+// Places' titles are unique in every folder (ADR 0128), over the real store, whatever tool renames one.
 initApps(manifests);
 
 let janou = "";

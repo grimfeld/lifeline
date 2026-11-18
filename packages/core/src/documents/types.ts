@@ -129,7 +129,7 @@ export type TitleRule = "name" | "date" | "derived";
  */
 /** The Report kinds a type may choose (ADR 0076): ranking kinds rank a type's Documents, the others describe one Document. */
 export type ReportKind = "top" | "quiet" | "last" | "count" | "heatmap" | "topSeen" | "quietSeen" | "lastSeen" | "seenCount" | "seenHeatmap";
-/** A type's own words for the Seen family (ADR 0119): `{ verb: "visited", one: "visit", many: "visits" }`. */
+/** A type's own words for the Seen family (ADR 0128): `{ verb: "visited", one: "visit", many: "visits" }`. */
 export interface SeenAs {
   verb: string;
   one: string;
@@ -264,6 +264,14 @@ export interface DocumentTypeDef {
    * (`peekPartOf`). A user-defined type has neither: Core draws its whole Peek.
    */
   peekEdit?: React.ComponentType<PeekProps>;
+  /**
+   * A line the owning App adds to its Documents' Peek without drawing the
+   * Fields itself (ADR 0085): Core draws it above the App's part, or above its
+   * own read-only list of the App's Fields when the App brings none — a Time
+   * blocker's "Before **Dentist**" and Detach. It renders nothing for a
+   * Document it has nothing to say about. Built-in types only.
+   */
+  peekAside?: React.ComponentType<PeekProps>;
   /** Sync conflict hook (ADR 0010): may rescue a losing local edit. Absent = plain LWW. */
   onConflict?: (local: Document, server: Document) => Promise<void>;
   /**
@@ -319,7 +327,7 @@ export interface DocumentTypeDef {
   agentWalled?: readonly string[];
   /**
    * Titles unique among the type's Documents in every folder, case and
-   * accents aside (a Place's, ADR 0119), where others are unique per folder.
+   * accents aside (a Place's, ADR 0128), where others are unique per folder.
    * Core holds it on every write (`putDocument`, and so a rename, a page's
    * title field, a Base cell, an agent's `update_document`), refusing with
    * `TitleTaken`, which names and carries the Document that has the title.
@@ -327,7 +335,7 @@ export interface DocumentTypeDef {
   uniqueTitles?: boolean;
   /**
    * How the owning App makes one of these from a name alone, by its own rules
-   * — so a field elsewhere (an Event's At, ADR 0119) can offer "Create …"
+   * — so a field elsewhere (an Event's At, ADR 0128) can offer "Create …"
    * without importing the App (ADR 0100). Answers the Document there is when
    * the App refuses a second of that name.
    */
@@ -360,7 +368,7 @@ export interface DocumentTypeDef {
   /** The Reports the user chose for this type (ADR 0076); absent = the defaults (`reportsOf`). */
   reports?: ReportSetting[];
   /**
-   * What this type calls the Seen family (ADR 0119): a Place is "visited", its
+   * What this type calls the Seen family (ADR 0128): a Place is "visited", its
    * days "visits". Absent, it is Seen, counted in days.
    */
   seenAs?: SeenAs;

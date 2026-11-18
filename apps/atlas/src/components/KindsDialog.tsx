@@ -12,7 +12,7 @@ interface Row {
 }
 
 /**
- * Rename and add Kinds (ADR 0119, #487 story 11): the list fits the user's
+ * Rename and add Kinds (ADR 0128, #487 story 11): the list fits the user's
  * life (bakery, climbing gym…). A Kind is never removed, so no Place loses
  * its own; a renamed one keeps every Place that had it.
  */

@@ -11,7 +11,7 @@ const lidl: Document = { id: "s1", type: "shop", title: "Lidl", body: "", folder
 const day: Document = { id: "d1", type: "daily", title: "2026-11-14", body: "Lunch at [[Chez Janou]], then [[place:Lidl Prado]] and coffee near [[Janou]]. Chez Janou again soon.", folder: "", tags: [], createdAt: "2026-11-14", updatedAt: "", deleted: 0 };
 const dailyType: DocumentTypeDef = { id: "daily", label: "Days", titleRule: "date", body: "required", fields: [], linkable: false, builtIn: true };
 
-describe("a Place as a link target (ADR 0119)", () => {
+describe("a Place as a link target (ADR 0128)", () => {
   const index = buildLinkIndex([janou, prado, lidl, day], [placeTypeDef, shopType, dailyType]);
 
   it("is reached by its name, by the place: prefix and by an alias", () => {

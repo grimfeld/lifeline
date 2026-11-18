@@ -6,7 +6,7 @@ import { PLACES_HREF } from "./constants";
 
 /**
  * The Atlas App's Commands. "places.add" is also the agents' `places_add`
- * (ADR 0119): its id makes the tool's name, so it keeps it.
+ * (ADR 0128): its id makes the tool's name, so it keeps it.
  */
 export const atlasCommands: CommandDef[] = [
   {

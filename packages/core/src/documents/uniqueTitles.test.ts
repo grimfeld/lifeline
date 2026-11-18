@@ -7,7 +7,7 @@ import { TitleTaken } from "./titles";
 import type { DocumentTypeDef } from "./types";
 
 const T = (id: string, extra: Partial<DocumentTypeDef> = {}): DocumentTypeDef => ({ id, label: id + "s", singular: id[0]!.toUpperCase() + id.slice(1), titleRule: "name", body: "optional", fields: [], builtIn: true, ...extra });
-// A "spot" is titled once in the whole type, as a Place is (ADR 0119); a "note" once per folder.
+// A "spot" is titled once in the whole type, as a Place is (ADR 0128); a "note" once per folder.
 initApps([{ id: "t", title: "T", types: [T("spot", { uniqueTitles: true }), T("note")], screens: [], cards: [], commands: [] }]);
 
 beforeEach(async () => {

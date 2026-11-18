@@ -10,7 +10,7 @@ const PlacesScreen = lazyChunk(() => import("./screens/PlacesScreen").then((m) =
 const PlaceScreen = lazyChunk(() => import("./screens/PlaceScreen").then((m) => ({ default: m.PlaceScreen })));
 
 /**
- * Atlas App (ADR 0119): the places I go, as the built-in Place. Beside
+ * Atlas App (ADR 0128): the places I go, as the built-in Place. Beside
  * Contacts in the World Module (Core's `people`). Its domain is `src/domain`,
  * its writes `src/data/repo.ts`, and the Place page `src/screens/PlaceScreen.tsx`.
  * It imports no other App: other Apps reach Places through Core's `PLACE_TYPE`.

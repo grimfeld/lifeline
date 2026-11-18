@@ -25,7 +25,7 @@ function readPosition(): Promise<Coords> {
 }
 
 /**
- * Here (#501, ADR 0119, ADR 0120): on tap, the device's position is read once
+ * Here (#501, ADR 0128, ADR 0120): on tap, the device's position is read once
  * and Photon offers the places around it. A pick hands over the place's name,
  * address and coordinates; Just here hands over the position itself, for the
  * name typed. The position lives in this panel's state only, until a pick or

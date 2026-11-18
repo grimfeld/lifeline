@@ -5,7 +5,7 @@ import { MapPin, X } from "lucide-react";
 import { atOptions, typeLine } from "./atChoice";
 
 /**
- * An Event's At (ADR 0119): one Place, or one Person meaning their home.
+ * An Event's At (ADR 0128): one Place, or one Person meaning their home.
  * A type-ahead that completes both by name or alias and says which each is;
  * a name that matches none can make a Place there, through the Place type's
  * own `createNamed`, so the App using it imports neither Atlas nor Contacts.

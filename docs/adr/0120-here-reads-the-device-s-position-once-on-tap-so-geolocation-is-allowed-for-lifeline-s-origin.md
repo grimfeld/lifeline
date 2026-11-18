@@ -5,7 +5,7 @@ amends: ADR 0097 (in part — the Permissions-Policy allows geolocation to Lifel
 
 # Here reads the device's position once, on tap, so geolocation is allowed for Lifeline's origin
 
-ADR 0119 gives the Place form **Here**: standing somewhere, I tap it and pick the place I am in from the places around me. That needs the device's position, and ADR 0097's `Permissions-Policy` denies it outright (`geolocation=()`), which ADR 0109 left as it was.
+ADR 0128 gives the Place form **Here**: standing somewhere, I tap it and pick the place I am in from the places around me. That needs the device's position, and ADR 0097's `Permissions-Policy` denies it outright (`geolocation=()`), which ADR 0109 left as it was.
 
 - **Geolocation is allowed for Lifeline itself.** The policy now reads `geolocation=(self)`. Embeds and every other origin are still denied it, and the microphone, payment and USB stay denied.
 - **Once, on tap.** Here calls `getCurrentPosition` when tapped, and nothing else asks: no `watchPosition`, no position read on load or in the background. Where the browser has no geolocation, Here is not shown; a refusal or no fix says so, and the name is typed instead.

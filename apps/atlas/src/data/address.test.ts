@@ -28,7 +28,7 @@ function lookupFinding(at: { lat: number; lon: number } | null | "failed") {
 const stored = async (id: string) => (await getDocument(id)) as Document & { address?: string; geo?: unknown };
 const pinsOfPlaces = (docs: Document[]) => pinsOf(docs, [documentType(PLACE_TYPE)!], undefined, EMPTY_TAG_FILTER);
 
-describe("a Place's address (ADR 0119)", () => {
+describe("a Place's address (ADR 0128)", () => {
   it("is kept with its coordinates when a typeahead hit was picked, and nothing is looked up", async () => {
     const { lookup, asked } = lookupFinding(null);
     const p = await addPlace({ name: "Chez Janou", address: "2 Rue Roger Verlomme, 75003 Paris, France", at: JANOU }, lookup);

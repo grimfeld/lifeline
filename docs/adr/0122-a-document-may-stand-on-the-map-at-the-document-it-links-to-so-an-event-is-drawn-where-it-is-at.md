@@ -5,7 +5,7 @@ amends: ADR 0011 (in part — a type may be Locatable at the Document it links t
 
 # A Document may stand on the map at the Document it links to, so an Event is drawn where it is At
 
-An Event's **At** is one Place or one Person, meaning their home (ADR 0119), and an Event At either stands on the map where it happens. But an Event has no coordinates of its own. Its place is the Place's, which Atlas holds, or the Person's current Address, which Contacts holds behind the agent wall (ADR 0114). The Calendar may import neither App (ADR 0100), and it must read no address. The Locatable Contract (ADR 0011) only drew a Document from its own fields.
+An Event's **At** is one Place or one Person, meaning their home (ADR 0128), and an Event At either stands on the map where it happens. But an Event has no coordinates of its own. Its place is the Place's, which Atlas holds, or the Person's current Address, which Contacts holds behind the agent wall (ADR 0114). The Calendar may import neither App (ADR 0100), and it must read no address. The Locatable Contract (ADR 0011) only drew a Document from its own fields.
 
 So a `DocumentTypeDef` may declare **`locatableVia`**: the key of a Link Field naming the Document it stands at. The Calendar's Event declares `locatableVia: "at"`.
 

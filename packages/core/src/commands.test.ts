@@ -214,7 +214,7 @@ describe("list-of-links arguments: each entry by the same rule, every problem at
     expect(() => linkValues(WITH, many(51))).toThrow("With: at most 50 names or ids");
   });
 
-  describe("over several types, by alias too (an Event's At, ADR 0119)", () => {
+  describe("over several types, by alias too (an Event's At, ADR 0128)", () => {
     const AT: CommandArg = { key: "at", label: "At", kind: "link", linkType: ["atlas_place", "contacts_person"] };
     const places = [
       { id: "pl1", type: "atlas_place", title: "Chez Janou", aliases: ["Janou"] },

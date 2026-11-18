@@ -13,7 +13,7 @@ import { calendarApp } from "@lifeline/app-calendar";
  * one: an Occasion marker, a Tie, a Report) adds a call to `PERSON_TOOLS`
  * below; a ticket that adds a Timed provider for People pushes it onto
  * `timed`. The sweep then checks it with every other tool. An Event At a
- * Person (ADR 0119) is in the sweep too; eventAt.test.ts runs every tool that
+ * Person (ADR 0128) is in the sweep too; eventAt.test.ts runs every tool that
  * can return an Event, writes included, over the real store.
  */
 
@@ -118,7 +118,7 @@ const PERSON_TOOLS: { name: string; args: Record<string, unknown> }[] = [
   { name: "search_documents", args: { type: PERSON_TYPE } },
   { name: "get_document", args: { id: "p1" } },
   { name: "get_document", args: { id: "t1" } },
-  // An Event At the Person (ADR 0119): the Person's id and title, never where they live.
+  // An Event At the Person (ADR 0128): the Person's id and title, never where they live.
   { name: "get_document", args: { id: "e1" } },
   { name: "search_documents", args: { type: "event" } },
   { name: "search_documents", args: { query: "tea" } },

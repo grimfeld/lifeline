@@ -158,7 +158,7 @@ describe("an undated entry's day", () => {
   });
 });
 
-describe("a Place's timeline (ADR 0119)", () => {
+describe("a Place's timeline (ADR 0128)", () => {
   const placeTypes: DocumentTypeDef[] = [
     { id: PLACE_TYPE, label: "Places", titleRule: "name", body: "optional", fields: [], linkable: true, builtIn: true },
     { id: "event", label: "Events", titleRule: "name", body: "none", fields: [{ key: "at", label: "At", kind: "link", linkType: [PLACE_TYPE] }, { key: "notes", label: "Notes", kind: "longtext" }], linkingText: ["notes"], builtIn: true },

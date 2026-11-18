@@ -16,7 +16,7 @@ const CHIPS = [
 const ANY = "__any__";
 
 /**
- * World's home (ADR 0119): one map of every Place and every current Address,
+ * World's home (ADR 0128): one map of every Place and every current Address,
  * told apart by Atlas's and Contacts' colours, and of every Event At one of
  * them (ADR 0122), in the Calendar's. A chip turns one App's Pins
  * off; the Kind and To try narrow the Places, together, and the Events At them. The Pins are what Core reads from stored
@@ -105,7 +105,7 @@ function WorldMap() {
 }
 
 /**
- * World (ADR 0119): the People Module retitled, Contacts and Atlas side by
+ * World (ADR 0128): the People Module retitled, Contacts and Atlas side by
  * side. It opens on the map of both; People and Places keep their screens.
  */
 export const worldShell = handModule({

@@ -141,7 +141,7 @@ async function agentTimedItems(range: { start: string; end: string }): Promise<T
 }
 
 /**
- * Where a Timed item happens, as an agent reads it (an Event's At, ADR 0119):
+ * Where a Timed item happens, as an agent reads it (an Event's At, ADR 0128):
  * the Place's or Person's id and title, with the Fields its type gives a
  * search hit (a Place's Kind and address, `searchFields`); never a Person's
  * Address (ADR 0114: a Person gives none, and the wall holds besides), and

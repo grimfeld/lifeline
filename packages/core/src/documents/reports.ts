@@ -70,7 +70,7 @@ export function reportsIn(def: DocumentTypeDef | undefined, family: ReportFamily
 }
 
 /**
- * What a Journal period rolls up for a type (ADR 0076, ADR 0119): its Top
+ * What a Journal period rolls up for a type (ADR 0076, ADR 0128): its Top
  * mentioned, then its Top seen (a Place's Top visited) — never added together.
  */
 export function periodReportsOf(def: DocumentTypeDef | undefined): ReportSetting[] {
@@ -107,11 +107,11 @@ export function mentionDays(index: LinkIndex, docId: string): DateStr[] {
  */
 export type DaysSource = (index: LinkIndex, docId: string) => DateStr[];
 
-/** The Event's At field (ADR 0119): where it happens, a Place or a Person's home. */
+/** The Event's At field (ADR 0128): where it happens, a Place or a Person's home. */
 export const EVENT_AT_FIELD = "at";
 
 /**
- * Whether an Event's link counts its target as Seen (ADR 0119): every link
+ * Whether an Event's link counts its target as Seen (ADR 0128): every link
  * does, but an At on a Person — being at Marc's home is not seeing Marc. With,
  * and a wikilink in the notes, still count; At on a Place counts (Visited).
  */
@@ -145,7 +145,7 @@ export function seenDays(index: LinkIndex, docId: string, today: DateStr): DateS
  * An Event's last day: its end day, the day before when it ends at 00:00
  * (`lastDayCovered`, ADR 0090), its first when it has no later end; none for
  * any other Document or an undated Event. What Seen counts to, and what says
- * an Event has happened (ADR 0119).
+ * an Event has happened (ADR 0128).
  */
 export const eventLastDay = (doc: Document | undefined): DateStr | undefined => eventSpan(doc)?.to;
 
@@ -172,7 +172,7 @@ export function reportWords(source: ReportSource, def?: DocumentTypeDef): Report
   return { count: capital(def.seenAs.many), heatmap: `days ${def.seenAs.verb}`, linker: WORDS.seen.linker };
 }
 
-/** A kind's label for one type: the Seen kinds in its own words (a Place's "Last visited", ADR 0119). */
+/** A kind's label for one type: the Seen kinds in its own words (a Place's "Last visited", ADR 0128). */
 export function reportLabel(kind: ReportKind, def?: DocumentTypeDef): string {
   const k = reportKind(kind);
   const w = def?.seenAs;
@@ -201,7 +201,7 @@ const capital = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /**
  * One Document's Seen in a line, in its type's words: "Last visited 10 Nov ·
- * 1 visit" for a Place (ADR 0119), "Last seen … · 3 days" for a Person.
+ * 1 visit" for a Place (ADR 0128), "Last seen … · 3 days" for a Person.
  */
 export function seenSummary(f: Pick<DocumentFigures, "last" | "allTime">, def: DocumentTypeDef | undefined): string {
   const w = seenAs(def);

@@ -6,7 +6,7 @@ import { TimelineEntryStop, TimelineMonths, TimelineToday } from "@lifeline/edit
 const NO_OCCASIONS: readonly TimelineOccasion[] = [];
 
 /**
- * A Place's timeline (ADR 0119), as a Person's page has: the Events planned
+ * A Place's timeline (ADR 0128), as a Person's page has: the Events planned
  * there, today's included, above the Today line, the nearest just above it;
  * then what has been (Events At it, Days and notes that name it) by month,
  * newest first. Each opens in a Peek.

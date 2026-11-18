@@ -1,6 +1,20 @@
 import { addDays, describeSpan, diffDays, endReadOn, formatTime, lastDayCovered, type DateStr, type TimedSpan, type TimedWhen } from "@lifeline/core";
-import { dayPieces, type DayPiece, type DayRange } from "./span";
+import { dayPieces, midnightNextDay, type DayPiece, type DayRange } from "./span";
 import type { Event } from "./types";
+
+/** PocketBase returns absent text fields as ""; re-establish null on read, and an old "24:00" end as 00:00 the next day (ADR 0090). */
+export function normalizeEvent(e: Event): Event {
+  return midnightNextDay({
+    ...e,
+    notes: e.notes ?? "",
+    endDate: e.endDate || null,
+    start: e.start || null,
+    end: e.end || null,
+    tags: e.tags ?? [],
+    with: Array.isArray(e.with) ? e.with.map(String).filter(Boolean) : [],
+    at: typeof e.at === "string" ? e.at : "",
+  });
+}
 
 const isDay = (d: string | null): d is DateStr => !!d && /^\d{4}-\d{2}-\d{2}$/.test(d);
 
@@ -9,7 +23,7 @@ const isDay = (d: string | null): d is DateStr => !!d && /^\d{4}-\d{2}-\d{2}$/.t
  * end day when it has one. An Event with no end is a moment at its start.
  * null for an all-day Event.
  */
-export function spanOf(ev: Event): TimedSpan | null {
+export function spanOf(ev: Pick<Event, "date" | "endDate" | "start" | "end">): TimedSpan | null {
   if (ev.start === null) return null;
   const endDate = isDay(ev.endDate) && ev.endDate > ev.date ? ev.endDate : ev.date;
   return { date: ev.date, start: ev.start, endDate, end: ev.end ?? ev.start };

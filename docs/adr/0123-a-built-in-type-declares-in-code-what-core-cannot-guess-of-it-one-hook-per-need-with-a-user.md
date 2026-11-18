@@ -4,7 +4,7 @@ status: accepted
 
 # A built-in type declares in code what Core cannot guess of it, one hook per need with a user
 
-Places (ADR 0119) asked Core for five things no type had needed: an agent's search should say what and where each hit is; a field in another App (an Event's At) should make one from a name; the user should rename and add a built-in Choice's options; the Seen family should speak in the type's words; and titles should be unique in every folder, not per folder. Core may not import Atlas, and the Apps that use a Place may not either (ADR 0100). So each is a key on `DocumentTypeDef` (or `FieldDef`), declared in code by the owning App, which Core reads without knowing what a Place is.
+Places (ADR 0128) asked Core for five things no type had needed: an agent's search should say what and where each hit is; a field in another App (an Event's At) should make one from a name; the user should rename and add a built-in Choice's options; the Seen family should speak in the type's words; and titles should be unique in every folder, not per folder. Core may not import Atlas, and the Apps that use a Place may not either (ADR 0100). So each is a key on `DocumentTypeDef` (or `FieldDef`), declared in code by the owning App, which Core reads without knowing what a Place is.
 
 Each hook has one user today, and exists because a second App would need the same thing, not as a guess at one:
 

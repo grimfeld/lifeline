@@ -3,7 +3,7 @@ import { inCore } from "./support/core";
 import { openPalette } from "./support/palette";
 
 /**
- * An Event's At (ADR 0119): one Place, or one Person meaning their home,
+ * An Event's At (ADR 0128): one Place, or one Person meaning their home,
  * completed by name or alias with what each is; an unknown name makes the
  * Place. Prior art: event-with.spec.ts.
  */

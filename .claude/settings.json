@@ -1,6 +1,15 @@
 {
+  "extraKnownMarketplaces": {
+    "grimfeld": {
+      "source": {
+        "source": "github",
+        "repo": "grimfeld/skills"
+      }
+    }
+  },
   "enabledPlugins": {
-    "mattpocock-skills@claude-plugins-official": true
+    "mattpocock-skills@claude-plugins-official": true,
+    "ship@grimfeld": true
   },
   "hooks": {
     "SessionStart": [

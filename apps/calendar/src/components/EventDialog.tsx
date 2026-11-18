@@ -14,10 +14,13 @@ import {
 } from "@lifeline/ui";
 import { displayTitle, docHref, initialList, initialText, normalizeTag, todayStr, useLinkIndex, useTagVocabulary, type DateStr, type Handoff, type IntakePrefill } from "@lifeline/core";
 import { AtField, PeopleField } from "@lifeline/editor";
-import type { Event } from "../domain/types";
+import { X } from "lucide-react";
+import type { BlockerSide, BlockerTemplate, Event } from "../domain/types";
+import { SIDE_LABELS } from "../domain/attached";
 import { addEvent, updateEvent } from "../data/repo";
 import { eventFormErrors, newEventWhen, whenOf, withEnd, withStart, type EventFormErrors } from "../domain/eventForm";
 import { WhenFields, whenIds } from "./WhenFields";
+import { AttachMenus } from "./AttachBlocker";
 
 /** Each checked control's id — its input's and the one an error focuses — in the order the dialog shows them. */
 const FIELD_IDS: Record<keyof EventFormErrors, string> = { title: "ev-title", ...whenIds("ev-") };
@@ -63,6 +66,8 @@ export function EventDialog({
   const [tags, setTags] = useState<string[]>([]);
   const [withIds, setWithIds] = useState<string[]>([]);
   const [at, setAt] = useState("");
+  /** Blockers picked from Before…/After…, attached when the Event is saved (#497). */
+  const [picks, setPicks] = useState<{ template: BlockerTemplate; side: BlockerSide }[]>([]);
   /** Errors show once saving has been tried, and clear as each field is fixed. */
   const [tried, setTried] = useState(false);
   const errors = tried ? eventFormErrors({ title, date, endDate, allDay, start, end }) : {};
@@ -79,6 +84,7 @@ export function EventDialog({
     setTags(event?.tags ?? initialList(initial, "tags"));
     setWithIds(event?.with ?? []);
     setAt(event?.at ?? "");
+    setPicks([]);
     setTried(false);
     if (event) {
       setDate(event.date);
@@ -117,11 +123,13 @@ export function EventDialog({
       with: withIds,
       at,
     };
+    // An all-day Event takes no attached blockers: what was picked before it was made all day is dropped.
+    const attach = allDay ? [] : picks.map((p) => ({ templateId: p.template.id, side: p.side }));
     if (event) {
-      await updateEvent({ ...event, ...fields });
+      await updateEvent({ ...event, ...fields }, attach);
       toast.success("Event updated");
     } else {
-      const id = await addEvent(fields);
+      const id = await addEvent({ ...fields, attach });
       toast.success("Event added");
       onSaved?.(id);
     }
@@ -156,6 +164,24 @@ export function EventDialog({
               setEnd(w.end);
             }}
           />
+          {/* Only a timed Event takes attached blockers (#497); those picked here are attached as it is saved. */}
+          {!allDay && (
+            <AttachMenus onPick={(template, side) => setPicks((ps) => [...ps, { template, side }])}>
+              {picks.length > 0 && (
+                <ul aria-label="Blockers to attach" className="flex flex-col gap-1">
+                  {picks.map((p, i) => (
+                    <li key={i} className="flex min-w-0 items-center gap-2 text-sm">
+                      <span className="text-muted-foreground shrink-0 text-xs">{SIDE_LABELS[p.side]}</span>
+                      <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{p.template.title}</span>
+                      <Button variant="ghost" size="icon-sm" className="shrink-0" aria-label={`Don't attach ${p.template.title}`} onClick={() => setPicks((ps) => ps.filter((_, j) => j !== i))}>
+                        <X />
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </AttachMenus>
+          )}
           <Field label="Notes">
             <Textarea id="ev-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Optional" />
           </Field>

@@ -2,7 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { inCore } from "./support/core";
 
 /**
- * Here (#501, ADR 0119, ADR 0120): on the Place form, a tap reads the device's
+ * Here (#501, ADR 0128, ADR 0120): on the Place form, a tap reads the device's
  * position once and asks Photon (stubbed here) for the places around it; a pick
  * fills the name, address and coordinates, and Just here keeps the position as
  * the coordinates of the name typed. The position is kept nowhere else. A refusal

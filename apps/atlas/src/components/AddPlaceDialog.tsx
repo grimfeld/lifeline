@@ -8,7 +8,7 @@ import { LocateButton, PlaceSearchField, WhereNote, type PlaceHit } from "./Plac
 import { message } from "./message";
 
 /**
- * Add a Place (ADR 0119, #487 stories 1–4): a name, a Kind and an address if
+ * Add a Place (ADR 0128, #487 stories 1–4): a name, a Kind and an address if
  * you like; the rest goes on its page. Typing the name or the address offers
  * matching real places, and one pick fills the name, the address and the
  * coordinates; a typed address can be Located, or is looked up on Add. The

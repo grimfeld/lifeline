@@ -119,7 +119,7 @@ describe("moduleScreens", () => {
   });
 });
 
-describe("the World Module (ADR 0119)", () => {
+describe("the World Module (ADR 0128)", () => {
   it("is the people Module, retitled: the id stays so stored Workspaces and phone bars keep it", () => {
     expect(MODULES.find((m) => m.id === "people")?.title).toBe("World");
     expect(MODULES.some((m) => m.title === "People")).toBe(false);

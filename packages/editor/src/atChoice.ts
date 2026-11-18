@@ -2,7 +2,7 @@ import { aliasesOf, singularOf, type Document, type DocumentTypeDef } from "@lif
 import type { ComboboxOption } from "@lifeline/ui";
 
 /*
- * What an At field (`AtField`, ADR 0119) offers, apart from how it looks:
+ * What an At field (`AtField`, ADR 0128) offers, apart from how it looks:
  * Places and People together, each said with its type, so "Lidl" the Person
  * is told from "Lidl Prado" the Place.
  */

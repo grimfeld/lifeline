@@ -1,8 +1,9 @@
 import { useMemo } from "react";
-import { PERSON_TYPE, PLACE_TYPE, documentsOf, getDocument, patchDocument, putDocument, removeDocument, useDocuments, vaultDocPath, type DateStr, type DocumentInput, type TimedItem, type TimedProvider, type TimedTemplate } from "@lifeline/core";
+import { PERSON_TYPE, PLACE_TYPE, documentsOf, getDocument, patchDocument, putDocuments, removeDocument, useDocuments, vaultDocPath, type DateStr, type TimedItem, type TimedProvider, type TimedTemplate } from "@lifeline/core";
 import { daysOf, describeTime, piecesOf, spanOf } from "./domain/events";
 import { bandsIn, blockerSpan, describeBlocker, isOneOff } from "./domain/blockers";
 import { describeTemplate, durationOf, formatDuration } from "./domain/templates";
+import { attachedBlockersOf } from "./data/attached";
 import { addEvent, allEvents, moveEvent, rescheduleEvent, useEvents } from "./data/repo";
 import { allTimeBlockers, rescheduleTimeBlocker, useTimeBlockers } from "./data/blockers";
 import { addEventFromTemplate, useEventTemplates } from "./data/templates";
@@ -11,7 +12,7 @@ import { BLOCKER_TEMPLATE_TYPE, EVENT_TYPE, TIME_BLOCKER_TYPE, type Event, type 
 
 export const APP_ID = "calendar";
 
-/** The title of an Event's At by id (ADR 0119): a Place's or a Person's, nothing for one gone. */
+/** The title of an Event's At by id (ADR 0128): a Place's or a Person's, nothing for one gone. */
 export type AtTitles = ReadonlyMap<string, string>;
 
 /** The titles an Event's At may name: every Place and Person, through Core's types (ADR 0100). */
@@ -26,7 +27,7 @@ export function atOf(ev: Pick<Event, "at">, titles: AtTitles): TimedItem["at"] {
 /**
  * Events and Time blocker bands in range, as Timed items — one per day each
  * occupies. A timed Event's pieces have their own day's hours and carry its
- * whole span (ADR 0090), and its At (ADR 0119) when `titles` knows it.
+ * whole span (ADR 0090), and its At (ADR 0128) when `titles` knows it.
  */
 export function timedItemsOf(events: Event[], blockers: TimeBlocker[], range: { start: DateStr; end: DateStr }, titles: AtTitles = new Map()): TimedItem[] {
   const items: TimedItem[] = [];
@@ -145,9 +146,11 @@ export const calendarTimed: TimedProvider = {
     const row = await getDocument(itemId);
     if (!row || (row.type !== EVENT_TYPE && row.type !== TIME_BLOCKER_TYPE)) throw new Error("That item is gone");
     if (row.type === TIME_BLOCKER_TYPE && !(row as TimeBlocker).date) throw new Error("A weekly blocker is a rule — edit it on the Events screen's Blockers tab");
+    // The Event's cascade takes its attached blockers (#519): the undo puts all of them back, still attached.
+    const taken = row.type === EVENT_TYPE ? await attachedBlockersOf(itemId) : [];
     await removeDocument(itemId);
     return async () => {
-      await putDocument(row as DocumentInput);
+      await putDocuments([row, ...taken]);
     };
   },
   async rename(itemId, title) {

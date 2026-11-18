@@ -157,7 +157,7 @@ describe("Seen (ADR 0112)", () => {
     const withEvent = buildLinkIndex([...people, { ...doc("e9", "event", "Dinner"), date: "2026-10-07", endDate: null, with: ["marc"] } as unknown as Document], fieldTypes);
     expect(seenDays(withEvent, "marc", today)).toEqual(["2026-10-07"]);
   });
-  it("counts an Event's At toward a Place but never toward a Person, while With and notes still count (ADR 0119)", () => {
+  it("counts an Event's At toward a Place but never toward a Person, while With and notes still count (ADR 0128)", () => {
     const atTypes = [
       T(PERSON_TYPE),
       T(PLACE_TYPE),
@@ -211,7 +211,7 @@ describe("Seen (ADR 0112)", () => {
   });
 });
 
-describe("Visited: a Place's Seen (ADR 0119)", () => {
+describe("Visited: a Place's Seen (ADR 0128)", () => {
   const placeType = T(PLACE_TYPE, { seenAs: { verb: "visited", one: "visit", many: "visits" }, reports: [{ kind: "lastSeen" }, { kind: "seenCount" }, { kind: "last" }] });
   const visitTypes = [
     placeType,

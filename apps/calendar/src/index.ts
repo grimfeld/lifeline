@@ -3,12 +3,15 @@ import { lazyChunk } from "@lifeline/ui";
 import { Ban, CalendarClock, LayoutTemplate } from "lucide-react";
 import { EventDialog } from "./components/EventDialog";
 import { EventPeek } from "./components/EventPeek";
+import { BlockerAttachment } from "./components/BlockerAttachment";
 import { UpcomingEventsCard } from "./cards/UpcomingEventsCard";
 import { NextEventsCard, nextEventsSettings, nextEventsTitle } from "./cards/NextEventsCard";
 import { CountdownCard, countdownSettings, useCountdownTitle } from "./cards/CountdownCard";
 import { calendarCommands, useTemplateCommands } from "./commands";
 import { calendarTimed, APP_ID } from "./timed";
 import { calendarDaylog } from "./daylog";
+import { attachedBlockersOf, removeAttachedBlockers } from "./data/attached";
+import { BLOCKER_SIDES, SIDE_LABELS } from "./domain/attached";
 import { describeBlocker } from "./domain/blockers";
 import { describeTemplate, durationOf, formatDuration } from "./domain/templates";
 import {
@@ -44,7 +47,7 @@ const eventType: DocumentTypeDef = {
     { key: "notes", label: "Notes", kind: "longtext" },
     // A People field (CONTEXT.md): linked through Core's Person type, so the Calendar never imports Contacts.
     { key: "with", label: "With", kind: "links", linkType: PERSON_TYPE },
-    // At (ADR 0119): one Place, or one Person meaning their home — through Core's types, so the Calendar imports neither Atlas nor Contacts.
+    // At (ADR 0128): one Place, or one Person meaning their home — through Core's types, so the Calendar imports neither Atlas nor Contacts.
     { key: EVENT_AT_FIELD, label: "At", kind: "link", linkType: [PLACE_TYPE, PERSON_TYPE] },
   ],
   indexes: ["date"],
@@ -57,6 +60,9 @@ const eventType: DocumentTypeDef = {
   order: 30,
   // Edited where it is peeked (ADR 0085): its day and times through the App's own controls.
   peekEdit: EventPeek,
+  // Its attached blockers live and die with it, and move with it between Workspaces (ADR 0045, ADR 0060; #519).
+  onDelete: (d) => removeAttachedBlockers(d.id),
+  followers: async (d) => (await attachedBlockersOf(d.id)).map((b) => b.id),
   builtIn: true,
 };
 
@@ -94,9 +100,16 @@ const timeBlockerType: DocumentTypeDef = {
     { key: "end", label: "End", kind: "text", guarded: true, column: true },
     { key: "active", label: "On", kind: "boolean", column: true },
     { key: "color", label: "Colour", kind: "text" },
+    // An attached blocker (CONTEXT.md, #497): the Event it follows and the edge it is held to. Set by attaching only, and
+    // hidden from Bases and the Vault: a link to a gone Event reads as detached, which only the Calendar can tell (#519).
+    // Still a Link field, so the Event's Backlinks and the Graph list its bands (ADR 0119).
+    { key: "attachedTo", label: "Attached to", kind: "link", linkType: EVENT_TYPE, guarded: true, hidden: true },
+    { key: "side", label: "Side", kind: "select", guarded: true, hidden: true, options: BLOCKER_SIDES.map((side) => ({ value: side, label: SIDE_LABELS[side] })) },
   ],
   indexes: ["date"],
   linkable: { subtitle: (d) => describeBlocker(d as TimeBlocker) },
+  // Core's Peek, with the Event an attached one follows and Detach above it (#497).
+  peekAside: BlockerAttachment,
   href: () => BLOCKERS_HREF,
   order: 32,
   builtIn: true,

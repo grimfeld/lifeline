@@ -3,7 +3,7 @@ import { PLACE_TYPE, registerBuiltinTypes } from "@lifeline/core";
 import type { Document, DocumentTypeDef, OwnedCommand } from "@lifeline/core";
 import { atlasApp } from "@lifeline/app-atlas";
 
-// The Places tools (ADR 0119): core's store is stood in for, as in people.test.ts.
+// The Places tools (ADR 0128): core's store is stood in for, as in people.test.ts.
 const types = new Map<string, DocumentTypeDef>();
 const docs = new Map<string, Document>();
 const commands: OwnedCommand[] = [];

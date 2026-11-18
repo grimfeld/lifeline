@@ -36,7 +36,7 @@ async function settled(check: () => boolean) {
   for (let i = 0; i < 100 && !check(); i++) await new Promise((r) => setTimeout(r, 10));
 }
 
-describe("adding a Place (ADR 0119)", () => {
+describe("adding a Place (ADR 0128)", () => {
   it("takes a name only, and lands in Places with no Kind, aliases or Tags", async () => {
     const p = await addPlace({ name: "  Chez Janou " });
     expect(p).toMatchObject({ type: PLACE_TYPE, title: "Chez Janou", folder: "Places", kind: "", aliases: [], tags: [] });
@@ -150,7 +150,7 @@ describe("Kind options", () => {
   });
 });
 
-describe("a Place made from a name elsewhere (an Event's At, ADR 0119)", () => {
+describe("a Place made from a name elsewhere (an Event's At, ADR 0128)", () => {
   it("is added by name through the type, as Atlas adds one", async () => {
     const made = await placeTypeDef.createNamed!("Chez Janou");
     expect(made).toMatchObject({ type: PLACE_TYPE, title: "Chez Janou", folder: "Places" });
@@ -175,7 +175,7 @@ async function markedOn<T>(day: string, mark: () => Promise<T>): Promise<T> {
   return out;
 }
 
-describe("To try (ADR 0119)", () => {
+describe("To try (ADR 0128)", () => {
   beforeEach(() => vi.useFakeTimers({ toFake: ["Date"], now: TODAY }));
   afterEach(() => vi.useRealTimers());
 
@@ -282,7 +282,7 @@ describe("To try (ADR 0119)", () => {
   });
 });
 
-describe("closed (ADR 0119)", () => {
+describe("closed (ADR 0128)", () => {
   it("takes the Place off the map and out of the default and To try lists, and the closed list shows it", async () => {
     const janou = await addPlace({ name: "Chez Janou", toTry: true, address: "2 Rue Roger Verlomme, Paris", at: { lat: 48.85, lon: 2.36 } });
     const flore = await addPlace({ name: "Café de Flore" });

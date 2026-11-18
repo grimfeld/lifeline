@@ -5,7 +5,7 @@ import { singularOf, type Document } from "./types";
 
 /**
  * A title another Document of a type whose titles are unique in every folder
- * (`uniqueTitles`, a Place's, ADR 0119) already has. It names that Document,
+ * (`uniqueTitles`, a Place's, ADR 0128) already has. It names that Document,
  * and carries it, so a form can offer it and an agent can use its id.
  */
 export class TitleTaken extends Error {

@@ -125,7 +125,7 @@ function namesOf(d: LinkableDocument): string[] {
 /**
  * What a link argument names, in a refusal: its types' singulars ("Person",
  * though the argument is "With"; "Place or Person" for an Event's At, ADR
- * 0119), else its own label.
+ * 0128), else its own label.
  */
 function linkNoun(arg: CommandArg): string {
   const types = linkTypes(arg);

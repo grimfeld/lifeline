@@ -3,7 +3,7 @@ import { inCore } from "./support/core";
 import { openPalette } from "./support/palette";
 
 /**
- * Places (ADR 0119): a Place is made from a name alone — from the palette or
+ * Places (ADR 0128): a Place is made from a name alone — from the palette or
  * the phone's capture sheet — kept unique by name, filtered by Kind on the
  * Places screen, linked by name, `place:` prefix or alias, and opened on its
  * page with its backlinks and unlinked mentions.

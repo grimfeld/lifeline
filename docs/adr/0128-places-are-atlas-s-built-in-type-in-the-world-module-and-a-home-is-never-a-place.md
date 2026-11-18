@@ -1,5 +1,6 @@
 ---
 status: accepted
+formerly: 0119
 amends: ADR 0113 (in part — the People Module becomes World, and a place is no longer a user-defined type of the Journal)
 ---
 

@@ -6,6 +6,8 @@ import type { Event } from "../domain/types";
 import { whenFormErrors, whenOf, type WhenForm } from "../domain/eventForm";
 import { editEvent, setEventWhen } from "../data/repo";
 import { WhenFields } from "./WhenFields";
+import { AttachBlocker } from "./AttachBlocker";
+import { AttachedBlockers } from "./AttachedBlockers";
 
 /** Typed values are written a moment after the typing stops, as the Vault's editor writes. */
 const WRITE_DELAY = 500;
@@ -28,7 +30,7 @@ function formOf(e: Event): WhenForm {
  * The Calendar App's part of an Event's Peek (ADR 0085): when it happens — its
  * guarded day and times, written through `setEventWhen` once they make an
  * Event (`whenFormErrors`), as the Event dialog does — and its notes, With (the
- * People who were there, written at once), At (where, ADR 0119) and Tags.
+ * People who were there, written at once), At (where, ADR 0128) and Tags.
  * The title, the user's own Fields and the ways through are the Peek's frame's.
  */
 export function EventPeek({ doc }: PeekProps) {
@@ -76,6 +78,13 @@ function EventPeekPart({ doc }: { doc: Document }) {
           placeholder="Add tag…"
         />
       </Field>
+      {/* Only a timed Event takes attached blockers (#497). */}
+      {event.start && (
+        <>
+          <AttachedBlockers eventId={event.id} eventDay={event.date} />
+          <AttachBlocker eventId={event.id} eventTitle={event.title} />
+        </>
+      )}
     </div>
   );
 }

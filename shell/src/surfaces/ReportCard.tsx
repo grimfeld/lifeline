@@ -79,7 +79,7 @@ export function useReportTitle(settings: CardProps["settings"]): string {
   const types = useDocumentTypes();
   const docs = useAllDocuments();
   const kind = REPORT_KINDS.find((k) => k.kind === settings.kind) ?? reportKind("top");
-  // In the type's own words: a Place's Seen is Visited (ADR 0119).
+  // In the type's own words: a Place's Seen is Visited (ADR 0128).
   if (kind.family === "document") {
     const d = docs.find((x) => x.id === settings.doc);
     return d ? `${d.title} · ${reportLabel(kind.kind, types.find((x) => x.id === d.type))}` : kind.label;

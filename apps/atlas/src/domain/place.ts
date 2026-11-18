@@ -27,7 +27,7 @@ export function kindFrom(input: string | undefined, options: readonly FieldOptio
 
 /**
  * Where a Place stands on the map: its stored coordinates, or none while it
- * has none or is closed (ADR 0119: a closed Place has no Pin). The type's
+ * has none or is closed (ADR 0128: a closed Place has no Pin). The type's
  * Locatable reader, so a map reads what was found on save and never looks
  * anything up itself (ADR 0011).
  */
@@ -52,7 +52,7 @@ export function normalizePlace(doc: Document): Place {
 /** Which Places a list shows: the open ones (the default), those To try, or the closed ones. */
 export type PlacesShown = "open" | "toTry" | "closed";
 
-/** Whether a Place belongs in a list: a closed one is in the closed list only (ADR 0119). */
+/** Whether a Place belongs in a list: a closed one is in the closed list only (ADR 0128). */
 const shownIn = (p: Place, show: PlacesShown) => (show === "closed" ? p.closed : !p.closed && (show === "open" || p.toTry));
 
 /** How the Places screen orders its list (#487 story 58): A to Z by name, or by last visit, newest first. */
@@ -75,10 +75,10 @@ export function placesList(
   return shown.sort((a, b) => last.get(b.id)!.localeCompare(last.get(a.id)!) || byName(a, b));
 }
 
-/** A Place's last visit: the Visited figure (ADR 0119), the last day an Event that links here was on, up to today; none if never. */
+/** A Place's last visit: the Visited figure (ADR 0128), the last day an Event that links here was on, up to today; none if never. */
 export const lastVisitOf = (index: LinkIndex, placeId: string, today: DateStr): DateStr | undefined => documentFigures(index, placeId, today, sourceOf("seen", today)).last ?? undefined;
 
-/** Whether an Event has happened: its last day is before today (ADR 0119). Today's is still to come. */
+/** Whether an Event has happened: its last day is before today (ADR 0128). Today's is still to come. */
 export const hasHappened = (doc: Document | undefined, today: DateStr): boolean => {
   const last = eventLastDay(doc);
   return !!last && last < today;
@@ -86,7 +86,7 @@ export const hasHappened = (doc: Document | undefined, today: DateStr): boolean 
 
 /**
  * Whether a Place has been gone to: an Event that has happened links to it,
- * by its At or a wikilink in its notes (ADR 0119). What clears To try. A Day
+ * by its At or a wikilink in its notes (ADR 0128). What clears To try. A Day
  * that names it is a mention, never a visit. With `since` (the day To try was
  * marked), only an Event whose last day is on or after it counts, so a Place
  * gone to before can be marked again; without, any that has happened does.

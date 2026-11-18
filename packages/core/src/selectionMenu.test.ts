@@ -61,7 +61,7 @@ describe("the Selection menu's groups", () => {
     expect(shape(menu({ currentModule: "languages" })).map(([t]) => t)).toEqual(["Link", "Knowledge", "Calendar", "House", "Projects", "Notes"]);
   });
 
-  it("offers the Contacts App's Person under World, right after the Journal (ADR 0113, 0119)", () => {
+  it("offers the Contacts App's Person under World, right after the Journal (ADR 0113, 0128)", () => {
     const groups = menu({
       text: "Anne",
       intakes: [...INTAKES, intake("contacts", "person", "Person")],

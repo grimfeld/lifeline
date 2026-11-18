@@ -5,7 +5,7 @@ import { placeHref } from "./constants";
 import { addPlace, afterEventSaved } from "./data/repo";
 
 /**
- * The Place type (ADR 0119), UI-free: the icon and the Peek are attached in
+ * The Place type (ADR 0128), UI-free: the icon and the Peek are attached in
  * index.ts so tests don't pull the UI kit. Its Kind is the App's own Choice,
  * whose options the user may rename and add to; aliases are the Known Field
  * the Linkable Contract reads. Places are open to agents: no wall.
@@ -16,7 +16,7 @@ export const placeTypeDef: DocumentTypeDef = {
   singular: "Place",
   iconName: "map-pin",
   titleRule: "name",
-  // Places' titles are unique in every folder (ADR 0119): Core holds it on every write, naming the Place that has it.
+  // Places' titles are unique in every folder (ADR 0128): Core holds it on every write, naming the Place that has it.
   uniqueTitles: true,
   body: "optional",
   folder: PLACES_FOLDER,
@@ -26,15 +26,15 @@ export const placeTypeDef: DocumentTypeDef = {
   href: (d) => placeHref(d.id),
   // A Pin once its address has coordinates: read, never looked up, when a map is drawn (ADR 0011).
   locatable: placeCoordsOf,
-  // An agent's search shows what and where each Place is (ADR 0119: Places have no wall).
+  // An agent's search shows what and where each Place is (ADR 0128: Places have no wall).
   searchFields: ["kind", "address"],
   order: 31,
-  // Visited is the Seen family in a Place's words (ADR 0119): last visit, visits, and Mentioned beside them, never added.
+  // Visited is the Seen family in a Place's words (ADR 0128): last visit, visits, and Mentioned beside them, never added.
   // Top visited rolls up on a Journal period and is a placeable Card.
   seenAs: { verb: "visited", one: "visit", many: "visits" },
   reports: [{ kind: "lastSeen" }, { kind: "seenCount" }, { kind: "last" }, { kind: "topSeen", n: 5 }],
   builtIn: true,
-  // "Create …" in an Event's At (ADR 0119): a Place by name, or the one that already has it.
+  // "Create …" in an Event's At (ADR 0128): a Place by name, or the one that already has it.
   async createNamed(name) {
     try {
       return await addPlace({ name });
@@ -43,7 +43,7 @@ export const placeTypeDef: DocumentTypeDef = {
       throw e;
     }
   },
-  // To try clears once an Event that links here has happened (ADR 0119), however the Event was saved (ADR 0121).
+  // To try clears once an Event that links here has happened (ADR 0128), however the Event was saved (ADR 0121).
   afterSaveOf: { of: [EVENT_TYPE], run: afterEventSaved },
   fields: [
     { key: "aliases", label: "Aliases", kind: "list" },

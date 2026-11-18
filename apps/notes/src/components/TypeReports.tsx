@@ -90,7 +90,7 @@ export function TypeReports({ type, index }: { type: DocumentTypeDef; index: Lin
  * A period's roll-up (ADR 0076): for every type with Top mentioned, who came up
  * on the most of the period's Days; for every type with Top seen, who was on
  * the most of its Events' days ("People · Top seen", "Places · Top visited",
- * ADR 0119), never added to the first. A Report with nothing in the period is
+ * ADR 0128), never added to the first. A Report with nothing in the period is
  * left out, so a quiet Week isn't padded with empty blocks.
  */
 export function PeriodReports({ periodKey, index }: { periodKey: string; index: LinkIndex }) {

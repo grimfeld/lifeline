@@ -4,7 +4,7 @@ import { PERSON_TYPE, PLACE_TYPE, allDocumentTypes, allDocuments, createDocument
 import { manifests } from "./apps";
 import { runTool } from "./handlers";
 
-// An Event's At (ADR 0119), over the real store, as capture.test.ts runs it.
+// An Event's At (ADR 0128), over the real store, as capture.test.ts runs it.
 initApps(manifests);
 
 let place = "";
@@ -73,7 +73,7 @@ describe("agenda names an Event's At", () => {
   });
 });
 
-describe("the agent wall: an Event At a Person (ADR 0114, ADR 0119)", () => {
+describe("the agent wall: an Event At a Person (ADR 0114, ADR 0128)", () => {
   // Distinctive, so a hit is a leak, not a coincidence.
   const addresses = [
     { id: "a1", label: "Zanzibar house", text: "12 Rue Quillardet, 75019 Paris", lat: 48.871234, lon: 2.381234, former: false },

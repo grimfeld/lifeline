@@ -13,7 +13,16 @@ const commands: OwnedCommand[] = [];
 let workspaces: { id: string; name: string }[] = [];
 let scope = "";
 const inScope = (d: Document) => (d.workspace ?? "") === scope;
-const core = vi.hoisted(() => ({ putDocument: vi.fn() }));
+// The Calendar writes an Event (and any attached blockers) through putDocuments: each row is handed to the putDocument spy.
+const core = vi.hoisted(() => {
+  const c = {
+    putDocument: vi.fn(),
+    putDocuments: async (inputs: unknown[]) => {
+      for (const input of inputs) await c.putDocument(input);
+    },
+  };
+  return c;
+});
 
 vi.mock("@lifeline/core", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@lifeline/core")>();
@@ -80,7 +89,7 @@ describe("calendar_add_event with People", () => {
   it("stores the Person an alias names, and says whom it found", async () => {
     const out = await runTool("calendar_add_event", { title: "Dinner", date: "2026-11-14", with: ["Marco"] });
     expect(stored().with).toEqual(["p1"]);
-    expect(out).toMatchObject({ id: "e1", message: "Added event “Dinner” on 2026-11-14 with Marc Lefèvre" });
+    expect(out).toMatchObject({ id: stored().id, message: "Added event “Dinner” on 2026-11-14 with Marc Lefèvre" });
   });
 
   it("names several People, each once, by name without accents or by id", async () => {

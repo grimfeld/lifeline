@@ -3,7 +3,7 @@ import { diffDays, todayStr, type DateStr } from "../dates";
 import type { LinkIndex, Reach } from "./links";
 import { DAY_TYPE, isDateStr } from "./sourceDays";
 
-/** One thing on a Document's timeline (#422: a Person's, ADR 0119: a Place's): a Document that links to it, on its own day. */
+/** One thing on a Document's timeline (#422: a Person's, ADR 0128: a Place's): a Document that links to it, on its own day. */
 export interface TimelineEntry {
   sourceId: string;
   type: string;
@@ -63,7 +63,7 @@ const outranks = (r: Reach, kept: TimelineEntry): boolean => !r.via && !!r.field
  * What links to a Document, newest first: for a Person, Events with them,
  * Tasks for them, notes and Days that name them, and what links to a
  * Household they were a member of then (ADR 0117); for a Place, Events At it
- * and what names it (ADR 0119). Each Document once, by its Link field when it
+ * and what names it (ADR 0128). Each Document once, by its Link field when it
  * has one (a Day naming it by name and by alias is one entry), and by a direct
  * link over one through a Household.
  */
@@ -133,7 +133,7 @@ const kindRank = (s: TimelineStop<TimelineOccasion>) => (s.kind === "occasion" ?
  * top and the soonest just above the line; an Event still under way (begun,
  * its End day not passed) is ahead too, by its first day, with no "how soon".
  * Below: what is past, then what has no day. A Person's page passes their
- * Occasions (#449); a Place's (ADR 0119) and a Household's pass none.
+ * Occasions (#449); a Place's (ADR 0128) and a Household's pass none.
  */
 export function timelineSides<O extends TimelineOccasion = TimelineOccasion>(
   entries: readonly TimelineEntry[],

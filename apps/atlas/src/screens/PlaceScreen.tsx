@@ -61,7 +61,7 @@ function NameField({ place }: { place: Document }) {
   );
 }
 
-/** "Last visited 10 Nov · 1 visit" (ADR 0119): counted from the Events that link to it, once per day, only those that have happened. */
+/** "Last visited 10 Nov · 1 visit" (ADR 0128): counted from the Events that link to it, once per day, only those that have happened. */
 function Visited({ place, index }: { place: Document; index: LinkIndex }) {
   const today = todayStr();
   const line = useMemo(() => seenSummary(documentFigures(index, place.id, today, sourceOf("seen", today)), documentType(PLACE_TYPE)), [index, place.id, today]);
@@ -92,7 +92,7 @@ function PlaceMap({ place, onExpand }: { place: Document; onExpand: () => void }
 }
 
 /**
- * A Place's page (ADR 0119): a hidden route, and the Peek's "Open". Its name,
+ * A Place's page (ADR 0128): a hidden route, and the Peek's "Open". Its name,
  * when it was last visited, Kind, address and its spot on a map, aliases and
  * Tags, and its Reports; what it is, in the body; its timeline; and what links
  * to it, with the prose that names it unlinked. Two columns on the desk,
@@ -107,7 +107,7 @@ export function PlaceScreen() {
   const navigate = useNavigate();
   // Only the body and its Tags are written from the editor, so a Field changed beside it is never sent back as it was.
   const saveBody = useCallback((next: Document) => patchDocument(next.id, { body: next.body, tags: next.tags }), []);
-  // To try is settled on opening too (ADR 0119): a dinner booked here may have passed since anything was saved.
+  // To try is settled on opening too (ADR 0128): a dinner booked here may have passed since anything was saved.
   useEffect(() => {
     if (id) void settleToTry(id);
   }, [id]);

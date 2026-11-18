@@ -28,7 +28,7 @@ function OccasionStop({ stop }: { stop: Extract<AheadStop<UpcomingOccasion>, { k
  * the Smiths" what links to their Household then) from before. Both by month,
  * newest first. Each Document opens in a Peek. A Household's (ADR 0117) is
  * what links to it, with no Occasions. The rail is the editor's, shared with
- * a Place's page (ADR 0119).
+ * a Place's page (ADR 0128).
  */
 export function TimelineSection({ doc }: { doc: Document }) {
   const index = useLinkIndex();

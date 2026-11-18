@@ -14,7 +14,7 @@ export const livePlace = (row: Document | undefined): Place | undefined => (row 
 
 const cleanAliases = (aliases: readonly string[] | undefined) => (aliases ?? []).map((a) => a.trim()).filter(Boolean);
 
-/** Throws Core's `TitleTaken` when another Place has this title, in any folder, case and accents aside (ADR 0119). */
+/** Throws Core's `TitleTaken` when another Place has this title, in any folder, case and accents aside (ADR 0128). */
 async function assertFree(title: string): Promise<void> {
   assertTitleFree(await documentsOf(PLACE_TYPE), PLACE_TYPE, PLACES_FOLDER, title);
 }
@@ -83,7 +83,7 @@ export async function setPlaceAddress(id: string, input: AddressInput, lookup: L
 }
 
 /**
- * To try and the day it was marked (ADR 0119): only an Event that has
+ * To try and the day it was marked (ADR 0128): only an Event that has
  * happened since that day clears it, so a Place gone to before can be marked
  * again. Unmarked, no day is kept.
  */
@@ -95,7 +95,7 @@ export interface PlacePatch {
   aliases?: string[];
   tags?: string[];
   toTry?: boolean;
-  /** Closed for good, or reopened with false (ADR 0119). */
+  /** Closed for good, or reopened with false (ADR 0128). */
   closed?: boolean;
 }
 
@@ -130,7 +130,7 @@ export const saveKindOptions = (options: readonly { value?: string; label: strin
 /**
  * Clear To try on the Places that have been gone to since it was set: an
  * Event that has happened, and whose last day is on or after the day it was
- * marked, links to each, by At or in its notes (ADR 0119). A mark an older
+ * marked, links to each, by At or in its notes (ADR 0128). A mark an older
  * build made carries no day: any Event that has happened clears it.
  * Every To try Place, or the one given. Idempotent: a Place cleared, or never
  * marked, is not written again. Run when an Event is saved and when a Place is

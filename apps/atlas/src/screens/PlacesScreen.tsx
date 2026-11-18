@@ -49,7 +49,7 @@ function PlaceRow({ place, showKind }: { place: Place; showKind: boolean }) {
 }
 
 /**
- * Atlas's Places screen (ADR 0119): every Place in the Workspace, A to Z by
+ * Atlas's Places screen (ADR 0128): every Place in the Workspace, A to Z by
  * name or by last visit (the Places never visited last), filtered by Kind. All leaves the closed ones out; To try lists those
  * marked, open ones only; Closed lists the rest. "Kinds" renames and adds them.
  */

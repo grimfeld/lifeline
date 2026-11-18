@@ -10,7 +10,7 @@ describe("the Guide", () => {
     expect(new Set(GUIDE_PAGES.map((p) => p.title)).size).toBe(GUIDE_PAGES.length);
   });
 
-  it("explains the people Module on a World page, and keeps Contacts on People (ADR 0119)", () => {
+  it("explains the people Module on a World page, and keeps Contacts on People (ADR 0128)", () => {
     expect(guidePageOfModule("people")?.slug).toBe("world");
     expect(guidePageOfModule("people")?.title).toBe("World");
     expect(GUIDE_PAGES.find((p) => p.slug === "people")?.apps).toEqual(["contacts"]);

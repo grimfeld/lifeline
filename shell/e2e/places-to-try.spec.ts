@@ -2,7 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { inCore } from "./support/core";
 
 /**
- * To try and closed (#504, ADR 0119): the Places screen lists the Places To
+ * To try and closed (#504, ADR 0128): the Places screen lists the Places To
  * try and the closed ones apart; World's map narrows to To try and a Kind
  * together; an Event At a To try Place that has happened clears the mark, a
  * future one leaves it; a closed Place leaves the map and the lists until it

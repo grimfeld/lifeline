@@ -3,7 +3,7 @@ import { documentType, formatHuman, linkFieldLabel, singularOf, useOpenPeek, typ
 import { cn } from "@lifeline/ui";
 
 /*
- * A timeline's pieces (#422, ADR 0119): what links to a Document on a rail,
+ * A timeline's pieces (#422, ADR 0128): what links to a Document on a rail,
  * upcoming above a Today line, the rest by month below. A Person's page and a
  * Place's page draw theirs from these; the stops come from Core's
  * `timelineOf` and `timelineSides`.

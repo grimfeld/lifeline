@@ -1,7 +1,7 @@
 import { PLACE_TYPE, type Document } from "@lifeline/core";
 
 /**
- * The Place (CONTEXT.md, ADR 0119): one particular spot I can go to. The
+ * The Place (CONTEXT.md, ADR 0128): one particular spot I can go to. The
  * Atlas App's built-in type, in the World Module: Linkable by name and
  * aliases, with a Kind, Tags, a body, an address, and the two marks To try
  * and closed.
@@ -26,10 +26,10 @@ export interface Place extends Document {
   closed: boolean;
 }
 
-/** Where every Place lands. Their titles are unique in every folder all the same (`uniqueTitles`, ADR 0119). */
+/** Where every Place lands. Their titles are unique in every folder all the same (`uniqueTitles`, ADR 0128). */
 export const PLACES_FOLDER = "Places";
 
-/** The Kinds a Place starts with (ADR 0119); the user renames and adds through the type (`userOptions`). */
+/** The Kinds a Place starts with (ADR 0128); the user renames and adds through the type (`userOptions`). */
 export const KINDS = [
   { value: "restaurant", label: "Restaurant" },
   { value: "cafe", label: "Café" },

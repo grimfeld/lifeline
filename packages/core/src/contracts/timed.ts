@@ -240,7 +240,7 @@ export interface TimedItem {
    */
   docId?: string;
   /**
-   * Where it happens (an Event's At, ADR 0119): the Place's or Person's id
+   * Where it happens (an Event's At, ADR 0128): the Place's or Person's id
    * and title, never more — At on a Person is the Person, not their Address
    * (ADR 0114). Absent when it happens nowhere in particular.
    */

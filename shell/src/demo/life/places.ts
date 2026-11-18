@@ -5,7 +5,7 @@ import { PLACES } from "../persona";
 import { idOf } from "./act";
 
 /**
- * Atlas's Places (ADR 0119): the spots of the persona's life, with their
+ * Atlas's Places (ADR 0128): the spots of the persona's life, with their
  * coordinates, so they stand on the World map. Her flat is no Place: a home
  * stays an Address on its Person. One she hasn't been to yet is To try.
  */

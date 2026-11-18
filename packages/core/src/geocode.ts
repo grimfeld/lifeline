@@ -124,7 +124,7 @@ const poiName = (p: PhotonFeature["properties"]): string | undefined => (p.name?
 /**
  * Address suggestions while typing (debounce on the caller's side, ≥3 chars
  * recommended). A point of interest keeps its `name` beside its address, so
- * a pick can fill a Place's name, address and coordinates at once (ADR 0119). Cancels the previous in-flight request; cached per query.
+ * a pick can fill a Place's name, address and coordinates at once (ADR 0128). Cancels the previous in-flight request; cached per query.
  */
 export async function suggestAddresses(query: string, limit = 6): Promise<GeocodeHit[]> {
   const q = query.trim();
@@ -155,7 +155,7 @@ const PHOTON_REVERSE = "https://photon.komoot.io/reverse";
 
 /**
  * The points of interest around a position, nearest first, for Here on the
- * Place form (ADR 0119). Asked once per tap, never in the background. The
+ * Place form (ADR 0128). Asked once per tap, never in the background. The
  * position goes to Photon only: it is never cached, stored or logged, and a
  * failure names the status alone. A street, a town or an unnamed feature is
  * left out: "Just here" covers a spot no lookup knows.

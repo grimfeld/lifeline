@@ -11,7 +11,7 @@ export interface WorldFilter {
 }
 
 /**
- * The World home's Pins (ADR 0119): every Place's and every current Address's,
+ * The World home's Pins (ADR 0128): every Place's and every current Address's,
  * as Core reads them (a closed Place has none), less the Apps turned off and
  * the Places of another Kind or not To try. Both are read from the Place
  * itself: a Pin carries neither. An Event At a Place (#505) stands at its Pin

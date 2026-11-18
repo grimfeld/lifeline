@@ -13,7 +13,7 @@ const marcHome = pin("contacts", "contacts_person", "marc", "contacts_person/mar
 const lebrun = pin("atlas", "atlas_place", "lebrun");
 const places = [place("janou", "restaurant", true), place("flore", "cafe"), place("lebrun", "cafe", true)];
 
-describe("the World map's Pins (ADR 0119)", () => {
+describe("the World map's Pins (ADR 0128)", () => {
   it("shows every Place and every Address together", () => {
     expect(worldPins([janou, marcHome, flore], places, {}).map((p) => p.key)).toEqual(["atlas_place/janou", "contacts_person/marc#home", "atlas_place/flore"]);
   });

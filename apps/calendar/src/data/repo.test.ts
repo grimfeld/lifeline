@@ -67,7 +67,7 @@ describe("addEvent", () => {
     expect((await only()).with).toEqual(["ana", "ben"]);
   });
 
-  it("stores where it is At, one id, and nowhere when not given (ADR 0119)", async () => {
+  it("stores where it is At, one id, and nowhere when not given (ADR 0128)", async () => {
     await addEvent({ title: "Dinner", date: "2026-05-02", at: "janou" });
     expect((await only()).at).toBe("janou");
     await documentsTable().clear();

@@ -2,7 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { inCore } from "./support/core";
 
 /**
- * A Place's address and the World map (#500, ADR 0119): typing a Place's name
+ * A Place's address and the World map (#500, ADR 0128): typing a Place's name
  * offers real places (Photon, stubbed here), and one pick fills its name,
  * address and coordinates; a typed address is Located (Nominatim, stubbed).
  * The Place then stands on World's map beside People's Addresses, told apart
