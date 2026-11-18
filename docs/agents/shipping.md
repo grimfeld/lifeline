@@ -72,3 +72,9 @@ Command that produces screenshots of the screens a change touches, for the revie
 
 Specs are GitHub issues moving through `spec:draft` → `spec:ready` → `spec:building` → `spec:in-review`, or
 `spec:stuck`, and close when their PR ships.
+
+## Design labels
+
+A design is a GitHub issue carrying a Claude Design artifact link. Label it `design:ready` when the design is
+settled; `/ship:design-me` turns it into specs and relabels it `design:specced`. Its handoffs are committed under
+`docs/design/<module>/` by the PRs that build them. To revise a design, relabel its issue `design:ready`.
