@@ -28,5 +28,4 @@ ADR 0029 left a one-off blocker tied to nothing: when the dentist moved, the tra
 - A Workspace move takes the bands with the Event, as `followers` (ADR 0118's hook runs after the move is written) (#519).
 - Making the Event all day detaches its bands, leaving them where they stand (#519).
 - A link to a gone Event reads as detached, and the band is never deleted for it (#519).
-- Still to come in #497: the blocker's Peek naming its Event with **Detach**, and attaching from the Event dialog (#518).
 - Deferred to #496: Event templates that come with attached blockers ("Dentist" always brings travel), and Claude creating or attaching them. Claude's moves already carry them.
