@@ -1,4 +1,5 @@
-import { PERSON_TYPE, type Document } from "@lifeline/core";
+import { EXCHANGE_TYPE, PERSON_TYPE, type Document } from "@lifeline/core";
+import type { ExchangeKind } from "./exchanges";
 
 /**
  * The Person (CONTEXT.md, ADR 0113): someone I know, or knew. The Contacts
@@ -155,5 +156,25 @@ export interface Household extends Document {
   type: typeof HOUSEHOLD;
   aliases: string[];
   members: Membership[];
+  body?: string;
+}
+
+/** The Exchange's type (ADR 0131): named in Core (`EXCHANGE_TYPE`), so the Talked family reads it without importing Contacts. */
+export const EXCHANGE = EXCHANGE_TYPE;
+
+/** Where a new Exchange lands (a home, never a rule). */
+export const EXCHANGES_FOLDER = "People/Exchanges";
+
+/**
+ * An **Exchange** (CONTEXT.md, ADR 0131): a call, video call, message or letter
+ * with `with` (Person ids; none once all of them were deleted), on `date`
+ * (today or before), with an optional body for what was said. Its title is
+ * derived from its kind and its People's names, and stored.
+ */
+export interface Exchange extends Document {
+  type: typeof EXCHANGE_TYPE;
+  kind: ExchangeKind;
+  date: string;
+  with: string[];
   body?: string;
 }

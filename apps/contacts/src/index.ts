@@ -1,8 +1,8 @@
 import type { AppManifest } from "@lifeline/core";
 import { lazyChunk } from "@lifeline/ui";
-import { Home, Link2, User, Users } from "lucide-react";
+import { Home, Link2, Phone, User, Users } from "lucide-react";
 import { contactsCommands } from "./commands";
-import { householdTypeDef, personTypeDef, tieTypeDef } from "./types";
+import { exchangeTypeDef, householdTypeDef, personTypeDef, tieTypeDef } from "./types";
 import { PersonPeek } from "./components/PersonFields";
 import { HouseholdPeek } from "./components/HouseholdMembers";
 import { AddPersonDialog } from "./components/AddPersonDialog";
@@ -28,7 +28,7 @@ export const contactsApp: AppManifest = {
   title: "Contacts",
   icon: Users,
   color: "var(--chart-aqua)",
-  types: [{ ...personTypeDef, icon: User, peekEdit: PersonPeek }, { ...tieTypeDef, icon: Link2 }, { ...householdTypeDef, icon: Home, peekEdit: HouseholdPeek }],
+  types: [{ ...personTypeDef, icon: User, peekEdit: PersonPeek }, { ...tieTypeDef, icon: Link2 }, { ...householdTypeDef, icon: Home, peekEdit: HouseholdPeek }, { ...exchangeTypeDef, icon: Phone }],
   screens: [
     { id: "contacts.people", title: "People", path: "people", icon: Users, component: PeopleScreen },
     // The Person page: routed, never listed — reached from the Peek's "Open", a Base or the Vault.
@@ -62,4 +62,4 @@ export const contactsApp: AppManifest = {
   intakes: [{ id: "person", title: "Person", icon: User, dialog: AddPersonDialog, links: true }],
 };
 
-export { HOUSEHOLD, TIE, type Household, type Membership, type Person, type Tie } from "./domain/types";
+export { EXCHANGE, HOUSEHOLD, TIE, type Exchange, type Household, type Membership, type Person, type Tie } from "./domain/types";

@@ -1,5 +1,7 @@
-import { PERSON_TYPE, getDocument, type DocumentTypeDef } from "@lifeline/core";
-import { AGENT_WALLED_KEYS, HOUSEHOLD, HOUSEHOLDS_FOLDER, PEOPLE_FOLDER, TIE, type Person } from "./domain/types";
+import { EXCHANGE_TYPE, PERSON_TYPE, getDocument, type DocumentTypeDef } from "@lifeline/core";
+import { AGENT_WALLED_KEYS, EXCHANGES_FOLDER, HOUSEHOLD, HOUSEHOLDS_FOLDER, PEOPLE_FOLDER, TIE, type Person } from "./domain/types";
+import { EXCHANGE_KINDS, exchangeTitle } from "./domain/exchanges";
+import { dropFromExchanges, keepExchangesTitled, withOf } from "./data/exchanges";
 import { describeHousehold, describePerson } from "./describe";
 import { removeTiesOf, tieIdsOf } from "./data/ties";
 import { householdHref, personHref } from "./constants";
@@ -34,9 +36,11 @@ export const personTypeDef: DocumentTypeDef = {
   order: 30,
   builtIn: true,
   // Their Ties go with them, and move with them between Workspaces (#412); their place in any Household goes too (ADR 0117).
+  // And out of every Exchange's With, each one titled from who is left (ADR 0131).
   onDelete: async (doc) => {
     await removeTiesOf(doc.id);
     await dropMembershipsOf(doc.id);
+    await dropFromExchanges(doc.id);
   },
   followers: (doc) => tieIdsOf(doc.id),
   // Out of the Households they leave behind: members belong to the Household's Workspace (ADR 0117).
@@ -116,5 +120,38 @@ export const householdTypeDef: DocumentTypeDef = {
     { key: "aliases", label: "Aliases", kind: "list" },
     // `{ personId, since?, until? }[]` (`Membership`): only the App's own controls write it.
     { key: "members", label: "Members", kind: "json", guarded: true, hidden: true },
+  ],
+};
+
+/**
+ * The Exchange (ADR 0131): a call, video call, message or letter with People,
+ * on a day, with an optional body for what was said. Not Linkable: its title
+ * is derived ("Call · Grandma") and stored, kept true by the App after any save
+ * of an Exchange or a Person (`afterSaveOf`); `titleOf` only stands in when a
+ * row has none. With is a People field like an Event's, so it is on each of
+ * its People's Timeline; wikilinks in the body are Backlinks only. Not an
+ * Event: no time Surface reads it, only the Daylog. Its day is guarded, so
+ * only the App's Form and Command (which refuse a day to come) write it.
+ */
+export const exchangeTypeDef: DocumentTypeDef = {
+  id: EXCHANGE_TYPE,
+  label: "Exchanges",
+  singular: "Exchange",
+  iconName: "phone",
+  titleRule: "derived",
+  titleOf: (d) => exchangeTitle(d.kind, withOf(d).length ? ["…"] : []),
+  body: "optional",
+  folder: EXCHANGES_FOLDER,
+  order: 32,
+  builtIn: true,
+  indexes: ["date"],
+  afterSaveOf: { of: [PERSON_TYPE, EXCHANGE_TYPE], run: keepExchangesTitled },
+  // An agent's search says what kind and when, without a get_document per hit.
+  searchFields: ["kind", "date"],
+  fields: [
+    { key: "kind", label: "Kind", kind: "select", options: EXCHANGE_KINDS.map((k) => ({ value: k.value, label: k.label })), column: true },
+    { key: "date", label: "Day", kind: "date", guarded: true, column: true },
+    // A People field (CONTEXT.md), as an Event's With: Core's `unlinkOnDelete` on Person reaches it too.
+    { key: "with", label: "With", kind: "links", linkType: PERSON_TYPE, column: true },
   ],
 };
