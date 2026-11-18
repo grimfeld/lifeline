@@ -58,8 +58,9 @@ function endDayOf(input: { date: DateStr; endDate?: DateStr | null; end?: string
  */
 async function writeMoved(was: Event, now: Event, added: readonly DocumentInput[] = []): Promise<void> {
   // Made all day, its blockers are detached in the same write and stay where they stand (#519).
+  // Only the bands' moved Fields are written, onto each band as it is when the write lands.
   const blockers = !spanOf(now) && spanOf(was) ? await blockersDetachedFrom(was.id) : await blockersFollowing(was, now);
-  await putDocuments([now, ...blockers, ...added]);
+  await putDocuments([now, ...added], blockers);
 }
 
 /**

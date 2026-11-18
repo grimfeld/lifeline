@@ -1,6 +1,6 @@
 import { useMemo } from "react";
-import { getDocument, patchDocument, removeDocumentsWhere, type DocumentInput } from "@lifeline/core";
-import { attachmentOf, flushSpan, followedSpan, isAttachedTo, liveAttachmentTo } from "../domain/attached";
+import { getDocument, patchDocument, removeDocumentsWhere, type DocumentInput, type DocumentPatch } from "@lifeline/core";
+import { attachmentOf, DETACHED, flushSpan, followedSpan, isAttachedTo, liveAttachmentTo, sameSpan } from "../domain/attached";
 import { blockerSpan } from "../domain/blockers";
 import { normalizeEvent, spanOf } from "../domain/events";
 import { durationOf } from "../domain/templates";
@@ -62,22 +62,24 @@ export async function attachedBlockersOf(eventId: string): Promise<TimeBlocker[]
 }
 
 /**
- * The attached blockers of an Event that moves from `was` to `now`, each
- * rewritten where it now stands (`followedSpan`), ready to write in the same
- * batch as the Event. None when either is all day: a blocker follows only a
- * timed Event (made all day, it is detached instead — #519).
+ * The attached blockers of an Event that moves from `was` to `now`, each as
+ * the patch of its times that puts it where it now stands (`followedSpan`),
+ * ready to write in the same batch as the Event: only the times, so an edit
+ * made to a band in the meantime is kept. None when either is all day (a
+ * blocker follows only a timed Event; made all day, it is detached instead —
+ * #519), and none, without reading a blocker, when the Event did not move.
  */
-export async function blockersFollowing(was: Event, now: Event): Promise<TimeBlocker[]> {
+export async function blockersFollowing(was: Event, now: Event): Promise<DocumentPatch[]> {
   const [old, next] = [spanOf(was), spanOf(now)];
-  if (!old || !next) return [];
-  const out: TimeBlocker[] = [];
+  if (!old || !next || sameSpan(old, next)) return [];
+  const out: DocumentPatch[] = [];
   for (const b of await attachedBlockersOf(was.id)) {
     const span = blockerSpan(b);
     const side = attachmentOf(b)?.side;
     if (!span || !side) continue;
     const to = followedSpan(old, next, span, side);
-    if (to.date === span.date && to.start === span.start && to.endDate === span.endDate && to.end === span.end) continue;
-    out.push({ ...b, date: to.date, endDate: to.endDate, start: to.start, end: to.end });
+    if (sameSpan(to, span)) continue;
+    out.push({ id: b.id, patch: { date: to.date, endDate: to.endDate, start: to.start, end: to.end } });
   }
   return out;
 }
@@ -99,17 +101,18 @@ export async function liveAttachment(b: TimeBlocker): Promise<Attachment | null>
 
 /** An Event's deletion takes its attached blockers with it (ADR 0045), from every place a Document can be deleted. */
 export async function removeAttachedBlockers(eventId: string): Promise<void> {
+  // Tombstones directly, as Core asks of a cascade, so it cannot re-enter removeDocument.
   const ids = new Set((await attachedBlockersOf(eventId)).map((b) => b.id));
   await removeDocumentsWhere(TIME_BLOCKER_TYPE, (d) => ids.has(d.id));
 }
 
 /**
- * The Event's attached blockers, cleared of their link and side (they keep
- * their times): what making it all day writes beside it. Empty when nothing
- * is attached.
+ * The Event's attached blockers, each as the patch that clears its link and
+ * side (they keep their times and every other edit): what making it all day
+ * writes beside it. Empty when nothing is attached.
  */
-export async function blockersDetachedFrom(eventId: string): Promise<TimeBlocker[]> {
-  return (await attachedBlockersOf(eventId)).map((b) => ({ ...b, attachedTo: null, side: null }));
+export async function blockersDetachedFrom(eventId: string): Promise<DocumentPatch[]> {
+  return (await attachedBlockersOf(eventId)).map((b) => ({ id: b.id, patch: DETACHED }));
 }
 
 /** The one-off blockers attached to an Event, live (its Peek lists them). */
@@ -129,7 +132,7 @@ export async function detachBlocker(id: string): Promise<() => Promise<void>> {
   if (!b) throw new Error("That blocker is gone");
   const was = await liveAttachment(b);
   if (!was) return async () => {};
-  await patchDocument(id, { attachedTo: null, side: null });
+  await patchDocument(id, DETACHED);
   return async () => {
     if (await eventExists(was.eventId)) await patchDocument(id, { attachedTo: was.eventId, side: was.side });
   };

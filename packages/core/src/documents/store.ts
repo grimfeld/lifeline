@@ -3,7 +3,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { ATTACHMENTS, db, DOCUMENTS, type SyncedRecord } from "../data/db";
 import { sharedLiveQuery } from "../data/live";
 import { reuseUnchanged } from "../data/reconcile";
-import { put, putAll, remove } from "../data/repo";
+import { put, putAll, remove, type RecordPatch } from "../data/repo";
 import { newId } from "../ids";
 import { todayStr } from "../dates";
 import { normalizeTags } from "../tags";
@@ -151,14 +151,23 @@ export async function putDocument<T extends Document = Document>(input: Document
 }
 
 /**
+ * Plain Fields to set on a stored Document (as `patchDocument` sets them),
+ * merged onto the row as it is when the write lands. Never its body, title or
+ * Tags: those are derived when a whole row is written.
+ */
+export type DocumentPatch = RecordPatch;
+
+/**
  * Several Documents written as one, as `putDocument` writes each: every one
  * stored, or none (an Event and the blockers attached to it, which must never
- * land half-moved). One LWW clock for all.
+ * land half-moved). One LWW clock for all. `patches` change only the Fields
+ * they name on Documents already stored, read in the same write, so an edit
+ * made in the meantime is kept; a Document gone by then is left gone.
  */
-export async function putDocuments(inputs: readonly DocumentInput[]): Promise<Document[]> {
+export async function putDocuments(inputs: readonly DocumentInput[], patches: readonly DocumentPatch[] = []): Promise<Document[]> {
   const rows: Document[] = [];
   for (const input of inputs) rows.push(await rowOf(input));
-  await putAll<Document>(DOCUMENTS, rows);
+  await putAll<Document>(DOCUMENTS, rows, patches);
   return rows;
 }
 

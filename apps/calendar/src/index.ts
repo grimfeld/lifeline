@@ -98,6 +98,7 @@ const timeBlockerType: DocumentTypeDef = {
     { key: "color", label: "Colour", kind: "text" },
     // An attached blocker (CONTEXT.md, #497): the Event it follows and the edge it is held to. Set by attaching only, and
     // hidden from Bases and the Vault: a link to a gone Event reads as detached, which only the Calendar can tell (#519).
+    // Still a Link field, so the Event's Backlinks and the Graph list its bands (ADR 0119).
     { key: "attachedTo", label: "Attached to", kind: "link", linkType: EVENT_TYPE, guarded: true, hidden: true },
     { key: "side", label: "Side", kind: "select", guarded: true, hidden: true, options: BLOCKER_SIDES.map((side) => ({ value: side, label: SIDE_LABELS[side] })) },
   ],

@@ -139,7 +139,8 @@ so that it goes wherever the Event goes.
   gap or length from then on. A band before stays before, even dragged past the Event.
 - **Its Peek** — open an attached band from its Event's Peek list (or any link to it) and its Peek reads "Before **Dentist**" or "After **Dentist**", linking
   to the Event, above its usual fields. A blocker that isn't attached shows no such line. Bases
-  and the Vault don't show which Event a band is attached to: its Peek does.
+  and the Vault don't show which Event a band is attached to: its Peek does. The Event's
+  Backlinks and the Graph list its bands too.
 - **Detach** — on that Peek, **Detach** lets the band stand on its own: it stays exactly where it
   is and stops following the Event. Undo in the toast attaches it again on the same side, unless
   the Event has been deleted meanwhile.

@@ -1,7 +1,7 @@
 import { endReadOn, formatTime, momentAfter, spanLasting, spanLength, WEEKDAY_NAMES, weekdayOf, type DateStr, type TimedSpan, type TimeStr } from "@lifeline/core";
 import { EVENT_TYPE, type Attachment, type BlockerSide, type TimeBlocker } from "./types";
 
-/** Each side as a person reads it: "Before Dentist", the Before… menu, a Base's Side. */
+/** Each side as a person reads it: "Before Dentist", the Before… menu. */
 export const SIDE_LABELS: Record<BlockerSide, string> = { before: "Before", after: "After" };
 
 /** Both sides, in the order they are offered. */
@@ -29,6 +29,14 @@ export function followedSpan(old: TimedSpan, now: TimedSpan, band: TimedSpan, si
   const e = momentAfter(band.endDate, band.end, shift);
   return { date: s.date, start: s.time, endDate: e.date, end: e.time };
 }
+
+/** Whether two spans start and end at the same moments. */
+export function sameSpan(a: TimedSpan, b: TimedSpan): boolean {
+  return a.date === b.date && a.start === b.start && a.endDate === b.endDate && a.end === b.end;
+}
+
+/** The patch that clears a blocker's link and side: what "detached" means on disk. */
+export const DETACHED = { attachedTo: null, side: null } as const;
 
 /** The span a band of `minutes` takes flush against one edge of an Event: ending at its start, or starting at its end. */
 export function flushSpan(event: TimedSpan, minutes: number, side: BlockerSide): TimedSpan {
