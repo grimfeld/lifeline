@@ -73,3 +73,48 @@ test("the phone's capture sheet offers Log an exchange, of any kind", { tag: "@p
   await dialog.getByRole("button", { name: "Save", exact: true }).click();
   await expect.poll(() => exchangesWith(page, id)).toEqual([expect.objectContaining({ title: `Message · ${name}`, kind: "message", date: dayFromToday(0) })]);
 });
+
+test("an Exchange stands on its People's Timeline, names others as mentioned, gets a line in its Day's Daylog and stays off the Calendar", async ({ page }) => {
+  const stamp = Date.now();
+  const grandma = `Grandma ${stamp}`;
+  const lucie = `Lucie ${stamp}`;
+  // A day nothing else in the store uses, and today.
+  const DAY = "1998-07-14";
+  await page.goto("/app/people");
+  await workLocally(page);
+  const g = await makePerson(page, grandma);
+  const l = await makePerson(page, lucie);
+  await inCore(
+    page,
+    async (core, a: { type: string; g: string; lucie: string; day: string }) => {
+      await core.createDocument({ type: a.type, title: "", body: `[[${a.lucie}]] starts university in Lyon.`, fields: { kind: "call", date: a.day, with: [a.g] } });
+      await core.createDocument({ type: a.type, title: "", body: "", fields: { kind: "message", date: core.todayStr(), with: [a.g] } });
+      await core.createDocument({ type: "daily", title: a.day, body: "```daylog\n```\n" });
+      // An Event with her today: the Calendar shows it, and not the Exchange beside it.
+      await core.createDocument({ type: "event", title: `Lunch ${a.g}`, fields: { date: core.todayStr(), with: [a.g] } });
+    },
+    { type: EXCHANGE, g, lucie, day: DAY },
+  );
+
+  await page.goto(`/app/people/person/${g}`);
+  await workLocally(page);
+  const timeline = page.getByRole("region", { name: "Timeline" });
+  await expect(timeline).toContainText(`Call · ${grandma}`);
+  await expect(timeline).toContainText(`Message · ${grandma}`);
+  await expect(timeline).toContainText("via With");
+
+  await page.goto(`/app/people/person/${l}`);
+  await workLocally(page);
+  await expect(page.getByRole("region", { name: "Timeline" })).toContainText(`Call · ${grandma}`);
+  await expect(page.getByRole("region", { name: "Timeline" })).toContainText("mentioned");
+
+  await page.goto(`/app/journal?d=${DAY}`);
+  await workLocally(page);
+  const line = page.getByRole("listitem").filter({ hasText: grandma });
+  await expect(line).toContainText("Called");
+
+  await page.goto("/calendar?view=month");
+  await workLocally(page);
+  await expect(page.getByText(`Lunch ${g}`).first()).toBeVisible();
+  await expect(page.getByText(`Message · ${grandma}`)).toHaveCount(0);
+});

@@ -9,6 +9,7 @@ import { AddPersonDialog } from "./components/AddPersonDialog";
 import { UpcomingCard } from "./components/UpcomingReport";
 import { RelationshipsCard } from "./cards/RelationshipsCard";
 import { contactsTimed } from "./timed";
+import { contactsDaylog } from "./daylog";
 
 // Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
 const PeopleScreen = lazyChunk(() => import("./screens/PeopleScreen").then((m) => ({ default: m.PeopleScreen })));
@@ -58,6 +59,8 @@ export const contactsApp: AppManifest = {
   ],
   commands: contactsCommands,
   timed: contactsTimed,
+  // An Exchange's one line in the day (ADR 0131): it stands on no time Surface.
+  daylog: contactsDaylog,
   // From the Selection menu, the selected name becomes a link to the Person made.
   intakes: [{ id: "person", title: "Person", icon: User, dialog: AddPersonDialog, links: true }],
 };
