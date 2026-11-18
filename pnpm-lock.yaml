@@ -367,12 +367,18 @@ importers:
       '@types/react':
         specifier: 'catalog:'
         version: 19.3.0
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.3.0(@types/react@19.3.0)
       fake-indexeddb:
         specifier: 'catalog:'
         version: 6.2.6
       jsdom:
         specifier: 'catalog:'
         version: 26.1.0
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.3.1(react@19.3.1)
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
@@ -450,12 +456,18 @@ importers:
       '@types/react':
         specifier: 'catalog:'
         version: 19.3.0
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.3.0(@types/react@19.3.0)
       fake-indexeddb:
         specifier: 'catalog:'
         version: 6.2.6
       jsdom:
         specifier: 'catalog:'
         version: 26.1.0
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.3.1(react@19.3.1)
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
