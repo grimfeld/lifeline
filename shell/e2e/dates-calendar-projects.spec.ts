@@ -75,3 +75,17 @@ test("Calendar: an all-day Event's last day disables the days before its first",
   }, title);
   expect(stored).toEqual({ date: "2026-11-10", endDate: "2026-11-12" });
 });
+
+test("Projects: a Project opened from its Deadline marker shows one Deadline control and no shell Day picker (ADR 0124)", async ({ page }) => {
+  await page.goto("/calendar");
+  await workLocally(page);
+  const title = `Peeked ${Date.now()}`;
+  await inCore(page, async (core, t: string) => (await core.putDocument({ type: "project", title: t, body: "", stage: "active", start: "2026-11-05", deadline: "2026-11-12" })).id as string, title);
+
+  await go(page, `/calendar?view=day&d=${DAY}`);
+  await page.getByText(`⚑ ${title}`).first().click();
+  const peek = page.getByRole("dialog").first();
+  await expect(peek.getByLabel("Deadline")).toHaveCount(1);
+  await expect(peek.getByLabel("Day", { exact: true })).toHaveCount(0);
+  await expect(peek.getByRole("region", { name: "Timing" })).toHaveCount(0);
+});

@@ -41,7 +41,7 @@ export function opensInPlace(doc: Pick<Document, "type">, pathname: string): boo
  */
 export type HoursTapped = { kind: "timed"; item: TimedItem & { color?: string } } | { kind: "work"; item: WorkOnHours };
 
-/** Where a Peek was opened from; empty for a Peek opened from anywhere but a time Surface. */
+/** Where a Peek was opened from; empty for a Peek opened from anywhere but the hours. */
 export interface PeekOrigin {
   /** What was tapped on the hours; the Peek knows it only while it shows the Document it was opened on. */
   tapped?: HoursTapped;
@@ -67,7 +67,7 @@ function set(next: readonly string[]) {
 /**
  * Peek a Document from the page: the owning App's small view, opened over
  * wherever the user is. Starts a new stack — and ends the Peek it replaces, with
- * its timing Undo. A time Surface says what was tapped and where (`from`).
+ * its timing Undo. The hours say what was tapped and where (`from`).
  */
 export function openPeek(docId: string, from: PeekOrigin = {}): void {
   if (stack.length) endTiming();
