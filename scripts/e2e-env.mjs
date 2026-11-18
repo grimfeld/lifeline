@@ -103,10 +103,10 @@ const printable = (text) => text.replace(/[\u0000-\u001f\u007f-\u009f]/g, "?");
  * then each take the slot; the lock is read again under it, in case a live run took the slot
  * since. A `.reclaim` older than a minute was left by a run killed mid-clear, and goes.
  */
-function clearIfDead(file, isAlive, now = Date.now()) {
+function clearIfDead(file, isAlive) {
   const mutex = `${file}.reclaim`;
   try {
-    if (now - statSync(mutex).mtimeMs > 60_000) rmSync(mutex, { recursive: true, force: true });
+    if (Date.now() - statSync(mutex).mtimeMs > 60_000) rmSync(mutex, { recursive: true, force: true });
   } catch {
     // No mutex: the usual case.
   }
@@ -116,8 +116,10 @@ function clearIfDead(file, isAlive, now = Date.now()) {
     return; // Another run is clearing it.
   }
   try {
+    const inode = statSync(file, { throwIfNoEntry: false })?.ino;
     const held = readSlot(file);
-    if (existsSync(file) && (!held || !isAlive(held.pid))) rmSync(file, { force: true });
+    // Only the lock just read: never one a live run has linked in since.
+    if (inode !== undefined && (!held || !isAlive(held.pid)) && statSync(file, { throwIfNoEntry: false })?.ino === inode) rmSync(file, { force: true });
   } finally {
     rmSync(mutex, { recursive: true, force: true });
   }
