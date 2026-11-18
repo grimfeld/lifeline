@@ -1,6 +1,6 @@
 ---
 status: accepted
-amends: ADR 0085 (the Peek's App part is the type's Form, editing), ADR 0056 (the timing Undo leaves on closing the Peek)
+amends: ADR 0085 (the Peek's App part is the type's Form, editing), ADR 0056 (the timing Undo leaves on closing the Peek), ADR 0119 (in part — Before…/After… picks are staged only while adding; editing attaches at once)
 ---
 
 # A built-in type has one Form, used to add and to edit; everything on the hours opens its Peek
@@ -32,4 +32,5 @@ A Command's arguments stay apart from the Form, since they are how a caller othe
 
 - Each App moves to one Form in its own change, removing its edit dialogs in favour of its Peek (or page) and sharing the Form with its add dialog. The Calendar goes first.
 - The hours editor and the add-at-an-hour popover are removed from the shell.
+- An Event's attached blockers (ADR 0119) are part of its Form, under the day and times: adding, Before…/After… stage picks the dialog writes with the Event; editing, the Form lists the Event's bands and a pick attaches one at once. The dialog no longer edits, so ADR 0119's picks staged while an Event is edited go.
 - A user-defined type's Form is Core's, as before.

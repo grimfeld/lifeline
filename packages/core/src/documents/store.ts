@@ -3,7 +3,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { ATTACHMENTS, db, DOCUMENTS, type SyncedRecord } from "../data/db";
 import { sharedLiveQuery } from "../data/live";
 import { reuseUnchanged } from "../data/reconcile";
-import { put, putAll, remove } from "../data/repo";
+import { put, putAll, remove, type RecordPatch } from "../data/repo";
 import { newId } from "../ids";
 import { todayStr } from "../dates";
 import { normalizeTags } from "../tags";
@@ -145,6 +145,54 @@ export type DocumentInput<T extends Document = Document> = OmitKnown<T, "id" | "
  * moves a Document between Workspaces; only `moveDocumentToWorkspace` does.
  */
 export async function putDocument<T extends Document = Document>(input: DocumentInput<T>): Promise<T> {
+  const row = await rowOf(input);
+  await put<T>(DOCUMENTS, row);
+  return row;
+}
+
+/** What a patch may never set: a Document's identity and the parts derived when a whole row is written. */
+const UNPATCHABLE = ["body", "title", "tags", "type", "workspace", "deleted"] as const;
+
+/** Plain Fields to set on a stored Document, as `patchDocument` sets them: never its body, title, Tags, type, Workspace or tombstone. */
+export type DocumentFields = Record<string, unknown> & { [K in (typeof UNPATCHABLE)[number]]?: never };
+
+/**
+ * A change to some plain Fields of a stored Document, merged onto the row as
+ * it is when the write lands. Given as a function of that row (read in the
+ * same write), it can move a Field from where it stands now; null leaves the
+ * row alone.
+ */
+export interface DocumentPatch {
+  id: string;
+  patch: DocumentFields | ((current: Document) => DocumentFields | null);
+}
+
+/** `fields`, refused when it names one of the `UNPATCHABLE` keys (the type says so; this holds for untyped callers too). */
+function patchable(fields: DocumentFields | null): DocumentFields | null {
+  const bad = fields && UNPATCHABLE.find((k) => k in fields);
+  if (bad) throw new Error(`A patch cannot set a Document's ${bad}`);
+  return fields;
+}
+
+/**
+ * Several Documents written as one, as `putDocument` writes each: every one
+ * stored, or none (an Event and the blockers attached to it, which must never
+ * land half-moved). One LWW clock for all. `patches` change only the plain
+ * Fields they name on Documents already stored, each worked out from its row
+ * as read inside the same write, so an edit made in the meantime is kept; a
+ * Document gone by then is left gone, and a patch naming its body, title,
+ * Tags, type, Workspace or tombstone refuses the whole write.
+ */
+export async function putDocuments(inputs: readonly DocumentInput[], patches: readonly DocumentPatch[] = []): Promise<Document[]> {
+  const rows: Document[] = [];
+  for (const input of inputs) rows.push(await rowOf(input));
+  const checked: RecordPatch<Document>[] = patches.map(({ id, patch }) => ({ id, patch: (current) => patchable(typeof patch === "function" ? patch(current) : patch) }));
+  await putAll<Document>(DOCUMENTS, rows, checked);
+  return rows;
+}
+
+/** The row `putDocument` stores for an input: its id, day made, folder, Tags, title and Workspace settled. */
+async function rowOf<T extends Document>(input: DocumentInput<T>): Promise<T> {
   const def = documentTypeSync(input.type);
   const id = input.id ?? newId();
   const body = def?.body === "none" ? undefined : (input.body as string | undefined);
@@ -160,7 +208,6 @@ export async function putDocument<T extends Document = Document>(input: Document
   if (body === undefined) delete (row as Document).body;
   else (row as Document).body = body;
   if (!row.title && def?.titleOf) row.title = def.titleOf(row);
-  await put<T>(DOCUMENTS, row);
   return row;
 }
 

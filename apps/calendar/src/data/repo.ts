@@ -1,30 +1,18 @@
 import { useMemo } from "react";
-import { addDays, diffDays, documentsOf, getDocument, normalizeTags, patchDocument, putDocument, removeDocument, useDocuments, type DateStr, type TimedWhen } from "@lifeline/core";
+import { addDays, diffDays, documentsOf, getDocument, newId, normalizeTags, patchDocument, putDocuments, removeDocument, useDocuments, type DateStr, type DocumentInput, type TimedWhen } from "@lifeline/core";
 import { EVENT_TYPE, type Event } from "../domain/types";
 import type { EventWhen } from "../domain/eventForm";
-import { rescheduled } from "../domain/events";
+import { normalizeEvent, rescheduled, spanOf } from "../domain/events";
 import { midnightNextDay } from "../domain/span";
-
-/** PocketBase returns absent text fields as ""; re-establish null on read, and an old "24:00" end as 00:00 the next day (ADR 0090). */
-function normalize(e: Event): Event {
-  return midnightNextDay({
-    ...e,
-    notes: e.notes ?? "",
-    endDate: e.endDate || null,
-    start: e.start || null,
-    end: e.end || null,
-    tags: e.tags ?? [],
-    with: Array.isArray(e.with) ? e.with.map(String).filter(Boolean) : [],
-  });
-}
+import { attachedBlockerRows, blockersDetachedFrom, blockersFollowing, type AttachPick } from "./attached";
 
 export function useEvents(): Event[] {
   const rows = useDocuments<Event>(EVENT_TYPE);
-  return useMemo(() => rows.map(normalize), [rows]);
+  return useMemo(() => rows.map(normalizeEvent), [rows]);
 }
 
 export async function allEvents(): Promise<Event[]> {
-  return (await documentsOf<Event>(EVENT_TYPE)).map(normalize);
+  return (await documentsOf<Event>(EVENT_TYPE)).map(normalizeEvent);
 }
 
 export async function addEvent(input: {
@@ -36,9 +24,12 @@ export async function addEvent(input: {
   end?: string | null;
   tags?: string[];
   with?: string[];
+  /** Blockers to attach as it is made (its dialog's Before…/After…), written with it; ignored when it is all day. */
+  attach?: readonly AttachPick[];
 }): Promise<string> {
   const start = input.start || null;
-  const row = await putDocument<Event>(midnightNextDay({
+  const ev = midnightNextDay({
+    id: newId(),
     type: EVENT_TYPE,
     title: input.title,
     notes: input.notes ?? "",
@@ -48,8 +39,10 @@ export async function addEvent(input: {
     end: start ? (input.end || null) : null,
     tags: normalizeTags(input.tags),
     with: [...new Set(input.with)],
-  }));
-  return row.id;
+  });
+  // The Event and the blockers attached to it land together, or not at all.
+  await putDocuments([ev, ...(await attachedBlockerRows(ev, input.attach ?? []))]);
+  return ev.id;
 }
 
 /** A timed Event keeps the day its end is on (ADR 0090), an all-day one its last day: a day after the first, and a timed one only with an end time. */
@@ -57,8 +50,31 @@ function endDayOf(input: { date: DateStr; endDate?: DateStr | null; end?: string
   return input.endDate && input.endDate > input.date && (!start || input.end) ? input.endDate : null;
 }
 
-export async function updateEvent(ev: Event): Promise<void> {
-  await putDocument<Event>(midnightNextDay({ ...ev, type: EVENT_TYPE, tags: normalizeTags(ev.tags ?? []) }));
+/**
+ * The one way an existing Event is written when it may move (#497): the Event
+ * and its attached blockers, each rewritten against where it now is, in one
+ * all-or-none write — so they never land half-moved, whichever Surface, dialog
+ * or tool moved it.
+ */
+async function writeMoved(was: Event, now: Event, added: readonly DocumentInput[] = []): Promise<void> {
+  // Made all day, its blockers are detached in the same write and stay where they stand (#519).
+  // Only the bands' moved Fields are written, onto each band as it is when the write lands.
+  const blockers = !spanOf(now) && spanOf(was) ? await blockersDetachedFrom(was.id) : await blockersFollowing(was, now);
+  await putDocuments([now, ...added], blockers);
+}
+
+/**
+ * An Event written whole, everything at once (the demo's agenda): its
+ * attached blockers following a new time, and any picks (`attach`) attached
+ * against it in the same write. The Event Form writes field by field instead.
+ */
+export async function updateEvent(ev: Event, attach: readonly AttachPick[] = []): Promise<void> {
+  const next = midnightNextDay({ ...ev, type: EVENT_TYPE, tags: normalizeTags(ev.tags ?? []) });
+  const was = await getDocument<Event>(ev.id);
+  const now = normalizeEvent(next);
+  // Its row gone, the save puts the Event back with the dialog's picks in the same write.
+  if (!was || was.type !== EVENT_TYPE) return void (await putDocuments([next, ...(await attachedBlockerRows(now, attach))]));
+  await writeMoved(normalizeEvent(was), now, await attachedBlockerRows(now, attach));
 }
 
 /** Edit an Event's own words — its notes, Tags and With — from wherever it is shown (its Peek, ADR 0085). */
@@ -74,7 +90,8 @@ export async function editEvent(id: string, edit: { notes?: string; tags?: strin
 export async function setEventWhen(id: string, when: EventWhen): Promise<void> {
   const ev = await getDocument<Event>(id);
   if (!ev || ev.type !== EVENT_TYPE) return;
-  await patchDocument(id, midnightNextDay({ date: when.date, endDate: when.endDate, start: when.start, end: when.end }));
+  const was = normalizeEvent(ev);
+  await writeMoved(was, normalizeEvent({ ...ev, ...midnightNextDay({ date: when.date, endDate: when.endDate, start: when.start, end: when.end }) }));
 }
 
 export async function deleteEvent(id: string): Promise<void> {
@@ -86,14 +103,15 @@ export async function moveEvent(id: string, to: DateStr): Promise<void> {
   const ev = await getDocument<Event>(id);
   // Time blockers reach the Timed contract through this App too (ADR 0027); they have no day to move.
   if (!ev || ev.type !== EVENT_TYPE) return;
-  const e = normalize(ev);
+  const e = normalizeEvent(ev);
   const len = e.endDate && e.endDate > e.date ? diffDays(e.date, e.endDate) : 0;
-  await putDocument<Event>({ ...e, date: to, endDate: len > 0 ? addDays(to, len) : null });
+  await writeMoved(e, { ...e, date: to, endDate: len > 0 ? addDays(to, len) : null });
 }
 
 /** Reschedule an event to when it now happens, whole (ADR 0090) — `rescheduled` says what is kept. */
 export async function rescheduleEvent(id: string, when: TimedWhen): Promise<void> {
   const ev = await getDocument<Event>(id);
   if (!ev || ev.type !== EVENT_TYPE) return;
-  await putDocument<Event>(midnightNextDay(rescheduled(normalize(ev), when)));
+  const was = normalizeEvent(ev);
+  await writeMoved(was, midnightNextDay(rescheduled(was, when)));
 }

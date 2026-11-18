@@ -1,0 +1,116 @@
+# Installed by /ship:setup-ship (command mode: pnpm integrate, ADR 0096). The rules it enforces are in docs/agents/shipping.md.
+#
+# A PR reaches master only once a person has reviewed it and added the `ship` label:
+# - `gate` sets the required `ship` commit status: pending until labelled, success after.
+# - `automerge` turns on GitHub auto-merge for a labelled PR, so it merges when CI is green.
+# - `dependabot` labels low-risk dependency PRs itself.
+# - `land` (command mode only) runs the project's own landing command on the labelled PRs.
+#
+# SHIP_TOKEN is a fine-grained token (contents, pull requests: read and write). Merges, labels
+# and PRs made with the default GITHUB_TOKEN don't trigger other workflows (CI, deploys),
+# so every write that must trigger one uses it.
+name: Ship
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, labeled, unlabeled, ready_for_review]
+  schedule:
+    - cron: "17 */2 * * *"
+  workflow_dispatch:
+
+env:
+  SHIP_LABEL: ship
+  MERGE_METHOD: merge
+  LAND_BRANCH_PREFIX: "integration/"
+
+permissions:
+  contents: read
+  pull-requests: read
+  statuses: write
+
+jobs:
+  gate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set the ship status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD: ${{ github.head_ref }}
+          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+        run: |
+          state=pending; desc="Waiting for review: add the '$SHIP_LABEL' label to ship it"
+          if echo "$LABELS" | jq -e --arg l "$SHIP_LABEL" 'index($l) != null' >/dev/null; then
+            state=success; desc="Reviewed"
+          fi
+          case "$HEAD" in "$LAND_BRANCH_PREFIX"*) state=success; desc="Batch of reviewed PRs";; esac
+          gh api "repos/$GITHUB_REPOSITORY/statuses/$SHA" -f state="$state" -f context=ship -f description="$desc" >/dev/null
+          echo "ship: $state ($desc)"
+
+  automerge:
+    if: >-
+      github.event_name == 'pull_request' && !github.event.pull_request.draft &&
+      startsWith(github.head_ref, 'integration/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Merge when green
+        env:
+          GH_TOKEN: ${{ secrets.SHIP_TOKEN || github.token }}
+          HAS_SHIP_TOKEN: ${{ secrets.SHIP_TOKEN != '' }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          [ "$HAS_SHIP_TOKEN" = true ] || echo "::warning::No SHIP_TOKEN secret: the merge won't trigger workflows on master (deploys)."
+          gh pr merge "$PR" --auto "--$MERGE_METHOD" --repo "$GITHUB_REPOSITORY"
+
+  dependabot:
+    if: github.event_name == 'pull_request' && github.event.action == 'opened' && github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      # Reads Dependabot's commit metadata itself rather than through dependabot/fetch-metadata,
+      # so repos whose Actions policy allows only their own and GitHub's actions can run it.
+      - name: Ship patch and GitHub Actions updates without review
+        env:
+          GH_TOKEN: ${{ secrets.SHIP_TOKEN }}
+          READ_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          HEAD: ${{ github.head_ref }}
+        run: |
+          case "$HEAD" in
+            dependabot/github_actions/*) ;;
+            *)
+              # One `update-type:` line per dependency; a grouped PR ships only if all are patches.
+              types=$(GH_TOKEN="$READ_TOKEN" gh api "repos/$GITHUB_REPOSITORY/pulls/$PR/commits" --jq '.[0].commit.message' | sed -n 's/^[ -]*update-type: *//p')
+              if [ -z "$types" ] || echo "$types" | grep -qv '^version-update:semver-patch$'; then
+                echo "Needs review: $(echo "$types" | sort -u | paste -sd, -)"; exit 0
+              fi ;;
+          esac
+          [ -n "$GH_TOKEN" ] || { echo "::warning::Add SHIP_TOKEN as a Dependabot secret too; skipping the label."; exit 0; }
+          gh api "repos/$GITHUB_REPOSITORY/issues/$PR/labels" -f "labels[]=$SHIP_LABEL" >/dev/null
+
+  land:
+    if: github.event_name != 'pull_request' || (github.event.action == 'labeled' && github.event.label.name == 'ship')
+    runs-on: ubuntu-latest
+    concurrency: { group: ship-land, cancel-in-progress: false }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { fetch-depth: 0, token: "${{ secrets.SHIP_TOKEN }}" }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Land the reviewed, green PRs
+        env:
+          GH_TOKEN: ${{ secrets.SHIP_TOKEN }}
+        run: |
+          git config user.name "ship" && git config user.email "claude@grimfeld.tech"
+          open=$(gh pr list --state open --json headRefName --jq '[.[] | select(.headRefName | startswith(env.LAND_BRANCH_PREFIX))] | length')
+          [ "$open" = 0 ] || { echo "A batch is already open; the next run takes the rest."; exit 0; }
+          # shellcheck disable=SC2016 # a jq program, not shell
+          prs=$(gh pr list --label "$SHIP_LABEL" --state open --json number,isDraft,headRefName,statusCheckRollup --jq '
+            [.[] | select(.isDraft | not) | select(.headRefName | startswith(env.LAND_BRANCH_PREFIX) | not)
+                 | select(all(.statusCheckRollup[]; (.conclusion // .state) as $s | $s == "SUCCESS" or $s == "SKIPPED" or $s == "NEUTRAL"))
+                 | .number] | map(tostring) | join(" ")')
+          [ -n "$prs" ] || { echo "Nothing to land."; exit 0; }
+          echo "Landing: $prs"
+          # shellcheck disable=SC2086 # one argument per PR number
+          node scripts/integrate.mjs $prs

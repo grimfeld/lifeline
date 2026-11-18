@@ -6,7 +6,7 @@ import { addEvent } from "../data/repo";
 import { eventFormErrors, newEventWhen, whenOf, withEnd, withStart, type EventFormErrors, type WhenForm } from "../domain/eventForm";
 import { fillFromTemplate } from "../domain/templates";
 import { useEventTemplates } from "../data/templates";
-import { EventForm, type EventDraft } from "./EventForm";
+import { EventForm, type BlockerPick, type EventDraft } from "./EventForm";
 import { PlaceHere } from "./PlaceHere";
 import { whenIds } from "./WhenFields";
 
@@ -51,6 +51,8 @@ export function EventDialog({
 }) {
   const [title, setTitle] = useState("");
   const [draft, setDraft] = useState<EventDraft>(() => ({ ...newDraft(todayStr(), {}), notes: "", with: [], tags: [] }));
+  /** Blockers picked from Before…/After…, attached when the Event is added (#497). */
+  const [picks, setPicks] = useState<BlockerPick[]>([]);
   /** Errors show once saving has been tried, and clear as each field is fixed. */
   const [tried, setTried] = useState(false);
   const templates = useEventTemplates();
@@ -61,6 +63,7 @@ export function EventDialog({
   useEffect(() => {
     if (!open) return;
     setTitle(preTitle ?? handoff?.title ?? "");
+    setPicks([]);
     setTried(false);
     setDraft({
       ...newDraft(preDate ?? defaultDate ?? todayStr(), { start: preStart, endDate: preEndDate, end: preEnd }),
@@ -86,7 +89,9 @@ export function EventDialog({
       if (first) document.getElementById(FIELD_IDS[first])?.focus();
       return;
     }
-    const id = await addEvent({ title: title.trim(), notes: draft.notes.trim(), ...whenOf(draft), tags: draft.tags, with: draft.with });
+    // An all-day Event takes no attached blockers: what was picked before it was made all day is dropped.
+    const attach = draft.allDay ? [] : picks.map((p) => ({ templateId: p.template.id, side: p.side }));
+    const id = await addEvent({ title: title.trim(), notes: draft.notes.trim(), ...whenOf(draft), tags: draft.tags, with: draft.with, attach });
     toast.success("Event added");
     onSaved?.(id);
     onOpenChange(false);
@@ -126,7 +131,7 @@ export function EventDialog({
               onKeyDown={(e) => e.key === "Enter" && void submit()}
             />
           </Field>
-          <EventForm mode="adding" draft={draft} onChange={setDraft} errors={errors} idPrefix="ev-" />
+          <EventForm mode="adding" draft={draft} onChange={setDraft} errors={errors} idPrefix="ev-" picks={picks} onPicks={setPicks} />
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>

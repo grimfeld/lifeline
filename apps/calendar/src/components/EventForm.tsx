@@ -1,11 +1,15 @@
-import { useId, useImperativeHandle, useState, type MutableRefObject } from "react";
-import { Field, TagInput, Textarea, useCommitDraft } from "@lifeline/ui";
+import { useId, useImperativeHandle, useState, type MutableRefObject, type ReactNode } from "react";
+import { Button, Field, TagInput, Textarea, useCommitDraft } from "@lifeline/ui";
 import { noteTiming, normalizeTag, useTagVocabulary } from "@lifeline/core";
 import { PeopleField } from "@lifeline/editor";
-import type { Event } from "../domain/types";
+import { X } from "lucide-react";
+import type { BlockerSide, BlockerTemplate, Event } from "../domain/types";
+import { SIDE_LABELS } from "../domain/attached";
 import { whenFormErrors, whenOf, type EventDraft, type WhenForm, type WhenFormErrors } from "../domain/eventForm";
 import { editEvent, setEventWhen } from "../data/repo";
 import { WhenFields } from "./WhenFields";
+import { AttachBlocker, AttachMenus } from "./AttachBlocker";
+import { AttachedBlockers } from "./AttachedBlockers";
 
 export type { EventDraft } from "../domain/eventForm";
 
@@ -23,18 +27,46 @@ export type { EventDraft } from "../domain/eventForm";
  *   A change of day and times is noted to the Peek (`noteTiming`), which leaves
  *   one Undo for it on closing (ADR 0056, #536).
  *
+ * Under the day and times, a timed Event's **attached blockers** (CONTEXT.md,
+ * #497): adding, Before…/After… stage picks (`picks`, `onPicks`) that the caller
+ * attaches as it saves; editing, the Event's bands are listed and a pick
+ * attaches one at once. An all-day Event offers neither.
+ *
  * `idPrefix` names its controls (`whenIds`, then `<prefix>notes`, `with` and
  * `tags`): the Peek may sit over a page with the dialog's. The user's own
  * Fields are not here: Core draws them under the Form in the Peek.
  */
 export type EventFormProps =
-  | { mode: "adding"; draft: EventDraft; onChange: (draft: EventDraft) => void; errors?: WhenFormErrors; idPrefix?: string }
+  | {
+      mode: "adding";
+      draft: EventDraft;
+      onChange: (draft: EventDraft) => void;
+      errors?: WhenFormErrors;
+      idPrefix?: string;
+      /** Blockers picked from Before…/After…, for the caller to attach as it saves. */
+      picks?: readonly BlockerPick[];
+      onPicks?: (picks: BlockerPick[]) => void;
+    }
   | { mode: "editing"; event: Event; idPrefix?: string; flushRef?: MutableRefObject<(() => Promise<void>) | null> };
+
+/** A Blocker template picked from Before… or After… while an Event is being added. */
+export interface BlockerPick {
+  template: BlockerTemplate;
+  side: BlockerSide;
+}
 
 export function EventForm(props: EventFormProps) {
   if (props.mode === "adding") {
-    const { draft, onChange } = props;
-    return <EventFields value={draft} onChange={({ when, ...rest }) => onChange({ ...draft, ...when, ...rest })} errors={props.errors} idPrefix={props.idPrefix} />;
+    const { draft, onChange, picks = [], onPicks } = props;
+    return (
+      <EventFields
+        value={draft}
+        onChange={({ when, ...rest }) => onChange({ ...draft, ...when, ...rest })}
+        errors={props.errors}
+        idPrefix={props.idPrefix}
+        attach={onPicks && !draft.allDay && <PickedBlockers picks={picks} onPicks={onPicks} />}
+      />
+    );
   }
   // Keyed by the Event: following a link to another one must not carry an edit over.
   return <EditingForm key={props.event.id} event={props.event} idPrefix={props.idPrefix} flushRef={props.flushRef} />;
@@ -73,6 +105,14 @@ function EditingForm({ event, idPrefix, flushRef }: { event: Event; idPrefix?: s
     <EventFields
       idPrefix={idPrefix ?? ownPrefix}
       value={{ ...when, notes: notes.draft, with: event.with ?? [], tags: event.tags ?? [] }}
+      attach={
+        event.start ? (
+          <>
+            <AttachedBlockers eventId={event.id} eventDay={event.date} />
+            <AttachBlocker eventId={event.id} eventTitle={event.title} />
+          </>
+        ) : null
+      }
       // What the store refused shows under the day, with what is wrong with the form.
       errors={{ ...(written.error ? { date: written.error } : {}), ...whenFormErrors(when) }}
       onChange={(patch) => {
@@ -94,6 +134,27 @@ function EditingForm({ event, idPrefix, flushRef }: { event: Event; idPrefix?: s
   );
 }
 
+/** Before…/After… while adding: the picks listed beneath, each with its × to drop it. */
+function PickedBlockers({ picks, onPicks }: { picks: readonly BlockerPick[]; onPicks: (picks: BlockerPick[]) => void }) {
+  return (
+    <AttachMenus onPick={(template, side) => onPicks([...picks, { template, side }])}>
+      {picks.length > 0 && (
+        <ul aria-label="Blockers to attach" className="flex flex-col gap-1">
+          {picks.map((p, i) => (
+            <li key={i} className="flex min-w-0 items-center gap-2 text-sm">
+              <span className="text-muted-foreground shrink-0 text-xs">{SIDE_LABELS[p.side]}</span>
+              <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{p.template.title}</span>
+              <Button variant="ghost" size="icon-sm" className="shrink-0" aria-label={`Don't attach ${p.template.title}`} onClick={() => onPicks(picks.filter((_, j) => j !== i))}>
+                <X />
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </AttachMenus>
+  );
+}
+
 /** What one control changed: a when as a whole (the day and time controls move together), or one other Field. */
 type FieldsPatch = Partial<Pick<EventDraft, "notes" | "with" | "tags">> & { when?: WhenForm };
 
@@ -103,11 +164,14 @@ function EventFields({
   onChange,
   errors = {},
   idPrefix = "ev-",
+  attach,
 }: {
   value: EventDraft;
   onChange: (patch: FieldsPatch) => void;
   errors?: WhenFormErrors;
   idPrefix?: string;
+  /** The attached blockers' section for this mode, under the day and times; nothing for an all-day Event. */
+  attach?: ReactNode;
 }) {
   const suggestions = useTagVocabulary().map((v) => v.tag);
   const { notes, with: withIds, tags, ...when } = value;
@@ -119,6 +183,7 @@ function EventFields({
         errors={errors}
         onChange={(w) => onChange({ when: w })}
       />
+      {attach}
       <Field label="Notes">
         <Textarea id={`${idPrefix}notes`} value={notes} onChange={(e) => onChange({ notes: e.target.value })} rows={3} placeholder="Optional" />
       </Field>
