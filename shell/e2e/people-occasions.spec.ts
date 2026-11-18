@@ -3,8 +3,10 @@ import { inCore } from "./support/core";
 import { datePickerLabelled, pickDate } from "./support/date-picker";
 
 /**
- * Occasions (#404 stories 22-31): added on a Person's page, they stand on the
- * Calendar as all-day markers, not Events and not Deadlines.
+ * Occasions (#404 stories 22-31): added on a Person's page, they head Upcoming
+ * on the People home (#416) and stand on the Calendar as all-day markers, not
+ * Events and not Deadlines. Which Occasions fall when, and with what age, is
+ * occasions.test's.
  */
 
 const PERSON = "contacts_person";
@@ -20,7 +22,7 @@ const month = pad(today.getMonth() + 1);
 const dom = pad(today.getDate());
 const age = today.getFullYear() - 1961;
 
-test("a Birthday added on a Person's page shows their age there and stands on the Calendar as an all-day marker", async ({ page }) => {
+test("a Birthday added on a Person's page shows their age there, heads Upcoming on the People home and stands on the Calendar as an all-day marker", async ({ page }) => {
   await page.goto("/app/people");
   await workLocally(page);
   const id = await inCore(page, async (core, type: string) => (await core.createDocument({ type, title: "Anne Dupont", fields: { aliases: [], relationship: "my mother" } })).id as string, PERSON);
@@ -37,6 +39,14 @@ test("a Birthday added on a Person's page shows their age there and stands on th
   await expect(occasions).toContainText("Birthday");
   await expect(occasions).toContainText("every year");
   await expect(page.getByText(`${age} years old`)).toBeVisible();
+
+  // Today's Birthday heads Upcoming on the People home, with the age reached, and opens the Person.
+  await page.goto("/app/people");
+  await workLocally(page);
+  const upcoming = page.getByRole("region", { name: "Upcoming" }).getByRole("link", { name: new RegExp(`today.*Anne Dupont.*Birthday · turns ${age}`) });
+  await expect(upcoming).toBeVisible();
+  await upcoming.click();
+  await expect(page).toHaveURL(new RegExp(`/app/people/person/${id}`));
 
   await page.goto("/calendar?view=month");
   await workLocally(page);
@@ -60,26 +70,4 @@ test("an Occasion can be edited and removed", async ({ page }) => {
   await expect(occasions).toContainText("Operation");
   await occasions.getByRole("button", { name: "Remove Operation" }).click();
   await expect(occasions).not.toContainText("Operation");
-});
-
-test("a Birthday whose year I don't know is given as a month and a day, and carries no age", async ({ page }) => {
-  await page.goto("/app/people");
-  await workLocally(page);
-  const id = await inCore(page, async (core, type: string) => (await core.createDocument({ type, title: "Léa", fields: { aliases: [], relationship: "friend" } })).id as string, PERSON);
-  await page.goto(`/app/people/person/${id}`);
-  await workLocally(page);
-
-  await page.getByRole("button", { name: "Add occasion" }).click();
-  const dialog = page.getByRole("dialog", { name: "Add an occasion" });
-  await dialog.getByLabel("Label").fill("Birthday");
-  await dialog.getByLabel("I don't know the year").check();
-  await dialog.getByRole("combobox", { name: "Month" }).click();
-  await page.getByRole("option", { name: "February" }).click();
-  await dialog.getByRole("combobox", { name: "Day" }).click();
-  await page.getByRole("option", { name: "29", exact: true }).click();
-  await dialog.getByRole("button", { name: "Save" }).click();
-
-  const occasions = page.getByRole("region", { name: "Occasions" });
-  await expect(occasions).toContainText("29 February · every year");
-  await expect(page.getByText(/years old/)).toHaveCount(0);
 });

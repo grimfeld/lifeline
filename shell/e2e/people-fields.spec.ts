@@ -31,51 +31,45 @@ async function pickPerson(page: Page, dialog: ReturnType<Page["getByRole"]>, lab
   await expect(dialog.getByText(name)).toBeVisible();
 }
 
-test("a Task added For someone, found by an alias, shows on their Person page's timeline", async ({ page }) => {
+test("a Task and a Transaction added For someone, found by an alias, show on their Person page's timeline", async ({ page }) => {
   const title = `Buy a present ${Date.now()}`;
+  const payee = `Flowers ${Date.now()}`;
   await page.goto("/app/projects");
   await workLocally(page);
   const anne = await newPerson(page, "Anne Verhoeven", "Annie");
 
   await runCommand(page, "Add task", /^Add task/);
-  const dialog = page.getByRole("dialog", { name: "New task" });
-  await dialog.getByLabel("Title").fill(title);
-  await pickPerson(page, dialog, "For", "Annie", "Anne Verhoeven");
-  await dialog.getByRole("button", { name: "Add task" }).click();
-  await expect(dialog).toBeHidden();
+  const task = page.getByRole("dialog", { name: "New task" });
+  await task.getByLabel("Title").fill(title);
+  await pickPerson(page, task, "For", "Annie", "Anne Verhoeven");
+  await task.getByRole("button", { name: "Add task" }).click();
+  await expect(task).toBeHidden();
 
-  await page.goto(`/app/people/person/${anne}`);
-  await workLocally(page);
-  await expect(page.getByRole("region", { name: "Timeline" })).toContainText(title);
-  await expect(page.getByRole("region", { name: "Timeline" })).toContainText("via For");
-});
-
-test("a Transaction added For someone shows on their Person page's timeline", async ({ page }) => {
-  const payee = `Flowers ${Date.now()}`;
   await page.goto("/app/ledger");
   await workLocally(page);
-  const marc = await newPerson(page, "Marc Lefèvre", "Marco");
   await inCore(page, async (core) => {
     await core.putDocument({ type: "ledger_account", title: "Current", flavor: "checking", openingBalance: 0, archived: false, importMapping: null, folder: "", tags: [] });
     await core.putDocument({ type: "ledger_category", title: "Gifts", kind: "expense", group: "", target: 0, accumulating: false, folder: "", tags: [] });
   }, null);
-
   await runCommand(page, "Add transaction", /^Add transaction/);
-  const dialog = page.getByRole("dialog", { name: "Add transaction" });
-  await dialog.getByLabel("Amount").fill("25");
-  await dialog.getByLabel("Payee").fill(payee);
-  await dialog.getByRole("combobox", { name: "Category" }).click();
+  const transaction = page.getByRole("dialog", { name: "Add transaction" });
+  await transaction.getByLabel("Amount").fill("25");
+  await transaction.getByLabel("Payee").fill(payee);
+  await transaction.getByRole("combobox", { name: "Category" }).click();
   await page.getByRole("option", { name: "Gifts" }).click();
-  await pickPerson(page, dialog, "For", "Marco", "Marc Lefèvre");
-  await dialog.getByRole("button", { name: "Add", exact: true }).click();
-  await expect(dialog).toBeHidden();
+  await pickPerson(page, transaction, "For", "Annie", "Anne Verhoeven");
+  await transaction.getByRole("button", { name: "Add", exact: true }).click();
+  await expect(transaction).toBeHidden();
 
-  await page.goto(`/app/people/person/${marc}`);
+  await page.goto(`/app/people/person/${anne}`);
   await workLocally(page);
-  await expect(page.getByRole("region", { name: "Timeline" })).toContainText(payee);
+  const timeline = page.getByRole("region", { name: "Timeline" });
+  await expect(timeline).toContainText(title);
+  await expect(timeline).toContainText("via For");
+  await expect(timeline).toContainText(payee);
 });
 
-test("a book added Recommended by someone shows on their Person page, and Reason stays free text", async ({ page }) => {
+test("a book added Recommended by someone, and one given it on its page, show on their Person page; Reason stays free text", async ({ page }) => {
   const title = `Dune ${Date.now()}`;
   await page.route(/^https:\/\/(?!localhost)/, (route) => route.abort());
   await page.goto("/app/library");
@@ -91,25 +85,16 @@ test("a book added Recommended by someone shows on their Person page, and Reason
   await dialog.getByRole("button", { name: /^Add/ }).last().click();
   await expect(dialog).toBeHidden();
 
-  await page.goto(`/app/people/person/${jo}`);
-  await workLocally(page);
-  await expect(page.getByRole("region", { name: "Timeline" })).toContainText(title);
-});
-
-test("a book's Recommended by is set on its page after it was added", async ({ page }) => {
-  await page.route(/^https:\/\/(?!localhost)/, (route) => route.abort());
-  await page.goto("/app/library");
-  await workLocally(page);
-  const jo = await newPerson(page, "Jo Peeters", "Joey");
-  const title = `Hyperion ${Date.now()}`;
-  await expect.poll(() => inCore(page, async (core, t: string) => !!core.documentType(t), "book")).toBe(true);
-  const id = await inCore(page, async (core, t: string) => (await core.putDocument({ type: "book", title: t, body: "", engagement: "UNSTARTED", acquisition: "WANTED", addedOn: "2026-01-01" })).id as string, title);
-
+  // A second book, added without one, is given its Recommended by on its page.
+  const later = `Hyperion ${Date.now()}`;
+  const id = await inCore(page, async (core, t: string) => (await core.putDocument({ type: "book", title: t, body: "", engagement: "UNSTARTED", acquisition: "WANTED", addedOn: "2026-01-01" })).id as string, later);
   await page.goto(`/app/library/works/${id}`);
   await workLocally(page);
   await pickPerson(page, page.locator("main"), "Recommended by", "Joey", "Jo Peeters");
 
   await page.goto(`/app/people/person/${jo}`);
   await workLocally(page);
-  await expect(page.getByRole("region", { name: "Timeline" })).toContainText(title);
+  const timeline = page.getByRole("region", { name: "Timeline" });
+  await expect(timeline).toContainText(title);
+  await expect(timeline).toContainText(later);
 });

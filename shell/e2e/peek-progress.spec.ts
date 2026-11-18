@@ -1,11 +1,11 @@
 import { test, expect, type Page } from "@playwright/test";
 import { inCore, type Core } from "./support/core";
-import { setTime } from "./support/time-field";
 
 /**
- * The Progress Apps' editable Peeks (ADR 0085): a Stat, a Workout session, a
- * Habit, a Mood and a Fine are edited where they are peeked, through each
- * App's own controls, and the edit is the App's operation — it persists.
+ * An editable Peek (ADR 0085), the guarded-field pattern: a Stat is edited
+ * where it is peeked, through the App's own controls, its edit persists, and
+ * its guarded kind stays fixed. Each App's one-field edits are component
+ * tests of its Peek part (`@lifeline/parts/testing`, #561).
  */
 
 async function workLocally(page: Page) {
@@ -33,75 +33,4 @@ test("Stats: a Stat's unit is edited in its Peek; its kind stays fixed", async (
   await dialog.getByLabel("Unit").blur();
   await expect.poll(() => field(page, id, "unit")).toBe("sets");
   expect(await field(page, id, "kind")).toBe("additive");
-});
-
-test("Workout: a Session's notes are edited in its Peek", async ({ page }) => {
-  const { id, dialog } = await peekNew(page, async (core, stamp) => {
-    const w = await core.putDocument({ type: "workout", title: `Fran ${stamp}`, blocks: [], tallies: [] });
-    return (
-      await core.putDocument({
-        type: "workout_session",
-        title: `Fran · 2026-10-01`,
-        workoutId: w.id,
-        startedAt: "2026-10-01T08:00:00.000Z",
-        endedAt: "2026-10-01T08:20:00.000Z",
-        date: "2026-10-01",
-        start: "08:00",
-        end: "08:20",
-        durationMin: 20,
-        results: [],
-        notes: "",
-      })
-    ).id;
-  });
-  await dialog.getByLabel("Notes").fill("Felt strong");
-  // Written on leaving the field (Escape in it would put the stored value back).
-  await dialog.getByLabel("Notes").blur();
-  await expect.poll(() => field(page, id, "notes")).toBe("Felt strong");
-});
-
-test("Life Level: a Habit's difficulty is changed in its Peek", async ({ page }) => {
-  const { id, dialog } = await peekNew(page, async (core, stamp) => (await core.putDocument({ type: "habit", title: `Read ${stamp}`, difficulty: "normal" })).id);
-  await dialog.getByRole("combobox", { name: "Difficulty" }).click();
-  await page.getByRole("option", { name: /^Hard/ }).click();
-  await expect.poll(() => field(page, id, "difficulty")).toBe("hard");
-});
-
-test("Mood: a day's Mood is changed in its Peek", async ({ page }) => {
-  const { id, dialog } = await peekNew(page, async (core) => {
-    const date = "2020-01-0" + (1 + Math.floor(Math.random() * 9));
-    const old = (await core.documentsOf("mood")).find((m: { title: string }) => m.title === date);
-    if (old) await core.removeDocument(old.id);
-    return (await core.putDocument({ type: "mood", title: date, level: 2 })).id;
-  });
-  await dialog.getByRole("button", { name: /Great/ }).click();
-  await expect.poll(() => field(page, id, "level")).toBe(5);
-});
-
-test("Swear Jar: a Fine's note is edited in its Peek; its amount stays the Offence's", async ({ page }) => {
-  const { id, dialog } = await peekNew(page, async (core, stamp) => {
-    const o = await core.putDocument({ type: "swearjar_offence", title: `Snoozed ${stamp}`, name: `Snoozed ${stamp}`, price: 200, emoji: "", color: "", archived: false });
-    return (await core.putDocument({ type: "swearjar_fine", title: "€2.00", offenceId: o.id, amount: 200, occurredAt: "2026-10-01T08:00:00.000Z", note: "" })).id;
-  });
-  await expect(dialog.getByLabel("Amount (cents)")).toHaveCount(0);
-  await dialog.getByLabel("Note").fill("Twice, really");
-  // Written on leaving the field (Escape in it would put the stored value back).
-  await dialog.getByLabel("Note").blur();
-  await expect.poll(() => field(page, id, "note")).toBe("Twice, really");
-  expect(await field(page, id, "amount")).toBe(200);
-});
-
-test("Swear Jar: a Fine's time is typed into its Peek's Time field and written at once", async ({ page }) => {
-  const { id, dialog } = await peekNew(page, async (core, stamp) => {
-    const o = await core.putDocument({ type: "swearjar_offence", title: `Snoozed ${stamp}`, name: `Snoozed ${stamp}`, price: 200, emoji: "", color: "", archived: false });
-    return (await core.putDocument({ type: "swearjar_fine", title: "€2.00", offenceId: o.id, amount: 200, occurredAt: "2026-10-01T08:00:00.000Z", note: "" })).id;
-  });
-  await expect(dialog.locator('input[type="time"]'), "no native time input").toHaveCount(0);
-  await setTime(dialog.getByRole("combobox", { name: "Time" }), "7:45pm");
-  await expect
-    .poll(async () => {
-      const d = new Date(String(await field(page, id, "occurredAt")));
-      return `${d.getHours()}:${d.getMinutes()}`;
-    })
-    .toBe("19:45");
 });

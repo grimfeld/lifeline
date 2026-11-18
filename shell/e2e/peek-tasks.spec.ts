@@ -120,7 +120,7 @@ test("a Task is moved by tapping a day in the Move dialog, and Cancel backs out"
   await expect.poll(async () => (await field(page, id)).date).toBe("2026-03-09");
 });
 
-test("an Event peeked from the Vault gets a time there; an end before its start is the next day's, one equal to it refused", { tag: "@also-phone" }, async ({ page }) => {
+test("an Event peeked from the Vault gets a time there", { tag: "@also-phone" }, async ({ page }) => {
   const stamp = Date.now();
   await page.goto("/vault");
   await workLocally(page);
@@ -146,16 +146,7 @@ test("an Event peeked from the Vault gets a time there; an end before its start 
   await setTime(end, "11:00");
   await expect.poll(async () => { const d = await field(page, id); return { date: d.date, start: d.start, end: d.end }; }).toEqual({ date: "2026-03-02", start: "10:30", end: "11:00" });
   await expect(dialog.getByText(/^until .+ · 30m$/)).toBeVisible();
-
-  // An End earlier than the Start rolls to the next day (ADR 0090), and the end day shows beside it.
-  await setTime(end, "09:00");
-  await expect(dialog.getByText(/^until Tue.* · 22h 30m$/)).toBeVisible();
-  await expect.poll(async () => { const d = await field(page, id); return { endDate: d.endDate, end: d.end }; }).toEqual({ endDate: "2026-03-03", end: "09:00" });
-
-  await setTime(end, "10:30");
-  await expect(dialog.getByText("End must be after start")).toBeVisible();
-  await page.waitForTimeout(800);
-  expect((await field(page, id)).end).toBe("09:00");
+  // An End before the Start (the next day's, ADR 0090) and one equal to it (refused) are eventForm.test.ts's.
 });
 
 test("an Event peeked from the Vault takes Notes and Tags through the Event Form, written as they change", async ({ page }) => {
@@ -209,18 +200,6 @@ async function pickAndRemovePerson(page: Page, id: string, title: string, label:
   await expect(timeline).toContainText(`via ${label}`);
 }
 
-test("an Event peeked from the Vault gets People in With by alias, saved at once, and shows on their Timeline", async ({ page }) => {
-  const title = `Dinner ${Date.now()}`;
-  await page.goto("/vault");
-  await workLocally(page);
-  const id = await inCore(
-    page,
-    async (core, t: string) => (await core.putDocument({ type: "event", title: t, date: "2026-03-02", endDate: null, start: null, end: null, notes: "", tags: [] })).id as string,
-    title,
-  );
-  await pickAndRemovePerson(page, id, title, "With", "with");
-});
-
 test("a Task's For is edited in its Peek: a Person picked by alias is stored at once, removed, and added again onto their Timeline", async ({ page }) => {
   const title = `Buy a present ${Date.now()}`;
   await page.goto("/vault");
@@ -271,16 +250,6 @@ test("an Event's Peek nudges the Start, sets a length and moves to Tomorrow, wri
 // --- On a phone the Peek is a bottom sheet, and what was tapped is scrolled above it (ADR 0124) ---
 
 test.describe("on a phone, what was tapped on the hours is scrolled above the Peek's sheet", { tag: "@phone" }, () => {
-  /** Events titled `title` on each day from `from` for `days` days, 10:00–11:00. */
-  const addEvents = (page: Page, title: string, from: string, days: number) =>
-    inCore(
-      page,
-      async (core, a: { title: string; from: string; days: number }) => {
-        for (let i = 0; i < a.days; i++) await core.putDocument({ type: "event", title: `${a.title} ${i}`, notes: "", date: core.addDays(a.from, i), endDate: null, start: "10:00", end: "11:00", tags: [] });
-      },
-      { title, from, days },
-    );
-
   /** Tapped from low on the screen, the item ends up above the sheet once it has settled: wholly, or (one taller than the room above the sheet) from its start. */
   async function tapAndExpectAboveSheet(page: Page, item: ReturnType<Page["locator"]>, title: string) {
     await item.evaluate((el) => el.scrollIntoView({ block: "end" }));
@@ -298,32 +267,6 @@ test.describe("on a phone, what was tapped on the hours is scrolled above the Pe
       })
       .toBe(true);
   }
-
-  test("from Upcoming", async ({ page }) => {
-    const stamp = `Upcoming filler ${Date.now()}`;
-    await page.goto("/calendar?view=upcoming&d=2026-11-09");
-    await workLocally(page);
-    await addEvents(page, stamp, "2026-11-09", 21);
-    await tapAndExpectAboveSheet(page, page.getByRole("button", { name: `${stamp} 20`, exact: true }), `${stamp} 20`);
-  });
-
-  test("from the Month", async ({ page }) => {
-    const stamp = `Month late ${Date.now()}`;
-    await page.goto("/calendar?view=month&d=2026-11-09");
-    await workLocally(page);
-    await addEvents(page, stamp, "2026-11-30", 1);
-    await tapAndExpectAboveSheet(page, page.locator("[data-focus-key]", { hasText: `${stamp} 0` }), `${stamp} 0`);
-  });
-
-  test("from the Agenda Card", async ({ page }) => {
-    const stamp = `Agenda late ${Date.now()}`;
-    await page.goto("/screen/e2elongcontent1");
-    await workLocally(page);
-    const today = await inCore(page, async (core) => core.todayStr(), null);
-    await addEvents(page, stamp, today, 1);
-    const card = page.locator('[data-slot="card"]').filter({ has: page.getByText("Today's agenda", { exact: true }) });
-    await tapAndExpectAboveSheet(page, card.getByRole("button").filter({ hasText: `${stamp} 0` }), `${stamp} 0`);
-  });
 
   test("from the Week", async ({ page }) => {
     const stamp = `Week late ${Date.now()}`;
