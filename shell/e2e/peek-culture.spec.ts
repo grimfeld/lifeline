@@ -2,9 +2,11 @@ import { test, expect, type Page } from "@playwright/test";
 import { inCore } from "./support/core";
 
 /**
- * The Culture Apps' editable Peeks (ADR 0085): a work, an Author, a Playlist
- * or an Artwork is edited where it is peeked — here over the Vault, away from
- * its Home Module — through its App's own controls, and the edit persists.
+ * An editable Peek (ADR 0085) with a guarded Field, the App transition menu
+ * pattern: a book is edited where it is peeked — here over the Vault, away
+ * from its Home Module — and its Shelf moves only through the Library's own
+ * operations. Each App's one-field edits are component tests of its Peek part
+ * (`@lifeline/parts/testing`, #561).
  */
 
 async function workLocally(page: Page) {
@@ -44,44 +46,4 @@ test("Library: a book's Year is edited in its Peek, and its Shelf moves only thr
   await dialog.getByRole("button", { name: "Shelf" }).click();
   await page.getByRole("menuitem", { name: "Got it (owned)" }).click();
   await expect.poll(() => fieldOf(page, id, "acquisition")).toBe("OWNED");
-});
-
-test("Library: an Author's dates are edited in its Peek", async ({ page }) => {
-  const { id, dialog } = await peekNew(page, "author");
-  await dialog.getByLabel("Born").fill("1929");
-  await expect.poll(() => fieldOf(page, id, "born")).toBe("1929");
-});
-
-test("Cinema: a film's Reason is edited in its Peek", async ({ page }) => {
-  const { id, dialog } = await peekNew(page, "movie");
-  await dialog.getByLabel("Reason").fill("A friend swore by it");
-  await expect.poll(() => fieldOf(page, id, "reason")).toBe("A friend swore by it");
-  await dialog.getByRole("button", { name: "Like" }).click();
-  await expect.poll(() => fieldOf(page, id, "liked")).toBe(true);
-});
-
-test("Cinema: a Playlist is ranked from its Peek", async ({ page }) => {
-  const { id, dialog } = await peekNew(page, "cinema_playlist", { workIds: [], ranked: false });
-  await dialog.getByLabel("Ranked").click();
-  await expect.poll(() => fieldOf(page, id, "ranked")).toBe(true);
-});
-
-test("Discotheque: an album's Artist is edited in its Peek", async ({ page }) => {
-  const { id, dialog } = await peekNew(page, "music");
-  await dialog.getByLabel("Artist").fill("Nina Simone");
-  await expect.poll(() => fieldOf(page, id, "creator")).toBe("Nina Simone");
-});
-
-test("Arcade: a game's Year is edited in its Peek", async ({ page }) => {
-  const { id, dialog } = await peekNew(page, "game");
-  await dialog.getByLabel("Year").fill("1998");
-  await expect.poll(() => fieldOf(page, id, "year")).toBe(1998);
-});
-
-test("Museum: a painting's Location is edited in its Peek", async ({ page }) => {
-  const { id, dialog } = await peekNew(page, "painting");
-  await dialog.getByLabel("Location").fill("Louvre, Paris");
-  await expect.poll(() => fieldOf(page, id, "location")).toBe("Louvre, Paris");
-  await dialog.getByLabel("Seen in person").click();
-  await expect.poll(() => fieldOf(page, id, "seen")).toBe(true);
 });

@@ -12,6 +12,7 @@ import {
   formatHuman,
   formatTime,
   hourWindow,
+  intakeByKey,
   layoutColumns,
   momentAfter,
   moveSurfaceItem,
@@ -33,15 +34,16 @@ import {
   useTimedItems,
   useTimedTemplates,
   type DateStr,
-  type PoolItem,
+  type Handoff,
+  type HoursTapped,
+  type IntakePrefill,
   type SurfaceItem,
   type SurfaceTimedItem,
   type TimedTemplate,
 } from "@lifeline/core";
 import { CalendarClock, Check, ChevronDown, Inbox, LayoutTemplate, Plus, Trash2, Zap } from "lucide-react";
 import { usePush } from "./push";
-import { HoursEditor, type HoursEditing, type HoursTarget } from "./HoursEditor";
-import { AddAtHour, type AddingAt } from "./AddAtHour";
+import { useOpenOnHours } from "./openOnHours";
 import { snap, sweptRange, toClock } from "./hours";
 import { DEFAULT_MIN, HOUR_PX, addHours, durationOf, entriesByDay as groupEntries, hourLabel, landingHours, lengthOf, resizedEnd, slotHours, templateLength, weekdayName, type Band, type Entry, type Ghost, type Lifted, type WorkItem } from "./scheduleGrid";
 import type { CalendarCtx } from "./CalendarSurface";
@@ -53,6 +55,8 @@ const NO_STRIP: { work: WorkItem[]; allDay: SurfaceTimedItem[] } = { work: [], a
 /** Long enough that a flick to scroll never lifts a block; short enough to feel like a press. */
 const LONG_PRESS_MS = 350;
 const POOL = "pool";
+/** The Event dialog opened from an hour carries nothing from elsewhere: one object, so it never resets what is typed. */
+const NO_HANDOFF: Handoff = { title: "", text: "" };
 
 /** Hours since midnight, now. */
 function hoursNow(): number {
@@ -137,7 +141,7 @@ function Chip({ id, focusKey, data, title, color, done, planned, onComplete, wor
       onClick={(ev) => onOpen?.(ev.currentTarget)}
       title={scheduled ? `${title} · ${planned} block${planned === 1 ? "" : "s"} planned — drag again for another` : title}
     >
-      {/* Too narrow for controls (a phone's Week): the tap opens the editor, which ticks too. */}
+      {/* Too narrow for controls (a phone's Week): the tap opens its Peek, whose Time block section has Complete. */}
       {onComplete && !done && !compact && (
         <button
           type="button"
@@ -261,7 +265,7 @@ function Block({ entry, from, cols, col, touch, onResize, onComplete, onRemove, 
         </div>
       )}
       {cut.after && !short && <div className="text-muted-foreground absolute inset-x-1.5 bottom-0.5 truncate text-2xs">{cut.after}</div>}
-      {/* On a phone the edge was a 12px target that fought the scroll: length is set in the editor there. A piece that carries on into the next day has no end of its own to drag. */}
+      {/* On a phone the edge was a 12px target that fought the scroll: length is set in the Peek there. A piece that carries on into the next day has no end of its own to drag. */}
       {!touch && !cut.after && (
       <div
         className={cn("absolute inset-x-0 bottom-0 cursor-ns-resize touch-none", short ? "h-1.5" : "h-2")}
@@ -291,7 +295,7 @@ function Block({ entry, from, cols, col, touch, onResize, onComplete, onRemove, 
 }
 
 /** The untimed row of a day: work without a time + all-day events. Lives outside the scroller. */
-const Strip = memo(function Strip({ date, work, allDay, onCompleteChip, onOpen, onStep, compact }: { date: DateStr; work: WorkItem[]; allDay: SurfaceTimedItem[]; onCompleteChip: (item: WorkItem) => void; onOpen: (target: HoursTarget, el: HTMLElement) => void; onStep: (target: HoursTarget, step: Step, focusKey: string) => void; compact?: boolean }) {
+const Strip = memo(function Strip({ date, work, allDay, onCompleteChip, onOpen, onStep, compact }: { date: DateStr; work: WorkItem[]; allDay: SurfaceTimedItem[]; onCompleteChip: (item: WorkItem) => void; onOpen: (target: HoursTapped, el: HTMLElement) => void; onStep: (target: HoursTapped, step: Step, focusKey: string) => void; compact?: boolean }) {
   const stripDrop = useDroppable({ id: `strip:${date}` });
   return (
     <div ref={stripDrop.setNodeRef} className={cn("min-h-12 max-h-32 space-y-1 overflow-y-auto border-l p-1 max-md:max-h-24", compact && "p-0.5", stripDrop.isOver && "bg-accent/40")}>
@@ -463,12 +467,12 @@ const DayColumn = memo(function DayColumn({
   touch: boolean;
   /** Where a lifted item will land: read by the ghost alone, so a drag does not redraw the column. */
   ghosts: GhostStore;
-  onOpen: (target: HoursTarget, el: HTMLElement) => void;
+  onOpen: (target: HoursTapped, el: HTMLElement) => void;
   /** An arrow key on an item: move it by the step. */
-  onStep: (target: HoursTarget, step: Step, focusKey: string) => void;
-  onSlotClick: (date: DateStr, hours: number, point: { x: number; y: number }) => void;
+  onStep: (target: HoursTapped, step: Step, focusKey: string) => void;
+  onSlotClick: (date: DateStr, hours: number) => void;
   /** A desk sweep over empty hours was let go: add across that range. */
-  onSweep: (date: DateStr, startH: number, endH: number, point: { x: number; y: number }) => void;
+  onSweep: (date: DateStr, startH: number, endH: number) => void;
   onResize: (entry: Entry, endHours: number) => void;
   onBandResize: (band: Band, endHours: number) => void;
   onComplete: (item: SurfaceItem) => void;
@@ -499,11 +503,11 @@ const DayColumn = memo(function DayColumn({
           const r = sweptRange(p.hours, hoursAt(e.currentTarget.parentElement!, e.clientY), from, to);
           setSweep((g) => (g?.startH === r.startH && g.lenH === r.endH - r.startH ? g : { date, startH: r.startH, lenH: r.endH - r.startH }));
         },
-        onPointerUp: (e: React.PointerEvent<HTMLDivElement>) => {
+        onPointerUp: () => {
           pressed.current = null;
           if (!sweep) return;
           setSweep(null);
-          onSweep(date, sweep.startH, sweep.startH + sweep.lenH, { x: e.clientX, y: e.clientY });
+          onSweep(date, sweep.startH, sweep.startH + sweep.lenH);
         },
         onPointerCancel: () => {
           pressed.current = null;
@@ -526,7 +530,7 @@ const DayColumn = memo(function DayColumn({
               [touch ? "onClick" : "onDoubleClick"]: (e: React.MouseEvent<HTMLDivElement>) => {
                 const rect = e.currentTarget.getBoundingClientRect();
                 const hours = slotHours(from, to, i, e.clientY - rect.top);
-                onSlotClick(date, hours, { x: e.clientX, y: e.clientY });
+                onSlotClick(date, hours);
               },
             }}
             {...sweepHandlers}
@@ -631,7 +635,7 @@ function TemplatePalette({ templates, onAdd, collapsible }: { templates: TimedTe
  * The Unplaced pool: a full-height column beside the grid on the desktop, a
  * collapsed drawer above it on a phone (where the grid needs the whole width).
  */
-function PoolColumn({ items, onComplete, onOpen, collapsible }: { items: WorkItem[]; onComplete: (item: WorkItem) => void; onOpen: (target: HoursTarget, el: HTMLElement) => void; collapsible?: boolean }) {
+function PoolColumn({ items, onComplete, onOpen, collapsible }: { items: WorkItem[]; onComplete: (item: WorkItem) => void; onOpen: (target: HoursTapped, el: HTMLElement) => void; collapsible?: boolean }) {
   const { setNodeRef, isOver } = useDroppable({ id: POOL });
   const [open, setOpen] = useState(false);
   const chips = items.map((w) => (
@@ -713,6 +717,8 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
   const bandItems = useMemo(() => allTimed.filter((t) => t.background && t.start), [allTimed]);
   const templates = useTimedTemplates();
   const creator = timedCreators()[0];
+  // The first App that makes Timed items opens its own add dialog for an empty hour (the Calendar's Event dialog).
+  const eventIntake = creator?.createIntake ? intakeByKey(creator.createIntake) : undefined;
 
   // The read hooks hand out stable arrays while nothing changed, so these
   // memos hit and a day column's layout is not redone on every render.
@@ -748,13 +754,19 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
   const [ghosts] = useState(ghostStore);
   // A drag ends with a click on whatever it was released over: that click is not a tap.
   const lastDrag = useRef(0);
-  const [editing, setEditing] = useState<(HoursEditing & { id: number }) | null>(null);
-  const [adding, setAdding] = useState<AddingAt | null>(null);
-  const open = useStable((target: HoursTarget, anchor: HTMLElement) => {
+  /** An empty hour or a swept range was chosen: the Event dialog, started there (#539). */
+  const [adding, setAdding] = useState<{ prefill: IntakePrefill; id: number } | null>(null);
+  /** Start the Event dialog on `date` at `hours`, until `endHours` when a range was swept (an hour on, else); ADR 0090 rolls an end past midnight to the next day. */
+  const addAt = (date: DateStr, hours: number, endHours?: number) => {
+    const start = toClock(hours);
+    const span = endHours === undefined ? null : spanLasting(date, start, Math.round((endHours - hours) * 60));
+    const prefill: IntakePrefill = span ? { date, start, end: span.end, ...(span.endDate !== date ? { endDate: span.endDate } : {}) } : { date, start };
+    setAdding({ prefill, id: Date.now() });
+  };
+  const { open: openOnHours, card: hoursCard } = useOpenOnHours({ defaultDay: anchor });
+  const open = useStable((target: HoursTapped, anchor: HTMLElement) => {
     if (Date.now() - lastDrag.current < 350) return;
-    // The sheet takes the lower half of a phone: bring what is being edited above it.
-    if (isMobile && anchor.closest("[data-col]")) anchor.scrollIntoView({ block: "start", behavior: "smooth" });
-    setEditing({ target, anchor, id: Date.now() });
+    openOnHours(target, anchor);
   });
   const pointer = useRef<{ y: number; grab: number }>({ y: 0, grab: 0 });
   const scroller = useRef<HTMLDivElement>(null);
@@ -772,7 +784,7 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
    * item moves by the step and keeps its length; a chip only by the day, as
    * a drop on that day's strip would; a pool chip has no day to step from.
    */
-  const step = useStable((target: HoursTarget, st: Step, focusKey: string) => {
+  const step = useStable((target: HoursTapped, st: Step, focusKey: string) => {
     let write: Promise<void> | undefined;
     let date: DateStr | undefined;
     if (target.kind === "work") {
@@ -802,11 +814,11 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
     // Off the days on screen, the item is gone from under the keyboard: say where it went.
     write.then(() => void (!days.includes(landed) && toast.success(`Moved to ${formatHuman(landed)}`))).catch(fail);
   });
-  const slotClick = useStable((date: DateStr, hours: number, point: { x: number; y: number }) => {
+  const slotClick = useStable((date: DateStr, hours: number) => {
     if (Date.now() - lastDrag.current < 350) return;
-    setAdding({ date, hours, point });
+    addAt(date, hours);
   });
-  const sweep = useStable((date: DateStr, hours: number, endHours: number, point: { x: number; y: number }) => setAdding({ date, hours, endHours, point }));
+  const sweep = useStable((date: DateStr, hours: number, endHours: number) => addAt(date, hours, endHours));
   const resize = useStable((en: Entry, endH: number) => {
     const end = toClock(endH);
     if (en.kind === "block") scheduleSurfaceItem(en.item, en.item.displayDate, { start: en.start, end }).catch(fail);
@@ -934,13 +946,13 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
     >
       <div className="flex h-full flex-col gap-3 p-4 max-md:gap-2 max-md:p-3">
         {ctx.header(
-          creator?.create && (
+          eventIntake && (
             <Button
               size="icon"
               variant="outline"
               className="md:hidden"
               aria-label="Add"
-              onClick={() => setAdding({ date: anchor, hours: anchor === today ? Math.min(snap(hoursNow()), to - 1) : Math.max(from, 9), point: null })}
+              onClick={() => addAt(anchor, anchor === today ? Math.min(snap(hoursNow()), to - 1) : Math.max(from, 9))}
             >
               <Plus />
             </Button>
@@ -1022,17 +1034,8 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
 
       <DragOverlay dropAnimation={null}>{active && <div className="bg-card rounded-md border px-2 py-1 text-xs shadow-md">{active.title}</div>}</DragOverlay>
 
-      {editing && (
-        <HoursEditor
-          key={editing.id}
-          editing={editing}
-          defaultDay={anchor}
-          inView={(d) => days.includes(d)}
-          onGo={(d) => go(d)}
-          onClose={() => setEditing(null)}
-        />
-      )}
-      {adding && <AddAtHour at={adding} templates={templates} pool={pool as (PoolItem & { color?: string })[]} onClose={() => setAdding(null)} />}
+      {hoursCard}
+      {adding && eventIntake && <eventIntake.dialog key={adding.id} open onOpenChange={(o) => !o && setAdding(null)} handoff={NO_HANDOFF} prefill={adding.prefill} />}
     </DndContext>
   );
 }

@@ -3,8 +3,8 @@ import { inCore } from "./support/core";
 
 /**
  * The Work page for albums (ADR 0110): every album has a page of its own. A
- * Gallery tile opens it, its Fields are edited in place there, and a Peek of
- * the album links through to it.
+ * Gallery tile opens it, and its Fields are edited in place there. A Peek's
+ * way through to its page is library-work-page.spec.ts's.
  */
 
 async function workLocally(page: Page) {
@@ -46,15 +46,4 @@ test("Discotheque: a Gallery tile opens the album's page, where a Field edited i
 
   await page.reload();
   await expect(page.getByLabel("Reason")).toHaveValue("A friend's loan.");
-});
-
-test("Discotheque: an album's Peek links through to its page", async ({ page }) => {
-  await page.goto("/vault");
-  await workLocally(page);
-  const title = `Tomorrow's Harvest ${Date.now()}`;
-  const id = await putAlbum(page, title);
-  await inCore(page, async (core, docId: string) => core.openPeek(docId), id);
-  await page.getByRole("dialog").getByRole("button", { name: /^Open/ }).click();
-  await expect(page).toHaveURL(new RegExp(`/app/discotheque/works/${id}$`));
-  await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible();
 });

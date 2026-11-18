@@ -12,7 +12,11 @@ pocketbase/pocketbase.exe
 package-lock.json
 shell/test-results/
 shell/playwright-report/
+shell/e2e-results.json
 shell/e2e/.auth/
+# A Playwright run from the repo root saves its seeded store here too.
+/e2e/.auth/
 
 # macOS Finder metadata
 .DS_Store
+*.tsbuildinfo

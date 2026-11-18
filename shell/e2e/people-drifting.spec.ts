@@ -1,14 +1,14 @@
 import { test, expect, type Page } from "@playwright/test";
 import { inCore } from "./support/core";
 
-/** Drifting (#420): People with a Relationship not seen for 90 days, the never seen first; leave someone out, bring them back. */
+/** Drifting (#420): People with a Relationship not seen for 90 days; leave someone out, bring them back. Who drifts, and in what order, is drifting.test's. */
 
 async function workLocally(page: Page) {
   const local = page.getByRole("button", { name: "Work locally" });
   await local.waitFor({ timeout: 8000 }).then(() => local.click(), () => {});
 }
 
-test("Drifting ranks the People not seen lately, and leaving one out removes them until their page brings them back", async ({ page }) => {
+test("someone not seen lately is Drifting, and leaving them out removes them until their page brings them back", async ({ page }) => {
   await page.goto("/app/people");
   await workLocally(page);
   // Dates are relative to now, so the specs never age.
@@ -16,32 +16,14 @@ test("Drifting ranks the People not seen lately, and leaving one out removes the
     page,
     async (core) => {
       const day = (back: number) => new Date(Date.now() - back * 864e5).toISOString().slice(0, 10);
-      const person = async (title: string, relationship: string) => (await core.createDocument({ type: "contacts_person", title, fields: { relationship } })).id as string;
-      const met = async (title: string, relationship: string, back: number) => {
-        const id = await person(title, relationship);
-        await core.createDocument({ type: "event", title: `Met ${title}`, fields: { date: day(back), with: [id] } });
-      };
-      await met("Drift Old", "old friend", 120);
-      await met("Drift Older", "cousin", 200);
-      await met("Drift Fresh", "colleague", 5);
-      await met("Drift Nobody", "", 300);
-      await person("Drift Never", "neighbour");
+      const id = (await core.createDocument({ type: "contacts_person", title: "Drift Older", fields: { relationship: "cousin" } })).id as string;
+      await core.createDocument({ type: "event", title: "Met Drift Older", fields: { date: day(200), with: [id] } });
     },
     undefined,
   );
 
   const drifting = page.getByRole("region", { name: "Drifting" });
-  const rows = drifting.getByRole("listitem");
   await expect(drifting.getByText("Drift Older")).toBeVisible();
-  await expect(drifting.getByText("Drift Old", { exact: true })).toBeVisible();
-  await expect(drifting.getByText("Drift Fresh")).toHaveCount(0);
-  await expect(drifting.getByText("Drift Nobody")).toHaveCount(0);
-  const text = (await rows.allInnerTexts()).join("|");
-  // The never seen first, then the longest unseen.
-  expect(text.indexOf("Drift Never")).toBeGreaterThanOrEqual(0);
-  expect(text.indexOf("Drift Never")).toBeLessThan(text.indexOf("Drift Older"));
-  await expect(rows.filter({ hasText: "Drift Never" }).getByText("Never seen")).toBeVisible();
-  expect(text.indexOf("Drift Older")).toBeLessThan(text.indexOf("Drift Old\n"));
 
   // Left out from the row: gone from Drifting, still in Everyone.
   await drifting.getByRole("button", { name: "Leave out Drift Older" }).click();
@@ -60,7 +42,7 @@ test("Drifting ranks the People not seen lately, and leaving one out removes the
   await expect(page.getByRole("region", { name: "Drifting" }).getByText("Drift Older")).toBeVisible();
 });
 
-test("Not mentioned counts the Days that link instead, and Everyone's drifting badges follow the switch", async ({ page }) => {
+test("Not mentioned counts the Days that link instead, and Everyone's drifting badges follow the switch", { tag: "@also-phone" }, async ({ page }) => {
   await page.goto("/app/people");
   await workLocally(page);
   await inCore(

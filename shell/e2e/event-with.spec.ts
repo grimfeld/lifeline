@@ -52,3 +52,26 @@ test("an Event With someone still to come stands above the Today line on their t
   expect(at("Dinner gone by")).toBeGreaterThan(at("Today"));
   await expect(timeline.getByRole("button", { name: /Housewarming ahead/ })).toContainText(/in \d+ days/);
 });
+
+test("an Event's Peek offers Households in With, as the dialog does: picking one stores its People at once", async ({ page }) => {
+  const stamp = Date.now();
+  await page.goto("/vault");
+  await workLocally(page);
+  const ids = await inCore(
+    page,
+    async (core, s: number) => {
+      const make = async (t: string) => (await core.createDocument({ type: "contacts_person", title: t })).id as string;
+      const [ines, joao] = [await make(`Ines Pkhw ${s}`), await make(`Joao Pkhw ${s}`)];
+      await core.createDocument({ type: "contacts_household", title: `the Pkhws ${s}`, fields: { members: [{ personId: ines }, { personId: joao }] } });
+      const event = (await core.putDocument({ type: "event", title: `Lunch ${s}`, date: "2026-03-02", endDate: null, start: null, end: null, notes: "", tags: [] })).id as string;
+      await core.openPeek(event);
+      return { ines, joao, event };
+    },
+    stamp,
+  );
+  const peek = page.getByRole("dialog", { name: `Lunch ${stamp}` });
+  await peek.getByPlaceholder("Add a person or household…").fill(`the Pkhws ${stamp}`);
+  await page.getByRole("option", { name: new RegExp(`the Pkhws ${stamp}`) }).click();
+  const stored = () => inCore(page, async (core, id: string) => ((await core.getDocument(id)) as { with?: string[] }).with ?? [], ids.event);
+  await expect.poll(stored).toEqual([ids.ines, ids.joao]);
+});

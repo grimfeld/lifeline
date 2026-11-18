@@ -3,8 +3,8 @@ import { inCore } from "./support/core";
 
 /**
  * The Arcade's Work page: every game has a page of its own. A Gallery tile
- * opens it, its Fields are edited in place there, and a Peek of the game links
- * through to it.
+ * opens it, and its Fields are edited in place there. A Peek's way through to
+ * its page is library-work-page.spec.ts's.
  */
 
 async function workLocally(page: Page) {
@@ -46,15 +46,4 @@ test("Arcade: a Gallery tile opens the game's page, where a Field edited in plac
 
   await page.reload();
   await expect(page.getByLabel("Developer")).toHaveValue("Maddy Makes Games");
-});
-
-test("Arcade: a game's Peek links through to its page", async ({ page }) => {
-  await page.goto("/vault");
-  await workLocally(page);
-  const title = `Hades ${Date.now()}`;
-  const id = await putGame(page, title);
-  await inCore(page, async (core, docId: string) => core.openPeek(docId), id);
-  await page.getByRole("dialog").getByRole("button", { name: /^Open/ }).click();
-  await expect(page).toHaveURL(new RegExp(`/app/arcade/works/${id}$`));
-  await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible();
 });

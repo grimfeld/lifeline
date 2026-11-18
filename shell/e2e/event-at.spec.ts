@@ -84,13 +84,11 @@ test("an Event At a Person holds one At, which can be changed to a new Place by 
   expect(await storedAt(page, title)).toBe(marc);
   await expect(page.getByText(title).locator("..")).toContainText(`At Marc Lefèvre ${stamp}`);
 
-  // Cleared from the Event's edit dialog.
+  // Cleared from the Event's Peek (Edit opens it, #540), saved at once.
   const row = page.locator("[data-slot=card]").filter({ hasText: title });
   await row.getByRole("button", { name: "More actions" }).click();
   await page.getByRole("menuitem", { name: "Edit" }).click();
-  const edit = page.getByRole("dialog", { name: "Edit event" });
-  await edit.getByRole("button", { name: "Clear At" }).click();
-  await edit.getByRole("button", { name: "Save" }).click();
-  await expect(edit).toBeHidden();
-  expect(await storedAt(page, title)).toBe("");
+  const peek = page.getByRole("dialog", { name: title });
+  await peek.getByRole("button", { name: "Clear At" }).click();
+  await expect.poll(() => storedAt(page, title)).toBe("");
 });

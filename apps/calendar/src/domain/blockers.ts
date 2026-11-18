@@ -45,7 +45,7 @@ export function blockerSpan(b: Pick<TimeBlocker, "date" | "endDate" | "start" | 
 
 /**
  * Where a one-off blocker lands when rescheduled from the Schedule or its
- * Hours editor (ADR 0090): the whole new span, ending on its start day when
+ * Peek (ADR 0090): the whole new span, ending on its start day when
  * given no end day. Given a start but no end it keeps its length; given no
  * start (dropped on a day, not an hour) it moves by whole days, keeping its
  * hours and how many days it covers.

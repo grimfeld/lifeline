@@ -31,6 +31,7 @@ function TimeField({
   "aria-labelledby": ariaLabelledBy,
   "aria-describedby": ariaDescribedBy,
   "aria-invalid": ariaInvalid,
+  ref,
 }: {
   value: string
   onChange: (value: string) => void
@@ -47,6 +48,8 @@ function TimeField({
   "aria-labelledby"?: string
   "aria-describedby"?: string
   "aria-invalid"?: React.AriaAttributes["aria-invalid"]
+  /** The text input, for a caller that moves the focus to it. */
+  ref?: React.Ref<HTMLInputElement>
 }) {
   const [open, setOpenState] = React.useState(false)
   /** The highlighted row while the list is open; null until the arrows move it (then it's the target). */
@@ -55,6 +58,7 @@ function TimeField({
   const [draft, setDraft] = React.useState<string | null>(null)
   const anchorRef = React.useRef<HTMLDivElement>(null)
   const inputRef = React.useRef<HTMLInputElement>(null)
+  React.useImperativeHandle(ref, () => inputRef.current as HTMLInputElement, [])
   const listId = React.useId()
   const shown = formatTimeValue(value, locale)
   const listOpen = open && !disabled

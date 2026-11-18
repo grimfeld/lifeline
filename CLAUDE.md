@@ -28,16 +28,25 @@ Build from `@lifeline/ui` and its tokens; the rules are in `CODING_STANDARDS.md`
   § Layout.
 - **Long content** (ADR 0065): every screen survives the longest content a person could
   type (`CODING_STANDARDS.md` § Long content); a new screen gets a row in `SCREENS` in
-  `shell/e2e/screens.spec.ts`.
+  `shell/e2e/screens.spec.ts`. That check runs nightly, not at delivery (ADR 0129): run the
+  rows of the screens you touch yourself before pushing.
 
 ## E2E tests
 
-Run the e2e specs your change touches before pushing it, and the layout test
-(`screens.spec.ts`) for a change to a screen; the commands are in `shell/e2e/README.md`. A
-PR runs the specs it changes three times each (once on four runners past 150 cases). The
-whole suite runs, sharded four ways, on every integration PR (`.github/workflows/check.yml`) and on
-master each night (`.github/workflows/e2e.yml`), so a red nightly run means master was already broken before
-your change.
+The e2e delivery gate proves user flows work; logic (rules, variants, edge cases) goes in
+unit tests next to the code (ADR 0129). The commands are in `shell/e2e/README.md`.
+
+- **Widths:** a behaviour case runs at desktop width. Tag it `@phone` to run it at phone
+  width only, or `@also-phone` for both: `test("…", { tag: "@phone" }, …)`. Never pick a
+  width with `test.skip(isMobile)` or a viewport check (`scripts/e2e-widths.test.mjs`).
+- **At delivery:** a PR runs the gate specs it changes three times each (once on four runners
+  past 150 cases); every integration PR runs the whole gate, sharded four ways
+  (`.github/workflows/check.yml`). Both run the `desktop` and `mobile` projects only.
+- **Nightly:** the UI checks (`screens.spec.ts`, `a11y-names.spec.ts`) and the Demo
+  (`demo.spec.ts`) run only on master each night, with the gate (`.github/workflows/e2e.yml`).
+  A PR changing them runs nothing for them in CI, so run the rows you touched before pushing.
+  A red nightly run means master was already broken before your change; it opens (or
+  comments on) a `ready-for-agent` issue naming the failing cases.
 
 ## The Guide: user-facing changes update it (ADR 0089)
 
@@ -75,7 +84,7 @@ Run `pnpm check` in the foreground with a 600000 ms timeout: it takes a few minu
 name can match another agent's run.
 
 Agents working in parallel run only their own change's e2e specs, with
-`pnpm test:e2e:quiet` (dot reporter: a dot per case, then the failures); the full suite runs once, before the integration
+`pnpm test:e2e:quiet` (dot reporter: a dot per case, then the failures); the whole gate runs once, before the integration
 branch merges. A subagent reports in ten lines at most: branch, commit, what failed, and
 each decision it took.
 

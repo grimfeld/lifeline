@@ -17,7 +17,7 @@ import {
 } from "@lifeline/core";
 import { Check, ChevronUp } from "lucide-react";
 import { ItemMark, missed } from "./marks";
-import { HoursEditor, type HoursEditing } from "./HoursEditor";
+import { useOpenOnHours } from "./openOnHours";
 import { completeWork, useMoveDialog, WorkMenu, type DayWork } from "./WorkMenu";
 import type { CalendarCtx } from "./CalendarSurface";
 
@@ -80,21 +80,32 @@ function Tick({ item }: { item: DayWork }) {
  * One row: its lead (a time, "All day"), a tick for work, and the rest a button
  * that opens the row's actions. The tick is beside the button, never inside it.
  */
-function Row({ color, lead, tick, menu, children, onOpen, faded, late }: { color?: string; lead: React.ReactNode; tick?: React.ReactNode; menu?: React.ReactNode; children: React.ReactNode; onOpen: (el: HTMLElement) => void; faded?: boolean; late?: boolean }) {
+function Row({ color, lead, tick, menu, onMenu, children, onOpen, faded, late }: { color?: string; lead: React.ReactNode; tick?: React.ReactNode; menu?: React.ReactNode; onMenu?: () => void; children: React.ReactNode; onOpen: (el: HTMLElement, placeAt: HTMLElement) => void; faded?: boolean; late?: boolean }) {
   const c = color ?? "var(--muted-foreground)";
-  // The editor's popover sits beside what it is anchored to: the narrow lead, so the row's width is free for it.
-  const anchor = useRef<HTMLSpanElement>(null);
+  // What opens takes the focus back to the row's button; a read-only card's popover sits beside the narrow lead, so the row's width is free for it.
+  const button = useRef<HTMLButtonElement>(null);
+  const leadRef = useRef<HTMLSpanElement>(null);
+  const open = () => onOpen(button.current!, leadRef.current!);
   return (
     <div
       className={cn("hover:bg-accent/60 relative flex min-h-9 cursor-pointer items-center gap-2 rounded-md border-l-[3px] px-2 text-sm", faded && "opacity-60", late && "text-destructive")}
       style={{ borderLeftColor: c, background: `color-mix(in oklab, ${c} 10%, transparent)` }}
-      onClick={() => onOpen(anchor.current!)}
+      onClick={open}
+      onContextMenu={
+        onMenu &&
+        ((e) => {
+          // Right-click, or the menu key: Push, Move and Unplace (a touch finds them in the Peek).
+          e.preventDefault();
+          e.stopPropagation();
+          onMenu();
+        })
+      }
     >
-      <span ref={anchor} className="text-muted-foreground w-16 shrink-0 py-1.5 text-xs tabular-nums">{lead}</span>
+      <span ref={leadRef} className="text-muted-foreground w-16 shrink-0 py-1.5 text-xs tabular-nums">{lead}</span>
       {tick}
-      <button type="button" className="flex min-w-0 flex-1 items-center gap-2 self-stretch py-1.5 text-left" onClick={(e) => {
+      <button ref={button} type="button" className="flex min-w-0 flex-1 items-center gap-2 self-stretch py-1.5 text-left" onClick={(e) => {
         e.stopPropagation();
-        onOpen(anchor.current!);
+        open();
       }}>
         {children}
       </button>
@@ -113,7 +124,7 @@ function Row({ color, lead, tick, menu, children, onOpen, faded, late }: { color
  * one line, today and the day in view aside. Day-granular: no hours, no bands.
  *
  * It only reads and ticks — no drag, nothing added on a tap. A row opens its
- * actions: a work item's menu, or the hours' editor for an Event or a block.
+ * Peek: an Event's, or a work item's; a work item's menu is also on a right-click.
  */
 export function UpcomingView({ ctx }: { ctx: CalendarCtx }) {
   const { anchor, today, tags, openDay } = ctx;
@@ -141,9 +152,8 @@ export function UpcomingView({ ctx }: { ctx: CalendarCtx }) {
   const runs = upcomingRuns(from, to, busy, [today, anchor]);
 
   const [menuFor, setMenuFor] = useState<string | null>(null);
-  const [editing, setEditing] = useState<(HoursEditing & { id: number }) | null>(null);
   const move = useMoveDialog(today);
-  const edit = (target: HoursEditing["target"], el: HTMLElement) => setEditing({ target, anchor: el, id: Date.now() });
+  const { open: openItem, card } = useOpenOnHours({ defaultDay: anchor });
 
   // The end of the list reads further ahead as it comes into view.
   const scroller = useRef<HTMLDivElement>(null);
@@ -231,17 +241,17 @@ export function UpcomingView({ ctx }: { ctx: CalendarCtx }) {
                   <div className="flex min-w-0 flex-1 flex-col gap-1 pt-0.5">
                     {!busy(d) && <div className="text-muted-foreground py-2 text-sm">Nothing on</div>}
                     {r.allDay.map((t) => (
-                      <Row key={t.key} color={t.color} lead={allDayLead(t)} late={missed(t)} onOpen={(el) => edit({ kind: "timed", item: t }, el)}>
+                      <Row key={t.key} color={t.color} lead={allDayLead(t)} late={missed(t)} onOpen={(el, at) => openItem({ kind: "timed", item: t }, el, at)}>
                         <span className="truncate font-medium">{t.title}</span>
                       </Row>
                     ))}
                     {r.atTimes.map((e) =>
                       e.kind === "timed" ? (
-                        <Row key={e.item.key} color={e.item.color} lead={pieceLead(e.item) ?? `${formatTime(e.start)}${e.item.end ? `–${formatTime(e.item.end)}` : ""}`} late={missed(e.item)} onOpen={(el) => edit({ kind: "timed", item: e.item }, el)}>
+                        <Row key={e.item.key} color={e.item.color} lead={pieceLead(e.item) ?? `${formatTime(e.start)}${e.item.end ? `–${formatTime(e.item.end)}` : ""}`} late={missed(e.item)} onOpen={(el, at) => openItem({ kind: "timed", item: e.item }, el, at)}>
                           <span className="truncate font-medium">{e.item.title}</span>
                         </Row>
                       ) : (
-                        <Row key={`${e.item.key}#${e.item.placementId}`} color={e.item.color} lead={formatTime(e.start)} faded={!!e.item.completedOn} tick={<Tick item={e.item as DayWork} />} onOpen={(el) => edit({ kind: "work", item: e.item }, el)}>
+                        <Row key={`${e.item.key}#${e.item.placementId}`} color={e.item.color} lead={formatTime(e.start)} faded={!!e.item.completedOn} tick={<Tick item={e.item as DayWork} />} onOpen={(el, at) => openItem({ kind: "work", item: e.item }, el, at)}>
                           <span className={cn("truncate", e.item.completedOn && "line-through")}>
                             <ItemMark mark={e.item.mark} />
                             {e.item.title}
@@ -260,7 +270,8 @@ export function UpcomingView({ ctx }: { ctx: CalendarCtx }) {
                         late={w.urgency === "overdue" && !w.completedOn}
                         tick={<Tick item={w} />}
                         menu={<WorkMenu item={w} open={menuFor === w.key} onOpenChange={(o) => setMenuFor(o ? w.key : null)} onMove={move.start} />}
-                        onOpen={() => setMenuFor(w.key)}
+                        onOpen={(el, at) => openItem({ kind: "work", item: w }, el, at)}
+                        onMenu={() => setMenuFor(w.key)}
                       >
                         <span className={cn("truncate", w.completedOn && "line-through")}>
                           <ItemMark mark={w.mark} />
@@ -284,16 +295,7 @@ export function UpcomingView({ ctx }: { ctx: CalendarCtx }) {
       </div>
 
       {move.dialog}
-      {editing && (
-        <HoursEditor
-          key={editing.id}
-          editing={editing}
-          defaultDay={anchor}
-          inView={(d) => d >= from && d <= to}
-          onGo={(d) => openDay(d)}
-          onClose={() => setEditing(null)}
-        />
-      )}
+      {card}
     </div>
   );
 }

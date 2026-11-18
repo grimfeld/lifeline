@@ -120,7 +120,7 @@ day instead (29 February included). A once Occasion always needs its year.
   all-day flag, taking no hours: "🎂 Anne · 65", "⚑ Marc · Surgery". A yearly one comes back every
   year; a once one stands only on its day. It is not an Event, so it can't be dragged and doesn't
   count as seeing someone. It is not a Deadline either: it is never drawn red once its day has
-  passed. Click it to open the Person.
+  passed. Click it to peek the Person: their Peek opens with the Occasion's day on top, read-only.
 - **Birthday** is the one label Lifeline understands. With the birth year known, the marker carries
   the age they reach ("🎂 Anne · 65") and their page shows how old they are now. With no year
   there is no age: Lifeline never makes up a number.

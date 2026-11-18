@@ -2,9 +2,7 @@ import { test, expect } from "@playwright/test";
 import { workLocally } from "./support/journal";
 
 /** On a phone, ☰ on /vault opens the Vault's sidebar, with a way back to the Rail (#319, ADR 0068). */
-test.describe("Vault · the phone drawer (#319)", () => {
-  test.skip(({ viewport }) => (viewport?.width ?? 0) >= 768, "the drawer is a phone feature");
-
+test.describe("Vault · the phone drawer (#319)", { tag: "@phone" }, () => {
   test("☰ shows Files / Search / Tags, a pick closes it, All places goes to the Rail", async ({ page }) => {
     await page.goto("/vault");
     await workLocally(page);

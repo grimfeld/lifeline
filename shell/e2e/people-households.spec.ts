@@ -4,16 +4,16 @@ import { workLocally } from "./support/journal";
 
 /** A link to a Household reaches its members (ADR 0117, #461): "via the Smiths" on their Timeline, counted as mentioned and seen, so not Drifting. */
 
-test("a Day and an Event naming a Household of two stand on a member's Timeline, via the Household, and keep him off Drifting", async ({ page }) => {
+test("a Day and an Event naming a Household of two stand on a member's Timeline, via the Household, keep him off Drifting, and stand on the Household's own Timeline", async ({ page }) => {
   await page.goto("/app/people");
   await workLocally(page);
-  const { paul, today } = await inCore(
+  const { paul, household, today } = await inCore(
     page,
     async (core) => {
       // A Relationship puts him on Drifting until he is seen.
       const paul = (await core.createDocument({ type: "contacts_person", title: "Paul Viatest", fields: { relationship: "old friend" } })).id as string;
       const mary = (await core.createDocument({ type: "contacts_person", title: "Mary Viatest" })).id as string;
-      await core.createDocument({ type: "contacts_household", title: "the Viatests", fields: { aliases: [], members: [{ personId: paul }, { personId: mary }] } });
+      const household = (await core.createDocument({ type: "contacts_household", title: "the Viatests", fields: { aliases: [], members: [{ personId: paul }, { personId: mary }] } })).id as string;
       const today = core.todayStr();
       // The seed may have written today's Day already: add to it, or start it.
       const day = (await core.documentsOf("daily")).find((d) => d.title === today);
@@ -21,7 +21,7 @@ test("a Day and an Event naming a Household of two stand on a member's Timeline,
       if (day) await core.patchDocument(day.id, { body: `${day.body ?? ""}\n\n${line}` });
       else await core.createDocument({ type: "daily", title: today, body: line });
       await core.createDocument({ type: "event", title: "Lunch with the Viatests", fields: { date: today, notes: "at [[the Viatests]]" } });
-      return { paul, today };
+      return { paul, household, today };
     },
     undefined,
   );
@@ -40,35 +40,17 @@ test("a Day and an Event naming a Household of two stand on a member's Timeline,
   await workLocally(page);
   await expect(page.getByRole("region", { name: "Everyone" }).getByRole("link", { name: /Paul Viatest/ })).toBeVisible();
   await expect(page.getByRole("region", { name: "Drifting" }).getByText("Paul Viatest")).toHaveCount(0);
-});
 
-test("a Household's page has its own Timeline and Reports: what links to it, by name", async ({ page }) => {
-  await page.goto("/app/people");
-  await workLocally(page);
-  const { household } = await inCore(
-    page,
-    async (core) => {
-      const ann = (await core.createDocument({ type: "contacts_person", title: "Ann Hometest" })).id as string;
-      const household = (await core.createDocument({ type: "contacts_household", title: "the Hometests", fields: { aliases: [], members: [{ personId: ann }] } })).id as string;
-      const today = core.todayStr();
-      await core.createDocument({ type: "event", title: "Tea at the Hometests", fields: { date: today, notes: "at [[the Hometests]]" } });
-      return { household };
-    },
-    undefined,
-  );
-
+  // The Household's own page has its own Timeline and Reports: the Event links to it by name, nothing "via" about it.
   await page.goto(`/app/people/household/${household}`);
   await workLocally(page);
-  const entry = page.getByRole("region", { name: "Timeline" }).getByRole("button", { name: /Tea at the Hometests/ });
-  await expect(entry).toBeVisible();
-  // Its own link, by name in the Event's Notes: nothing "via" about it.
-  await expect(entry).toContainText("mentioned");
-  await expect(entry).not.toContainText("via");
+  const own = page.getByRole("region", { name: "Timeline" }).getByRole("button", { name: /Lunch with the Viatests/ });
+  await expect(own).toContainText("mentioned");
+  await expect(own).not.toContainText("via");
   await expect(page.getByRole("region", { name: "Reports" })).toContainText("today");
 });
 
-test("on a phone, Add household sits in the Phone dock", async ({ page, isMobile }) => {
-  test.skip(!isMobile, "the Phone dock is the phone's");
+test("on a phone, Add household sits in the Phone dock", { tag: "@phone" }, async ({ page }) => {
   await page.goto("/app/people/households");
   await workLocally(page);
   const dock = page.locator("[data-phone-dock-line]");

@@ -34,7 +34,7 @@ test("takes the newest build", () => {
   const fs = fakeFs(["/pw/chromium-1243/chrome-linux/chrome", "/pw/chromium-1248/chrome-linux/chrome"]);
   assert.equal(preinstalledChromium("/pw", "linux", fs.exists, fs.list), join("/pw", "chromium-1248", "chrome-linux", "chrome"));
 });
-test("finds the chrome-linux64 folder newer builds unpack to", () => {
+test("finds a linux build laid out as chrome-linux64, as newer Playwright builds are", () => {
   const fs = fakeFs(["/pw/chromium-1243/chrome-linux64/chrome"]);
   assert.equal(preinstalledChromium("/pw", "linux", fs.exists, fs.list), join("/pw", "chromium-1243", "chrome-linux64", "chrome"));
 });

@@ -26,16 +26,47 @@ Not even a hotfix merges directly: give it `ship`, and start the Ship workflow b
 - **When:** every two hours (`17 */2 * * *` UTC), whenever a PR gets `ship`, and by hand (Actions → Ship → Run workflow).
 - **What:** every open, non-draft PR labelled `ship` whose checks are all green. They're merged into `integration/<date>[-N]` off master, which opens one PR.
 - **Never two batches:** the job does nothing while an `integration/*` PR is open. The next run takes what's left.
-- **The integration PR** runs the unit checks and the whole e2e suite once, then auto-merges with a merge commit.
+- **The integration PR** runs the unit checks and the whole e2e gate once, then auto-merges with a merge commit.
   - When it goes red, run `pnpm integrate --drop <pr>` in a worktree, or fix the PR at fault.
   - An ADR number clash stops `integrate`, and the job fails. Renumber the ADR (CLAUDE.md), commit, and run `pnpm integrate --continue`.
 - **Contract the command keeps:** it takes PR numbers, lands them through a PR whose head starts with `integration/`, and skips conflicting PRs for the next batch.
+
+## Conflicts
+
+A labelled PR that conflicts with `master` can't land: a landing run would skip it again and again.
+The `conflicts` job in `ship.yml` checks the labelled PRs each time `master` moves, and when a PR gets `ship`.
+For each one that conflicts, it removes `ship`, adds **`conflicts`**, and comments with the conflicting files.
+
+`/ship:resolve-conflicts [<pr>...]` merges `master` into each such PR, keeping what both sides meant, runs
+the local checks and pushes. Then:
+
+- **Only bookkeeping files conflicted:** `ship` goes back on, and the PR lands with the next run.
+- **Anything else conflicted:** the resolution is new code. `/ship:pr-review` runs on it and a comment explains each
+  choice; re-review it and add `ship` again.
+- **The two sides contradict each other:** nothing is pushed, `conflicts` stays, and a comment names the decision to make.
+
+Resolving it yourself works too: merge `master` into the branch, push, remove `conflicts` and add `ship`.
+
+Bookkeeping files (a conflict here needs no re-review):
+
+- `CONTEXT.md`
+- `packages/guide/pages/**`
 
 ## Checks
 
 Required on `master`: `check`, `e2e` (one result for every e2e shard), `dependency-review`, and `ship`.
 
-Run locally before marking a PR ready: `pnpm check` (foreground, 600000 ms timeout), plus the e2e specs the change touches with `pnpm test:e2e:quiet`, and `screens.spec.ts` for a change to a screen (`shell/e2e/README.md`).
+The e2e gate (ADR 0129) runs behaviour flows: the `desktop` project, and the `mobile` project for
+cases tagged `@phone` or `@also-phone`. A PR's `e2e-changed` runs the gate specs it changes; the
+integration PR runs the whole gate. The UI checks (`screens.spec.ts`, `a11y-names.spec.ts`) and the
+Demo (`demo.spec.ts`) run only in the nightly e2e run on master (`.github/workflows/e2e.yml`), never at
+delivery.
+
+A red nightly run doesn't block a batch. It opens an issue titled "Nightly e2e run is red", labelled
+`ready-for-agent`, naming the failing specs and cases and linking the run; while that issue is open,
+each later red night comments on it instead. Close it with the PR that fixes the cases.
+
+Run locally before marking a PR ready: `pnpm check` (foreground, 600000 ms timeout), plus the e2e specs the change touches with `pnpm test:e2e:quiet`, and the `screens.spec.ts` rows for a change to a screen (`shell/e2e/README.md`): CI won't run them.
 
 ## After merge
 
@@ -51,3 +82,9 @@ Command that produces screenshots of the screens a change touches, for the revie
 
 Specs are GitHub issues moving through `spec:draft` → `spec:ready` → `spec:building` → `spec:in-review`, or
 `spec:stuck`, and close when their PR ships.
+
+## Design labels
+
+A design is a GitHub issue carrying a Claude Design artifact link. Label it `design:ready` when the design is
+settled; `/ship:design-me` turns it into specs and relabels it `design:specced`. Its handoffs are committed under
+`docs/design/<module>/` by the PRs that build them. To revise a design, relabel its issue `design:ready`.

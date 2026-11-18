@@ -7,9 +7,7 @@ import { CORE_URL } from "./support/seed";
  * Enter runs a complete headless Command — or opens its dialog.
  */
 test.describe("Palette · inline arguments (#232)", () => {
-  // The palette is opened with Mod+K, on the desk only (ADR 0021).
-  test.skip(({ isMobile }) => isMobile, "the palette is not opened on a phone");
-
+  // Desktop only (no phone tag): the palette is opened with Mod+K, on the desk (ADR 0021).
   async function workLocally(page: Page) {
     const local = page.getByRole("button", { name: "Work locally" });
     await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
@@ -70,14 +68,7 @@ test.describe("Palette · inline arguments (#232)", () => {
     expect(await titled(page, thing)).toHaveLength(1);
   });
 
-  test("a missing argument opens the Command's dialog", async ({ page }) => {
-    await openPalette(page);
-    await palette(page).fill("!task #family");
-    await expect(options(page).first()).toContainText("Missing title");
-    await page.keyboard.press("Enter");
-    await expect(page.getByRole("dialog", { name: "New task" })).toBeVisible();
-  });
-
+  // One case for every Command's dialog: which arguments a line hands it is `inline.test.ts`'s.
   test("a line missing a required argument opens the dialog pre-filled (#236)", async ({ page }) => {
     await openPalette(page);
     // An event needs a day: the line cannot run, so its dialog opens holding the title and Tag it understood.
@@ -90,26 +81,6 @@ test.describe("Palette · inline arguments (#232)", () => {
     await expect(dialog).toContainText("family");
   });
 
-
-  test("a task line with a Tag but no title opens the task dialog holding the Tag (#236)", async ({ page }) => {
-    await openPalette(page);
-    await palette(page).fill("!task #family");
-    await page.keyboard.press("Enter");
-    const dialog = page.getByRole("dialog", { name: "New task" });
-    await expect(dialog).toBeVisible();
-    await expect(dialog.getByLabel("Title")).toHaveValue("");
-    await expect(dialog).toContainText("family");
-  });
-
-  test("a chore line missing its schedule opens the chore dialog holding the name and Tag (#239)", async ({ page }) => {
-    await openPalette(page);
-    await palette(page).fill("!chore water plants #garden");
-    await page.keyboard.press("Enter");
-    const dialog = page.getByRole("dialog", { name: "New chore" });
-    await expect(dialog).toBeVisible();
-    await expect(dialog.getByLabel("Name")).toHaveValue("water plants");
-    await expect(dialog).toContainText("garden");
-  });
 
   test("/ reads a date and a time, suggests days as typed, and Enter records them (#235)", async ({ page }) => {
     const title = `dinner ${Date.now()}`;

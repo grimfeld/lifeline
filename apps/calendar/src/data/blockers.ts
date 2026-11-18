@@ -102,7 +102,7 @@ export async function deleteTimeBlocker(id: string): Promise<void> {
 
 /**
  * A one-off blocker dragged or resized on the Schedule (ADR 0029), or
- * retimed in its Hours editor: it moves alone, as a whole span, across days
+ * retimed in its Peek: it moves alone, as a whole span, across days
  * when it runs across them (ADR 0090). A weekly one refuses — a drag would
  * retime the rule for every week. A null start (dropped on the untimed strip)
  * keeps the hours and only changes the days: a band without hours is no band.

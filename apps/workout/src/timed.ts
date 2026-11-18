@@ -37,4 +37,8 @@ export const workoutTimed: TimedProvider = {
   async itemsIn(range) {
     return sessionItems(await allSessions(), await allWorkouts(), range);
   },
+  // Tapped on the hours, the Session's Peek, its timing read-only: a record is never moved (#538).
+  peekOf(item) {
+    return item.itemId;
+  },
 };

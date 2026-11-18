@@ -33,13 +33,38 @@ blocker bands.
   across days. A block never changes the item's own day.
 - **Moving and resizing** — drag a block to another hour or day; drag its bottom edge to resize.
   Everything snaps to the quarter hour. Drag a block back to the strip or the pool to remove it.
-- **Editing anything on the hours** — tap (or click) a block, an Event or a one-off blocker: change
-  its day (**Tomorrow** is one tap), start (15-minute nudges) and length, or remove it. Changes
-  apply at once; closing leaves one **Undo**. Removing a block keeps the Task; removing an Event or
-  blocker deletes it.
-- **Adding at an hour** — tap an empty hour on a phone, double-click on the desk: a **New event**,
-  an Event template, a Blocker template, or a piece of unplaced work. On a phone, **+** in the
-  Phone dock does the same at the current hour.
+- **An Event** — tap (or click) it, here or on Month, Upcoming or the Agenda Card, and its
+  [Peek](peek.md) opens: the Event's whole form — day and times with the quick controls, Notes,
+  With and Tags — written as you change it. A piece of an Event that runs across days opens the
+  whole Event. On a phone the Peek is a sheet from the bottom, and the Event (or whatever you tapped, from any view) is scrolled above it.
+  Closing the Peek after changing the day or times leaves one **Undo** that puts them back.
+  **Delete event** deletes it at once, with its own Undo.
+- **A Task's or a Chore's block or chip** — tap (or click) a Task's Time block and the Task's [Peek](peek.md)
+  opens (a Chore's opens the Chore's, the same way), with a **Time block** section above its fields: the block's day (**Tomorrow** is one
+  tap), start (15-minute nudges) and length, **Complete** (for one that isn't done — it ticks off that
+  occurrence of a recurring Task too, the way to do it from a phone), and **Remove block**, which keeps the Task and its
+  chip. A done Task's block is record: it can be removed, not moved. Tapping an untimed chip opens
+  the same Peek, where **Give it a time** makes a new block (as long as the Estimate) and the chip
+  stays. Changes apply at once; closing the Peek leaves one **Undo** that puts the block back.
+  A chip's section also has its row's actions — **Push**, **Move to day…**, **Unplace** and **Unpin**, as its
+  App allows (a block's has **Push**); each acts on the item and closes the Peek.
+- **A blocker** — tap (or click) a one-off blocker's band and its [Peek](peek.md) opens, with a
+  **Timing** section on top: its day (**Tomorrow** is one tap), start (15-minute nudges) and end
+  (an End earlier than the Start is the next day's), and **Delete blocker**, at once with its own
+  Undo. Changes apply at once; closing the Peek leaves one **Undo** that puts the band back.
+  Weekly bands are rules: change them on the Blockers tab.
+- **Another App's item** — a Workout Session, a Deadline or an Occasion opens its Peek (the
+  Session's, the Project's or Milestone's, the Person's) with its day and time on top, changed as
+  far as its App allows: a Project's Deadline is the Project's own **Deadline** field there, a
+  Milestone's moves to another day (its **Day**, or **Tomorrow** in one tap), each with one **Undo**
+  on closing; it is read only where its App keeps the time (a Session is a record).
+- **A subscription's event** — has nothing in Lifeline to open: a tap shows a small read-only card
+  with its title, day and time, place and the subscription it comes from.
+- **Adding at an hour** — tap an empty hour on a phone, double-click on the desk: the **New event**
+  dialog opens on that day at that hour, an hour long. On the desk, drag down empty hours to start
+  it with that range (an End earlier than the Start is the next day's). On a phone, **+** in the
+  Phone dock opens it at the current hour. Under its Fields, **Or place here** puts a Blocker
+  template or a piece of unplaced work there instead (see **Add event** below).
 - **Event templates** — shown beside the hours: drag one onto an hour, or tap its bolt to put it
   on the day in view at its usual time.
 - **Time blocker bands** — shaded hours you marked as taken (sleep, work). Weekly bands stay put;
@@ -47,7 +72,7 @@ blocker bands.
 - **Ticking** — ticking a block ticks the item itself: its later blocks go, its past ones stay as
   record.
 - **On the keyboard** — Tab to a block, an Event, a chip or a one-off band: **Enter** opens it
-  (the editor sets its length too; closing it brings you back to the item). **↑** / **↓** move it
+  (its Peek, or a subscription's card; closing it brings you back to the item). **↑** / **↓** move it
   a quarter hour (an hour with **Shift**), **←** / **→** a day. A chip in a day's strip moves by
   the day only; **Enter** on an Event template puts it on the day in view.
 
@@ -59,12 +84,15 @@ day, if later), up to two weeks out. Push again and that block moves to the next
 after it. With no Estimate, it asks "How long will … take?" first and remembers the answer.
 Nothing free: nothing changes. Undoable.
 
-Where: the Push icon on a chip or block on the Schedule, **Push** in an item's menu on Month and
-Upcoming, and on Tasks (their menu, form and Peek). Offered on work with an Estimate — Tasks today.
+Where: the Push icon on a chip or block on the Schedule, **Push** in the **Time block** section of an
+item's Peek opened from the hours (and in its right-click menu on Month and Upcoming), and on Tasks
+(their menu, form and Peek). Offered on work with an Estimate — Tasks today.
 
 ## Work on Month and Upcoming
 
-Tap a work item for its menu:
+Tap a work item to open its Peek (Enter does too): its **Time block** section has **Complete** and
+the actions below, on a phone and a desk alike. On a desk, right-click it (or press the menu key) for
+the same actions in a menu, without opening the Peek:
 
 - **Complete**, **Push**, **Move to day…**.
 - **Unplace** — back to the Unplaced pool (Tasks).
@@ -85,6 +113,12 @@ The **Events** page has three tabs:
 - **Events** — Today, Upcoming and the past 30 days. **New event** adds one: title, day, start
   and end, or **All day** (with an optional last day for several days), notes, **With**, **At**
   and Tags.
+  Under the day and times sit the **quick controls**, the same in the dialog and the Peek: **15 minutes
+  earlier** and **later** (the End goes with the Start, so the length stays), **Tomorrow**, and a
+  **length** in one tap (or type any other) that sets the End. An End earlier than the Start is the
+  next day's, so an overnight Event takes no extra step.
+  An Event's menu (**⋯**) has **Edit**, which opens its Peek: the same Fields, saved as you change
+  them, and **Delete**.
   **With** is who was there: type a name or an alias from People and pick it. The Event then
   shows on each Person's page under Events, and counts as having seen them. A `[[link]]` to a
   Person in the notes ("Dinner with [[Marc]]") counts as having seen them too. **With** offers
@@ -115,6 +149,16 @@ list of quarter hours that opens on a click or ⌥/Alt+↓. With the list shut, 
 Commands and Cards:
 
 - **Add event** — the event form. Where: the palette (Ctrl+K), the Capture sheet.
+  Your **Event templates** are listed above its Fields, however it opened (the palette, the phone's
+  **+** sheet, the Events screen, an empty hour). Picking one fills the form — its
+  title, all day or its length, its usual start, notes and Tags — and saves nothing until **Add
+  event**, so you can adjust first. When the dialog was opened from an hour, that start wins over the
+  template's usual one. With no templates, the list is not shown.
+  Below the Fields, **Or place here** lists your **Blocker templates** and your unplaced work,
+  however the dialog opened: one tap places it on the form's day at its Start — a one-off blocker
+  from the template, or a Time block for the work as long as its Estimate (30 minutes without one)
+  — and closes the dialog, with an **Undo**. While the form is **All day** it asks for a start time
+  and places nothing. With nothing to place, it is not shown.
 - **Add today: <template>** — one per Event template: puts it on today at its usual time, no
   form. Where: the palette; folded under **Add today…** on the Capture sheet.
 - **Add event from a template** — the same, on any day and time, for Claude
@@ -128,8 +172,9 @@ Commands and Cards:
   you can place.
 - **Countdown** — a Card: a big number of days until one event you pick. Where: a Card you can
   place.
-- **Peek** — an Event opened from a link: its day and times, notes, With (picked People, saved at once), At and Tags edited
-  in place; on a timed Event, **Before…** and **After…** attach a blocker (below).
+- **Peek** — an Event opened from a link, or from **Edit** on the Events page: the same Fields as
+  **New event**, saved as you change them: day and times, notes, With (People or a Household), At
+  and Tags. On a timed Event, **Before…** and **After…** attach a blocker (below).
 
 Editing or deleting a template never changes the Events it made.
 
@@ -140,16 +185,17 @@ so that it goes wherever the Event goes.
 
 - **Attach** — open the Event's Peek and pick **Before…** or **After…**, then a Blocker template
   ("Travel 30"). The band is made flush against the Event: ending at its start, or starting at
-  its end. An Event can have several, on either side. All-day Events don't offer it. The Event's
-  form offers **Before…** and **After…** too, while you create it as well as when you edit it:
-  what you pick there is listed under them (remove one with its ×) and attached when you save,
-  flush against the times you saved. The Event's Peek lists the blockers attached to it, with
-  their times, and their day when it isn't the Event's.
+  its end. An Event can have several, on either side. All-day Events don't offer it. The **New
+  event** dialog offers **Before…** and **After…** too, under the day and times: what you pick
+  there is listed under them (remove one with its ×) and attached when you add the Event, flush
+  against its times. The Event's Peek lists the blockers attached to it, with their times, and
+  their day when it isn't the Event's.
 - **It follows** — however the Event is moved (dragged on the Schedule, moved in Month, retimed in
-  its Peek or its form, or by Claude), its attached blockers move with it. A band before the
+  its Peek, or by Claude), its attached blockers move with it. A band before the
   Event keeps its gap to the Event's start and its own length; a band after keeps its gap to the
   end. Make the Event longer and only the bands after it move; start it earlier and only the
-  bands before it move. Undo in the editor puts the Event and its bands back together.
+  bands before it move. The Undo its Peek leaves on closing puts the Event and its bands back
+  together.
 - **Adjusting** — drag or resize an attached band yourself and it stays attached, keeping the new
   gap or length from then on. A band before stays before, even dragged past the Event.
 - **Its Peek** — open an attached band from its Event's Peek list (or any link to it) and its Peek reads "Before **Dentist**" or "After **Dentist**", linking
@@ -162,7 +208,7 @@ so that it goes wherever the Event goes.
 - A blocker you drop from a template beside an Event is never attached, and blockers you placed
   before stay as they are. Attached bands look exactly like any other one-off band.
 - **Delete** — deleting the Event deletes its attached blockers with it, wherever you delete it
-  (the Schedule, a Base, the Vault, or Claude). Removing it from the Schedule and undoing brings
+  (its Peek, a Base, the Vault, or Claude). **Delete event** in its Peek, then **Undo**, brings
   back the Event and its bands, still attached on the same sides.
 - **Made all day** — the bands are detached and stay exactly where they stand as plain one-off
   blockers.
@@ -176,9 +222,10 @@ so that it goes wherever the Event goes.
 - **Deadlines** — a Project's or Milestone's Deadline, as an all-day flag. Drag it to move the
   Deadline. A missed one stays red on its day.
 - **Occasions** — a Person's Birthday or other named day, as an all-day flag ("🎂 Anne · 65"). It
-  can't be dragged, is not an Event and is never red. Click it to open the Person; see
+  can't be dragged, is not an Event and is never red. Click it to peek the Person; see
   [People](people.md).
-- **Calendar subscriptions** — events from an iCal link, in its colour, read-only.
+- **Calendar subscriptions** — events from an iCal link, in its colour, read-only: a tap shows a
+  small card, with nothing to edit.
 - **In a Module** — House shows a Calendar of its Chores only, in Month and Upcoming. A Module's
   Calendar keeps its own view and day.
 

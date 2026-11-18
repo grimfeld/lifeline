@@ -26,4 +26,9 @@ export const contactsTimed: TimedProvider = {
   href(itemId) {
     return personHref(personOfMarker(itemId));
   },
+
+  // Tapped on the hours, the Person's Peek, the Occasion's day read-only above it (#538).
+  peekOf(item) {
+    return item.docId ?? personOfMarker(item.itemId);
+  },
 };

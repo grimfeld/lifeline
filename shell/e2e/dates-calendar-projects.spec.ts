@@ -1,11 +1,12 @@
 import { test, expect, type Page } from "@playwright/test";
 import { inCore } from "./support/core";
-import { openCalendar, pickDate } from "./support/date-picker";
+import { openCalendar } from "./support/date-picker";
 
 /**
- * The Calendar App's and Projects' dates are picked from the kit's Date picker
- * (ADR 0087): an optional Deadline is cleared from it, and a to-date disables
- * the days before its from-date.
+ * Projects' dates are picked from the kit's Date picker (ADR 0087): an optional
+ * Deadline is cleared from it, and a to-date disables the days before its
+ * from-date. An all-day Event's last day does the same: `date-picker.test.tsx`
+ * pins down the disabled days.
  */
 
 async function workLocally(page: Page) {
@@ -52,26 +53,16 @@ test("Projects: a Project's Deadline is cleared from its Date picker; its marker
   await expect(page.getByText(`⚑ ${title}`)).toHaveCount(0);
 });
 
-test("Calendar: an all-day Event's last day disables the days before its first", async ({ page }) => {
-  await page.goto("/app/events");
+test("Projects: a Project opened from its Deadline marker shows one Deadline control and no shell Day picker (ADR 0124)", async ({ page }) => {
+  await page.goto("/calendar");
   await workLocally(page);
-  await page.getByRole("button", { name: "New event" }).click();
-  const dialog = page.getByRole("dialog", { name: "New event" });
-  const title = `Trip ${Date.now()}`;
-  await dialog.getByLabel("Title").fill(title);
-  await dialog.getByLabel("All day").check();
-  await pickDate(page, dialog.getByLabel("First day"), "2026-11-10");
-  await dialog.getByLabel("Last day (optional)").click();
-  const calendar = openCalendar(page);
-  await expect(day(calendar, "2026-11-09")).toBeDisabled();
-  await day(calendar, "2026-11-12").click();
-  await expect(calendar).toBeHidden();
-  await dialog.getByRole("button", { name: "Add event" }).click();
-  await expect(dialog).toBeHidden();
-  const stored = await inCore(page, async (core, t: string) => {
-    const docs = await core.allDocuments();
-    const ev = docs.find((d) => d.title === t);
-    return ev && { date: ev.date as string, endDate: ev.endDate as string | null };
-  }, title);
-  expect(stored).toEqual({ date: "2026-11-10", endDate: "2026-11-12" });
+  const title = `Peeked ${Date.now()}`;
+  await inCore(page, async (core, t: string) => (await core.putDocument({ type: "project", title: t, body: "", stage: "active", start: "2026-11-05", deadline: "2026-11-12" })).id as string, title);
+
+  await go(page, `/calendar?view=day&d=${DAY}`);
+  await page.getByText(`⚑ ${title}`).first().click();
+  const peek = page.getByRole("dialog").first();
+  await expect(peek.getByLabel("Deadline")).toHaveCount(1);
+  await expect(peek.getByLabel("Day", { exact: true })).toHaveCount(0);
+  await expect(peek.getByRole("region", { name: "Timing" })).toHaveCount(0);
 });

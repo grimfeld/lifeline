@@ -3,9 +3,10 @@ import { inCore } from "./support/core";
 import { datePickerLabelled, dayFromToday, openCalendar, pickDate, pickInCalendar, showPhoneFilters } from "./support/date-picker";
 
 /**
- * Dates picked from the kit's calendar, never the browser's (ADR 0087), where
- * the picker holds a rule of its own: a type's report window can't end before
- * it starts, and a Stat is marked for a day already lived.
+ * Dates picked from the kit's calendar, never the browser's (ADR 0087): a Stat
+ * is marked for a day already lived, a Task moved to another day, a Base filter
+ * set to a day. A to-date that can't fall before its from-date is covered once,
+ * by Pocket's custom Allowance (money-dialogs.spec.ts).
  */
 
 async function workLocally(page: Page) {
@@ -50,33 +51,9 @@ test("a yes/no Stat is marked for a past day, never a future one", async ({ page
     .toEqual([yesterday]);
 });
 
-test("a type's reports over two dates: To can't fall before From", async ({ page }) => {
-  await page.goto("/app/journal/t/e2eperson?w=custom");
-  await workLocally(page);
-
-  // From well ahead of today, so an empty To opening on From's month is seen.
-  const from = dayFromToday(40);
-  const before = dayFromToday(39);
-  const to = dayFromToday(45);
-  await showPhoneFilters(page, "Dates", datePickerLabelled(page, "From"));
-  await pickDate(page, datePickerLabelled(page, "From"), from);
-  await expect(page).toHaveURL(new RegExp(`from=${from}`));
-  await expect(datePickerLabelled(page, "To")).toHaveAccessibleName("To, No date");
-
-  await datePickerLabelled(page, "To").click();
-  const calendar = openCalendar(page);
-  await expect(calendar).toBeVisible();
-  await expect(calendar.locator(`[role="gridcell"][data-day="${from}"]:not([data-outside])`)).toBeVisible();
-  await calendar.getByRole("combobox", { name: "Choose the Year" }).selectOption(before.slice(0, 4));
-  await calendar.getByRole("combobox", { name: "Choose the Month" }).selectOption(String(Number(before.slice(5, 7)) - 1));
-  await expect(calendar.locator(`[role="gridcell"][data-day="${before}"]:not([data-outside]) button`)).toBeDisabled();
-  await pickInCalendar(calendar, to);
-  await expect(page).toHaveURL(new RegExp(`to=${to}`));
-});
-
 const dateOf = (page: Page, id: string) => inCore(page, async (core, docId: string) => (await core.getDocument(docId))!.date as string, id);
 
-test("a Task moved to another day from Upcoming's Move to day…", async ({ page }) => {
+test("a Task moved to another day from Move to day… in the Peek it opens from Upcoming", async ({ page }) => {
   const title = `Move me ${Date.now()}`;
   const today = dayFromToday(0);
   await page.goto("/calendar?view=upcoming");
@@ -88,29 +65,25 @@ test("a Task moved to another day from Upcoming's Move to day…", async ({ page
     { title, today },
   );
   await page.getByText(title).click();
-  await page.getByRole("menuitem", { name: "Move to day…" }).click();
+  // The tap opens the Task's Peek; its Time block section carries the row's actions, a phone's way to them.
+  const peek = page.getByRole("dialog", { name: title, exact: true });
+  await peek.getByRole("region", { name: "Time block" }).getByRole("button", { name: "Move to day…" }).click();
   const dialog = page.getByRole("dialog", { name: `Move "${title}"` });
   const later = dayFromToday(3);
   await pickDate(page, datePickerLabelled(dialog, "Day"), later);
   await dialog.getByRole("button", { name: "Move" }).click();
   await expect.poll(() => dateOf(page, id)).toBe(later);
+  await expect(peek, "the tapped row has moved: the Peek closes").toBeHidden();
 });
 
-test("an Event's day changed in the Hours editor", async ({ page }) => {
-  const title = `Shift me ${Date.now()}`;
-  const today = dayFromToday(0);
+test("on the desk, a right-click on a Task in Upcoming still opens its menu", async ({ page }) => {
+  const title = `Menu me ${Date.now()}`;
   await page.goto("/calendar?view=upcoming");
   await workLocally(page);
-  const id = await inCore(
-    page,
-    async (core, a: { title: string; today: string }) =>
-      (await core.putDocument({ type: "event", title: a.title, date: a.today, endDate: null, start: "23:00", end: "23:30", notes: "", tags: [] })).id as string,
-    { title, today },
-  );
-  await page.getByText(title).click();
-  const later = dayFromToday(2);
-  await pickDate(page, datePickerLabelled(page, "Day"), later);
-  await expect.poll(() => dateOf(page, id)).toBe(later);
+  await inCore(page, async (core, a: { title: string; today: string }) => void (await core.putDocument({ type: "task", title: a.title, status: "active", date: a.today, completedOn: null, recurrence: null, notes: "", tags: [] })), { title, today: dayFromToday(0) });
+  await page.getByText(title).click({ button: "right" });
+  await expect(page.getByRole("menuitem", { name: "Move to day…" })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: title, exact: true }), "a right-click opens no Peek").toHaveCount(0);
 });
 
 test("a Base filter on a date is added by picking the day", async ({ page }) => {

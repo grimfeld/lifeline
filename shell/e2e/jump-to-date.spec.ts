@@ -21,12 +21,12 @@ const pageDay = (page: Page, offset = 0) =>
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   }, offset);
 
-test("the Calendar jumps to a picked day and shows it", async ({ page }) => {
+test("the Calendar jumps to a picked day and shows it", { tag: "@also-phone" }, async ({ page, isMobile }) => {
   await page.goto("/calendar?view=month");
   await workLocally(page);
   const jump = page.getByRole("button", { name: "Jump to date" });
   await expect(jump).toBeVisible();
-  if ((page.viewportSize()?.width ?? 0) < 768) {
+  if (isMobile) {
     // In the Phone dock, below the calendar it pages.
     const box = (await jump.boundingBox())!;
     expect(box.y, "the button sits low on the screen").toBeGreaterThan((page.viewportSize()!.height * 2) / 3);
@@ -36,16 +36,7 @@ test("the Calendar jumps to a picked day and shows it", async ({ page }) => {
   await expect(page.getByText("February 2027").first()).toBeVisible();
 });
 
-test("the Journal jumps to a picked day", async ({ page }) => {
-  await page.goto("/app/journal");
-  await workLocally(page);
-  // Today's Day is written on first open and its editor comes up after, lazily: opened at
-  // once, the picker must not be closed by that editor taking focus.
-  await pickDate(page, page.getByRole("button", { name: "Jump to date" }), "2025-06-03");
-  await expect(page).toHaveURL(/[?&]d=2025-06-03/);
-});
-
-test("a Part is marked read on a day picked before today, and no later day can be picked", async ({ page }) => {
+test("a Part is marked read on a day picked before today, and no later day can be picked", { tag: "@also-phone" }, async ({ page, isMobile }) => {
   const title = `Chaptered ${Date.now()}`;
   await page.goto("/app/library");
   await workLocally(page);
@@ -86,7 +77,7 @@ test("a Part is marked read on a day picked before today, and no later day can b
   await expect(page).toHaveURL(new RegExp(`/app/library/works/${id}$`));
   const work = page;
   // A tap opens the Part rather than marking it: a switch on the desk, a Select on a phone (ADR 0064).
-  if ((page.viewportSize()?.width ?? 0) < 768) {
+  if (isMobile) {
     await work.getByRole("combobox", { name: "A tap" }).click();
     await page.getByRole("option", { name: "Tap opens" }).click();
   } else {

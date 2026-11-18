@@ -7,6 +7,17 @@ import { join } from "node:path";
 export const PW_BROWSERS = "/opt/pw-browsers";
 
 /**
+ * The UI checks (ADR 0129): specs about how screens look and read, run nightly at both
+ * widths in their own projects, never in the delivery gate.
+ */
+export const UI_CHECK_SPECS = ["screens.spec.ts", "a11y-names.spec.ts"];
+/**
+ * Every spec the gate projects never run: the UI checks and the Demo. Read by
+ * playwright.config.ts, scripts/e2e-widths.test.mjs and check.yml's e2e-plan.
+ */
+export const NIGHTLY_SPECS = [...UI_CHECK_SPECS, "demo.spec.ts"];
+
+/**
  * Resolves whether nothing listens on `port` at `host`. A machine without that
  * address family (EADDRNOTAVAIL, or EAFNOSUPPORT where IPv6 is compiled out) has
  * nothing listening there either; any other error (EADDRINUSE, EACCES…) is busy.
@@ -33,13 +44,13 @@ export function preinstalledChromium(dir = PW_BROWSERS, platform = process.platf
     .map((name) => /^chromium-(\d+)$/.exec(name))
     .filter(Boolean)
     .sort((a, b) => Number(b[1]) - Number(a[1]));
-  // Newer Linux builds unpack to chrome-linux64, older ones to chrome-linux.
-  const candidates =
+  // Linux builds sit in chrome-linux, or chrome-linux64 in newer Playwright builds.
+  const insides =
     platform === "darwin" ? [["chrome-mac", "Chromium.app", "Contents", "MacOS", "Chromium"]]
     : platform === "win32" ? [["chrome-win", "chrome.exe"]]
-    : [["chrome-linux64", "chrome"], ["chrome-linux", "chrome"]];
+    : [["chrome-linux", "chrome"], ["chrome-linux64", "chrome"]];
   for (const [name] of builds) {
-    for (const inside of candidates) {
+    for (const inside of insides) {
       const exe = join(dir, name, ...inside);
       if (exists(exe)) return exe;
     }
