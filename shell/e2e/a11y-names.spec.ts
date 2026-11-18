@@ -1,10 +1,12 @@
 import { test, expect, type Page } from "@playwright/test";
+import { inCore } from "./support/core";
 import { openPalette } from "./support/palette";
 
 /**
  * Names a screen reader needs (batch 10): the tab says where you are (WCAG
  * 2.4.2), the palette's input has a name and says how many results it left
- * (4.1.2, 4.1.3), and each Card's title is a heading (1.3.1).
+ * (4.1.2, 4.1.3), each Card's title is a heading (1.3.1), and a list of checkboxes
+ * names each for its row (4.1.2).
  */
 
 async function workLocally(page: Page) {
@@ -43,4 +45,15 @@ test("every Card's title is a heading", async ({ page }) => {
   const count = await titles.count();
   expect(count).toBeGreaterThan(5);
   await expect(page.locator('h2[data-slot="card-title"]')).toHaveCount(count);
+});
+
+test("each row's checkbox in Tidy given names is named for its Person and described with what Apply will change", async ({ page }) => {
+  await page.goto("/app/people");
+  await workLocally(page);
+  await inCore(page, async (core) => void (await core.createDocument({ type: "contacts_person", title: "Anne Dupont", fields: { aliases: ["Anne", "Annie"] } })), undefined);
+  await page.getByRole("button", { name: "Tidy given names…" }).click();
+  const dialog = page.getByRole("dialog", { name: "Tidy given names" });
+  const box = dialog.getByRole("checkbox", { name: "Tidy Anne Dupont", exact: true });
+  await expect(box).toBeVisible();
+  await expect(box).toHaveAccessibleDescription(/Given name Anne · Family name Dupont · drops alias Anne/);
 });
