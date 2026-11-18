@@ -1,7 +1,7 @@
 ---
 status: accepted
 amends: ADR 0076 (in part — a Report counts Events that link, as Seen, beside Days that link)
-amended-by: ADR 0117 (in part — a link to a Household counts toward its members' Seen and Mentioned)
+amended-by: ADR 0117 (in part — a link to a Household counts toward its members' Seen and Mentioned), ADR 0127 (in part — Exchanges count as Talked, and Drifting ranks by the later of Seen and Talked)
 ---
 
 # Reports count Events that link as Seen, beside Days that link as Mentioned
