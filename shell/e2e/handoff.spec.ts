@@ -276,7 +276,8 @@ test("a pending Handoff outlives a reload of the tab, and is gone once used or l
   await page.goto("/handoff");
   await expect(page.getByText("This Handoff can't be read")).toBeVisible();
 
-  // Another, left for another page within the app, is abandoned too.
+  // Another, left for another page within the app, is abandoned too. (From elsewhere: a hash change alone is no new Handoff.)
+  await page.goto("/settings");
   await page.goto(`/handoff#${encodeHandoff({ title: `Abandoned ${Date.now()}`, text: "" }, "tasks/task")}`);
   await page.getByRole("dialog", { name: "New task" }).getByRole("button", { name: "Cancel" }).click();
   await expect(page.getByText("Nothing was saved")).toBeVisible();
