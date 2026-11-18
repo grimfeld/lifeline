@@ -90,6 +90,24 @@ const NOT_THE_TYPES_ADD: Record<string, string> = {
 };
 
 /**
+ * Built-in types with user-visible Fields that have no add Command to check: each
+ * is made only through a dialog, a Form, or another type's operation. A type that
+ * is in neither `ADDS` nor here fails the test below: decide which it is.
+ */
+const DIALOG_ONLY: Record<string, string> = {};
+
+/** Leave one reason against many types of `DIALOG_ONLY`. */
+function dialogOnly(reason: string, types: string[]) {
+  for (const t of types) DIALOG_ONLY[t] = reason;
+}
+
+dialogOnly("made only through a dialog on the Calendar (a template, a Time blocker): no Command takes its Fields yet", ["event_template", "time_blocker", "blocker_template"]);
+dialogOnly("a record an operation makes (a completion, an occurrence, a log line, a session, a version), not a Document a person adds", ["chore_completion", "task_occurrence", "library_part", "cinema_part", "discotheque_part", "price_line", "workout_session", "writing_version", "language_recall"]);
+dialogOnly("a setting or list the App keeps for itself, edited in the App's own settings or Form: not something an agent adds", ["library_settings", "cinema_settings", "arcade_settings", "storage", "aisle", "window", "template"]);
+dialogOnly("a grouping or playlist made and arranged in the App's own screen, not by a Command", ["library_group", "cinema_group", "cinema_playlist", "discotheque_group", "discotheque_playlist", "exhibition", "room"]);
+dialogOnly("added through the App's own dialog or Form, with no add Command yet", ["stat", "habit", "negative", "author", "artist", "contacts_tie", "contacts_household", "ledger_account", "ledger_category", "ledger_series", "ledger_allocation", "ledger_rule", "pocket_allowance", "swearjar_offence", "language", "language_deck", "knowledge_puzzle", "workout", "exercise", "essay", "manuscript", "chapter", "outtake"]);
+
+/**
  * "<type>.<field>" → why no add Command argument takes it. Every entry says why;
  * most are Fields only an operation sets (a status that moves, a day it is
  * stamped), or ones judged after the fact (a rating).
@@ -203,6 +221,16 @@ describe("a type's add Command", () => {
       .filter((c) => c.returnsDocument && !named.has(c.id))
       .map((c) => c.id);
     expect(unnamed, "These Commands return Documents but no type's Fields are checked against them: put the type in ADDS (shell/src/commandFields.test.ts), or the Command in NOT_THE_TYPES_ADD with the reason").toEqual([]);
+  });
+
+  it("checks every type with user-visible Fields, or lists it in DIALOG_ONLY with a reason", () => {
+    const types = APPS.flatMap((a) => a.types).filter((t) => t.fields.some((f) => !f.hidden));
+    const ids = new Set(types.map((t) => t.id));
+    const unlisted = types.map((t) => t.id).filter((id) => !(id in ADDS) && !(id in DIALOG_ONLY));
+    expect(unlisted, "These types have Fields but no add Command is checked against them: put the type in ADDS, or in DIALOG_ONLY (shell/src/commandFields.test.ts) with the reason").toEqual([]);
+    const stale = Object.keys(DIALOG_ONLY).filter((id) => !ids.has(id) || id in ADDS);
+    expect(stale, "DIALOG_ONLY names a type that is gone, has no visible Fields, or is in ADDS now").toEqual([]);
+    for (const [id, reason] of Object.entries(DIALOG_ONLY)) expect(reason.trim().length, `${id} has no reason`).toBeGreaterThan(10);
   });
 
   it("names no Command in NOT_THE_TYPES_ADD that is gone or returns no Document", () => {
