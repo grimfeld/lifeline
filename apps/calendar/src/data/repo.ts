@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { addDays, diffDays, documentsOf, getDocument, newId, normalizeTags, patchDocument, putDocument, putDocuments, removeDocument, useDocuments, type DateStr, type DocumentInput, type TimedWhen } from "@lifeline/core";
+import { addDays, diffDays, documentsOf, getDocument, newId, normalizeTags, patchDocument, putDocuments, removeDocument, useDocuments, type DateStr, type DocumentInput, type TimedWhen } from "@lifeline/core";
 import { EVENT_TYPE, type Event } from "../domain/types";
 import type { EventWhen } from "../domain/eventForm";
 import { normalizeEvent, rescheduled, spanOf } from "../domain/events";
@@ -70,8 +70,9 @@ async function writeMoved(was: Event, now: Event, added: readonly DocumentInput[
 export async function updateEvent(ev: Event, attach: readonly AttachPick[] = []): Promise<void> {
   const next = midnightNextDay({ ...ev, type: EVENT_TYPE, tags: normalizeTags(ev.tags ?? []) });
   const was = await getDocument<Event>(ev.id);
-  if (!was || was.type !== EVENT_TYPE) return void (await putDocument<Event>(next));
   const now = normalizeEvent(next);
+  // Its row gone, the save puts the Event back with the dialog's picks in the same write.
+  if (!was || was.type !== EVENT_TYPE) return void (await putDocuments([next, ...(await attachedBlockerRows(now, attach))]));
   await writeMoved(normalizeEvent(was), now, await attachedBlockerRows(now, attach));
 }
 

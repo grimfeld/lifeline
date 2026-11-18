@@ -264,6 +264,15 @@ describe("a new Event made with blockers attached (its dialog's Beforeâ€¦/Afterâ
     await updateEvent({ ...row, start: "13:00", end: "14:00" }, [{ templateId: await travel(), side: "before" }]);
     expect((await attachedBlockersOf(ev)).map((b) => [b.start, b.end])).toEqual([["12:30", "13:00"]]);
   });
+
+  it("keeps the picks when the Event's row has vanished before the save", async () => {
+    const ev = await dentist();
+    const row = (await allEvents()).find((e) => e.id === ev)!;
+    await removeDocument(ev);
+    await updateEvent({ ...row, start: "13:00", end: "14:00" }, [{ templateId: await travel(), side: "before" }]);
+    expect(await event(ev)).toMatchObject({ start: "13:00", end: "14:00" });
+    expect((await attachedBlockersOf(ev)).map((b) => [b.start, b.end])).toEqual([["12:30", "13:00"]]);
+  });
 });
 
 describe("detachBlocker", () => {
