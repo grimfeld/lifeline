@@ -49,6 +49,23 @@ describe("Ties (#412)", () => {
     expect(await getDocument(free.id)).not.toHaveProperty("kind");
   });
 
+  it("stores no kind when a Tie whose kind was only read is edited to free words", async () => {
+    const { anne, lea } = await pair();
+    const t = await addTie({ from: anne.id, to: lea.id, label: "mother", toLabel: "daughter" });
+    await updateTie(t.id, anne.id, { label: "goddaughter", ownLabel: "godmother", kind: "parent", kindRead: true });
+    expect(await getDocument(t.id)).not.toHaveProperty("kind");
+    // Still a preset pair: the read kind is stored (the dialog was saved on a kinded chip's words).
+    await updateTie(t.id, anne.id, { label: "son", ownLabel: "father", kind: "parent", kindRead: true });
+    expect(await getDocument(t.id)).toMatchObject({ kind: "parent" });
+  });
+
+  it("keeps a stored kind when its words are edited to 'mum'", async () => {
+    const { anne, lea } = await pair();
+    const t = await addTie({ from: anne.id, to: lea.id, label: "mother", toLabel: "daughter", kind: "parent" });
+    await updateTie(t.id, anne.id, { label: "daughter", ownLabel: "mum", kind: "parent" });
+    expect(await getDocument(t.id)).toMatchObject({ labelA: "mum", kind: "parent" });
+  });
+
   it("keeps or clears the kind when words are edited, read from the page's own side", async () => {
     const { anne, lea } = await pair();
     const t = await addTie({ from: anne.id, to: lea.id, label: "mother", toLabel: "daughter", kind: "parent" });

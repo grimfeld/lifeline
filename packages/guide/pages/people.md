@@ -147,7 +147,8 @@ A **Tie** says how two People stand to each other. Press **Add tie** on either P
 find the other Person by name, and give a word for each end ("mother" and "daughter"). It is
 stored once and shows on both pages, each read from its own side, with the other Person as a
 link. The dialog asks both ways round, by name: "Léa is Anne's…" and "Anne is Léa's…". The words
-are yours: "godmother", "ex" and "best friend's brother" all fit.
+are yours: "godmother", "ex" and "best friend's brother" all fit. Change or remove it under **Edit**
+on either page (with Undo) and both change.
 
 Once you have picked the other Person, a row of **preset chips** sits under the first question:
 daughter, son, child, sister, brother, sibling, mother, father, parent, wife, husband, partner,
@@ -162,8 +163,9 @@ so on). The words stay yours to change: "mum" in place of "mother" keeps the kin
 pressed chip again to clear the kind and keep the words. A Tie with only free words has no kind
 and works as it always did. A Tie you made before chips existed whose words are a matching pair
 ("mother" and "daughter", in any case) counts as that kind, with nothing rewritten. Claude reads
-Ties as words only. Change or remove it under **Edit**
-on either page (with Undo) and both change. A Tie is never to you, only between two People.
+Ties as words only.
+
+A Tie is never to you, only between two People.
 Deleting a Person removes their Ties; the other Person's page is untouched. A Tie is not a link
 in a body, so it adds no Backlink and counts for no Report.
 

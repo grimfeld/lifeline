@@ -72,6 +72,8 @@ export interface TieRow {
   ownLabel: string;
   /** What the Tie means read from this Person to the other (ADR 0130): stored, else read from the two words; none for free words. */
   kind?: TieKind;
+  /** The kind was read from the two words, not stored: kept on save only while the words still read as it. */
+  kindRead?: true;
 }
 
 /**
@@ -89,7 +91,8 @@ export function tiesSeenFrom(personId: string, ties: readonly Tie[], people: rea
     const otherName = names.get(otherId);
     if (otherName === undefined) continue;
     const kind = tieKindOf(t);
-    rows.push({ id: t.id, otherId, otherName, label: mine ? t.labelB : t.labelA, ownLabel: mine ? t.labelA : t.labelB, ...(kind ? { kind: mine ? kind : invertKind(kind) } : {}) });
+    const read = kind !== undefined && kind !== t.kind;
+    rows.push({ id: t.id, otherId, otherName, label: mine ? t.labelB : t.labelA, ownLabel: mine ? t.labelA : t.labelB, ...(kind ? { kind: mine ? kind : invertKind(kind) } : {}), ...(read ? { kindRead: true as const } : {}) });
   }
   return rows.sort((x, y) => x.otherName.localeCompare(y.otherName));
 }
@@ -125,11 +128,13 @@ export interface TieDraft {
   ownLabel: string;
   /** The kind, read from this Person to the other; absent for free words. */
   kind?: TieKind;
+  /** The kind was only read from the words (see `TieRow.kindRead`); a chip tap makes it a chosen one. */
+  kindRead?: true;
 }
 
 /** The Tie dialog as it opens: blank for a new Tie, else the row's other Person, words and kind. */
 export const tieDraft = (row: TieRow | undefined): TieDraft =>
-  row ? { otherId: row.otherId, label: row.label, ownLabel: row.ownLabel, ...(row.kind ? { kind: row.kind } : {}) } : { otherId: "", label: "", ownLabel: "" };
+  row ? { otherId: row.otherId, label: row.label, ownLabel: row.ownLabel, ...(row.kind ? { kind: row.kind } : {}), ...(row.kindRead ? { kindRead: true as const } : {}) } : { otherId: "", label: "", ownLabel: "" };
 
 /** The other Person's name in the dialog: the one picked, else the row's (when they are not among `people`), else none yet. */
 export function otherNameOf(people: readonly Pick<Person, "id" | "title">[], otherId: string, row: Pick<TieRow, "otherName"> | undefined): string {
@@ -183,7 +188,7 @@ export const presetPressed = (draft: TieDraft, preset: Preset): boolean => draft
  * reading); tap the pressed one again to clear the kind and leave the words.
  */
 export function selectPreset(draft: TieDraft, preset: Preset, own: Gender): TieDraft {
-  const { kind: _kind, ...rest } = draft;
+  const { kind: _kind, kindRead: _read, ...rest } = draft;
   if (presetPressed(draft, preset)) return rest;
   const { label, ownLabel, kind } = presetWords(preset, own);
   return { ...rest, label, ownLabel, kind };

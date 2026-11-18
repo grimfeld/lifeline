@@ -1,6 +1,6 @@
 import { PERSON_TYPE, documentsOf, getDocument, putDocument, removeDocument, removeDocumentsWhere, useDocuments } from "@lifeline/core";
 import { TIE, type Tie, type TieKind } from "../domain/types";
-import { invertKind, type TieRow } from "../domain/ties";
+import { invertKind, kindOfWords, type TieRow } from "../domain/ties";
 
 /** A Tie as stored, with its keys filled in for a row that lacks them. */
 const normalizeTie = (t: Tie): Tie => ({ ...t, a: t.a ?? "", b: t.b ?? "", labelA: t.labelA ?? "", labelB: t.labelB ?? "" });
@@ -47,8 +47,10 @@ export async function addTie(input: { from: string; to: string; label: string; t
  * Change a Tie's words as `personId` reads them: `label` is what the other
  * Person is to them, `ownLabel` what they are to the other. Works from either end.
  * `kind` is read from `personId` to the other Person; absent clears it.
+ * `kindRead` marks a kind only read from the old words (never stored): it is kept
+ * only while the new words still read as it, so free words leave a Tie kindless.
  */
-export async function updateTie(id: string, personId: string, words: { label: string; ownLabel: string; kind?: TieKind | undefined }): Promise<void> {
+export async function updateTie(id: string, personId: string, words: { label: string; ownLabel: string; kind?: TieKind | undefined; kindRead?: boolean | undefined }): Promise<void> {
   const tie = await getDocument<Tie>(id);
   if (!tie) return;
   const label = words.label.trim();
@@ -56,7 +58,8 @@ export async function updateTie(id: string, personId: string, words: { label: st
   if (!label || !ownLabel) throw new Error("A Tie needs a word for each end");
   const fromA = tie.a === personId;
   const { kind: _old, ...rest } = tie;
-  const kind = words.kind && (fromA ? words.kind : invertKind(words.kind));
+  const own = words.kindRead && words.kind !== kindOfWords(ownLabel, label) ? undefined : words.kind;
+  const kind = own && (fromA ? own : invertKind(own));
   await putDocument<Tie>({ ...rest, labelA: fromA ? ownLabel : label, labelB: fromA ? label : ownLabel, ...(kind ? { kind } : {}) });
 }
 
@@ -65,7 +68,7 @@ export async function updateTie(id: string, personId: string, words: { label: st
  * tie them to `otherId`. `label` is what the other Person is to them,
  * `ownLabel` what they are to the other, as the page reads.
  */
-export async function saveTieFrom(personId: string, row: Pick<TieRow, "id"> | undefined, input: { otherId: string; label: string; ownLabel: string; kind?: TieKind | undefined }): Promise<void> {
+export async function saveTieFrom(personId: string, row: Pick<TieRow, "id"> | undefined, input: { otherId: string; label: string; ownLabel: string; kind?: TieKind | undefined; kindRead?: boolean | undefined }): Promise<void> {
   if (row) return updateTie(row.id, personId, input);
   if (!input.otherId) throw new Error("Pick the other person.");
   await addTie({ from: personId, to: input.otherId, label: input.ownLabel, toLabel: input.label, kind: input.kind });

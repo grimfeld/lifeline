@@ -12,11 +12,11 @@ const motherDaughter = tie("t1", "p1", "p2", "mother", "daughter");
 
 describe("a Tie read from either end", () => {
   it("shows Anne the other end's word and Léa, as 'daughter: Léa'", () => {
-    expect(tiesSeenFrom("p1", [motherDaughter], [anne, lea])).toEqual([{ id: "t1", otherId: "p2", otherName: "Léa", label: "daughter", ownLabel: "mother", kind: "parent" }]);
+    expect(tiesSeenFrom("p1", [motherDaughter], [anne, lea])).toEqual([{ id: "t1", otherId: "p2", otherName: "Léa", label: "daughter", ownLabel: "mother", kind: "parent", kindRead: true }]);
   });
 
   it("shows Léa the labels swapped, as 'mother: Anne'", () => {
-    expect(tiesSeenFrom("p2", [motherDaughter], [anne, lea])).toEqual([{ id: "t1", otherId: "p1", otherName: "Anne", label: "mother", ownLabel: "daughter", kind: "child" }]);
+    expect(tiesSeenFrom("p2", [motherDaughter], [anne, lea])).toEqual([{ id: "t1", otherId: "p1", otherName: "Anne", label: "mother", ownLabel: "daughter", kind: "child", kindRead: true }]);
   });
 
   it("leaves out Ties of other People", () => {
@@ -75,6 +75,17 @@ describe("Tie kinds read from words (#608)", () => {
     expect(kindOfWords("godmother", "goddaughter")).toBeUndefined();
     expect(kindOfWords("mother", "mother")).toBeUndefined();
   });
+  it("marks a kind read from the words, not a stored one", () => {
+    const stored = { ...motherDaughter, kind: "parent" } as Tie;
+    expect(tiesSeenFrom("p1", [stored], [anne, lea])[0]).not.toHaveProperty("kindRead");
+    expect(tiesSeenFrom("p1", [motherDaughter], [anne, lea])[0]).toHaveProperty("kindRead", true);
+  });
+  it("carries the read mark into the draft, and a tapped chip drops it", () => {
+    const row = tiesSeenFrom("p1", [motherDaughter], [anne, lea])[0]!;
+    const d = tieDraft(row);
+    expect(d).toMatchObject({ kind: "parent", kindRead: true });
+    expect(selectPreset(d, PRESETS.find((p) => p.word === "son")!, "female")).not.toHaveProperty("kindRead");
+  });
   it("ignores a stored kind that is not one", () => {
     expect(tiesSeenFrom("p1", [{ ...tie("t1", "p1", "p2", "godmother", "goddaughter"), kind: "text" } as unknown as Tie], [anne, lea])[0]).not.toHaveProperty("kind");
   });
@@ -131,7 +142,7 @@ describe("Tapping a preset chip in the dialog (#611)", () => {
     expect(presetPressed(d, daughter)).toBe(true);
     expect(presetPressed(d, PRESETS.find((p) => p.word === "son")!)).toBe(false);
   });
-  it("keeps the kind when a word is edited, with no chip pressed", () => {
+  it("keeps the kind, and the chip pressed, when only the other word is edited", () => {
     const edited = { ...selectPreset(blank, daughter, "female"), ownLabel: "mum" };
     expect(edited.kind).toBe("parent");
     expect(presetPressed(edited, daughter)).toBe(true);
