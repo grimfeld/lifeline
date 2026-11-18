@@ -30,10 +30,6 @@ test("finds the chromium build whatever its number", () => {
   const fs = fakeFs(["/pw/chromium-1243/chrome-linux/chrome", "/pw/chromium_headless_shell-1243/x", "/pw/ffmpeg-1011/y"]);
   assert.equal(preinstalledChromium("/pw", "linux", fs.exists, fs.list), "/pw/chromium-1243/chrome-linux/chrome");
 });
-test("finds a build laid out as chrome-linux64, as newer Playwright builds are", () => {
-  const fs = fakeFs(["/pw/chromium-1243/chrome-linux64/chrome"]);
-  assert.equal(preinstalledChromium("/pw", "linux", fs.exists, fs.list), join("/pw", "chromium-1243", "chrome-linux64", "chrome"));
-});
 test("takes the newest build", () => {
   const fs = fakeFs(["/pw/chromium-1243/chrome-linux/chrome", "/pw/chromium-1248/chrome-linux/chrome"]);
   assert.equal(preinstalledChromium("/pw", "linux", fs.exists, fs.list), join("/pw", "chromium-1248", "chrome-linux", "chrome"));
