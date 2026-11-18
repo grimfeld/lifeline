@@ -455,6 +455,15 @@ test("a recurring Task's chip on the phone's Week is completed from its Peek: th
     );
   await expect.poll(done).toEqual(["2026-11-10"]);
   await expect(timing.getByRole("button", { name: "Complete", exact: true }), "a done item offers no Complete").toHaveCount(0);
+
+  // The next occurrence, a week on, is still to do.
+  await page.keyboard.press("Escape");
+  await page.goto("/calendar?view=week&d=2026-11-16");
+  await workLocally(page);
+  await page.locator("[data-focus-key]").filter({ hasText: title }).first().click();
+  const next = page.getByRole("dialog", { name: title, exact: true }).getByRole("region", { name: "Time block" });
+  await expect(next.getByRole("button", { name: "Complete", exact: true }), "the next occurrence is not done").toBeVisible();
+  expect(await done(), "only the occurrence completed").toEqual(["2026-11-10"]);
 });
 
 test("Remove block by keyboard leaves focus inside the Peek", async ({ page }) => {
