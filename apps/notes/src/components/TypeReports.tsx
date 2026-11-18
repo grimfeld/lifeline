@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Link, useSearchParams } from "react-router";
-import { reportKind, reportsIn, reportsOf, todayStr, useDocumentTypes, useTopMentioned, type DocumentTypeDef, type LinkIndex, type LinkRef, type ReportSetting, type ReportWindow } from "@lifeline/core";
+import { periodReportsOf, rankingRows, reportKind, reportLabel, reportsIn, todayStr, useDocumentTypes, type DocumentTypeDef, type LinkIndex, type LinkRef, type ReportSetting, type ReportWindow } from "@lifeline/core";
 import { RankingReport, useOpenLinkRef } from "@lifeline/editor";
 import { DatePicker, Label, PhoneDock, PhoneFilters, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
 import { periodRange } from "../domain/periods";
@@ -88,34 +88,36 @@ export function TypeReports({ type, index }: { type: DocumentTypeDef; index: Lin
 
 /**
  * A period's roll-up (ADR 0076): for every type with Top mentioned, who came up
- * on the most of the period's Days. A type with nothing in the period is left
- * out, so a quiet Week isn't padded with empty blocks.
+ * on the most of the period's Days; for every type with Top seen, who was on
+ * the most of its Events' days ("People · Top seen", "Places · Top visited",
+ * ADR 0128), never added to the first. A Report with nothing in the period is
+ * left out, so a quiet Week isn't padded with empty blocks.
  */
 export function PeriodReports({ periodKey, index }: { periodKey: string; index: LinkIndex }) {
   const types = useDocumentTypes();
   const onOpen = useOpenLinkRef(index);
   const range = periodRange(periodKey);
   if (!range) return null;
-  const blocks = types.flatMap((t) => {
-    const top = reportsOf(t).find((r) => r.kind === "top");
-    return top ? [{ t, top }] : [];
-  });
+  const blocks = types.flatMap((t) => periodReportsOf(t).map((setting) => ({ t, setting })));
   return (
     <>
-      {blocks.map(({ t, top }) => (
-        <PeriodBlock key={t.id} type={t} top={top} window={range} index={index} onOpen={onOpen} />
+      {blocks.map(({ t, setting }) => (
+        <PeriodBlock key={`${t.id}:${setting.kind}`} type={t} setting={setting} window={range} index={index} onOpen={onOpen} />
       ))}
     </>
   );
 }
 
-function PeriodBlock({ type, top, window, index, onOpen }: { type: DocumentTypeDef; top: ReportSetting; window: { from: string; to: string }; index: LinkIndex; onOpen: (ref: LinkRef, name: string) => void }) {
-  const any = useTopMentioned(index, type.id, window).length > 0;
+function PeriodBlock({ type, setting, window, index, onOpen }: { type: DocumentTypeDef; setting: ReportSetting; window: { from: string; to: string }; index: LinkIndex; onOpen: (ref: LinkRef, name: string) => void }) {
+  const today = todayStr();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- the window is keyed by its dates: callers pass a new object each render
+  const any = useMemo(() => rankingRows(index, type.id, setting, window, today).length > 0, [index, type.id, setting, window.from, window.to, today]);
   if (!any) return null;
   const homed = !type.builtIn && type.homeModule === "journal";
+  const title = setting.kind === "top" ? type.label : `${type.label} · ${reportLabel(setting.kind, type)}`;
   return (
     <div className="grid min-w-0 gap-0.5">
-      <RankingReport index={index} typeId={type.id} setting={top} window={window} title={type.label} onOpen={onOpen} />
+      <RankingReport index={index} typeId={type.id} setting={setting} window={window} title={title} onOpen={onOpen} />
       {homed && (
         <Link to={`${typeHref(type.id)}?w=custom&from=${window.from}&to=${window.to}`} className="text-muted-foreground justify-self-end text-xs hover:underline">
           More →

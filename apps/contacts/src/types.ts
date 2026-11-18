@@ -29,8 +29,8 @@ export const personTypeDef: DocumentTypeDef = {
   href: (d) => personHref(d.id),
   // A Pin for each current Address with coordinates, through the App's code and no geo Field (#418).
   locatablePins: addressPinsOf,
-  // Seen and Mentioned side by side, never added together (ADR 0112).
-  reports: [{ kind: "lastSeen" }, { kind: "last" }],
+  // Seen and Mentioned side by side, never added together (ADR 0112); Top seen rolls up on a Journal period (ADR 0128).
+  reports: [{ kind: "lastSeen" }, { kind: "last" }, { kind: "topSeen", n: 5 }],
   order: 30,
   builtIn: true,
   // Their Ties go with them, and move with them between Workspaces (#412); their place in any Household goes too (ADR 0117).

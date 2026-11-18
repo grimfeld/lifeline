@@ -26,13 +26,19 @@ export const MAX_SPAN = 3660;
 /** A field read as a date, when it is one. */
 const dateIn = (v: unknown): DateStr | undefined => (isDateStr(v) ? v : undefined);
 
-/** The days an Event is on, first to last (an `endDate` before its `date` is ignored); nothing for any other Document or an undated Event. */
+/**
+ * The days an Event is on, first to last (an `endDate` before its `date` is
+ * ignored, and an end at 00:00 doesn't cover its day: it only reaches
+ * midnight, as `lastDayCovered` says, ADR 0090); nothing for any other
+ * Document or an undated Event.
+ */
 export function eventSpan(src: Document | undefined): { from: DateStr; to: DateStr } | undefined {
   if (src?.type !== EVENT_TYPE) return undefined;
   const from = dateIn(src.date);
   if (!from) return undefined;
   const end = dateIn(src.endDate);
-  return { from, to: end && end > from ? end : from };
+  if (!end || end <= from) return { from, to: from };
+  return { from, to: src.end === "00:00" ? addDays(end, -1) : end };
 }
 
 /**

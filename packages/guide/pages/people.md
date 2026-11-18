@@ -1,6 +1,6 @@
 # People
 
-The people in your life: family, friends, colleagues, someone you met once, someone who has
+The people in your life, kept by the Contacts App inside [World](world.md): family, friends, colleagues, someone you met once, someone who has
 died. Each one is a **Person** you can link to from anywhere, with a page of their own. The People
 who live together make a **Household** ("the Smiths"), which you can link to as well.
 
@@ -11,7 +11,7 @@ are to you (their **Relationship**), Tags, and a page of your own words about th
 
 ### The People home
 
-The People Module lands on its home, which opens on **Upcoming** and then lists **Everyone**: every Person in the current
+Contacts lands on the People home, which opens on **Upcoming** and then lists **Everyone**: every Person in the current
 Workspace, A to Z under a letter each (a name that starts with no letter goes under **#**), with when you last saw them. Click one to open their page.
 
 - **Upcoming** — the Occasions in the next 30 days as a strip of days, soonest first: the day's
@@ -72,8 +72,9 @@ Below, two columns (one after the other on a phone):
   or a `[[link]]` in its notes) and **Last
   mentioned** (the last Day that links to them), side by side and never added together. Seen
   counts an Event once per day it is on, every day of a trip, and nothing in the future; Tasks
-  and Occasions never count. A type can also choose **Seen count**, a **Seen heatmap**, **Top seen**
-  and **Not seen lately** in its editor, and each can be placed as a Report Card.
+  and Occasions never count. **Top seen** (who was on the most days of Events) shows on each
+  [Journal](journal.md) period, as **People · Top seen**. A type can also choose **Seen count**, a
+  **Seen heatmap** and **Not seen lately** in its editor, and each can be placed as a Report Card.
 - **Timeline** — everything that links to them, by month, newest first: Events with them, Tasks
   and Transactions for them, books they recommended, and the Days and notes that name them, each
   once, saying what it is and how it links ("via With", "mentioned", or "via the Smiths" for a link
@@ -83,7 +84,8 @@ Below, two columns (one after the other on a phone):
   A note or anything else with no date of its own sits below the line, on the day it last
   changed. An Event still under way (a trip begun but not yet over) stays above the line, by its
   first day, until its End day has passed; one that ends at midnight is over that night. Click one to peek at it. Only an Event counts as having
-  seen them: its **With**, or a `[[link]]` to them in its notes ("Dinner with [[Marc]]").
+  seen them: its **With**, or a `[[link]]` to them in its notes ("Dinner with [[Marc]]"). An Event
+  **At** their home (its At set to them) is listed, but never counts as having seen them.
 
 Deleting a Person takes them out of every People field that held them (an Event's **With**, a
 Task's **For**…); the Events, Tasks and the rest stay. A `[[link]]` to them in a body becomes an

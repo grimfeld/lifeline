@@ -33,7 +33,12 @@ const ENTRIES: Entry[] = [
   { slug: "culture", title: "Culture", kind: "module", module: "culture", apps: ["library", "cinema", "discotheque", "arcade", "museum"] },
   { slug: "money", title: "Money", kind: "module", module: "money", apps: ["ledger", "pocket", "prices"] },
   { slug: "journal", title: "Journal", kind: "module", module: "journal", apps: ["notes"] },
-  { slug: "people", title: "People", kind: "module", module: "people", apps: ["contacts"] },
+  // The people Module is titled World (ADR 0128); its Apps get their own pages as they land.
+  { slug: "world", title: "World", kind: "module", module: "people" },
+  // Contacts' own page: the Module's id is people, so People is a Core concept here, not a second Module page.
+  { slug: "people", title: "People", kind: "core", apps: ["contacts"] },
+  // Atlas's own page, beside People's in World.
+  { slug: "places", title: "Places", kind: "core", apps: ["atlas"] },
   { slug: "notes", title: "Notes", kind: "module", module: "notes", apps: ["commonplace", "sources"] },
   { slug: "research", title: "Research", kind: "module", module: "research", apps: ["writer"] },
   { slug: "manuscript", title: "Manuscript", kind: "module", module: "manuscript", apps: ["manuscript"] },

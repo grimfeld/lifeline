@@ -90,6 +90,13 @@ export interface FieldDef {
   kind: FieldKind;
   /** select / multiselect. */
   options?: FieldOption[];
+  /**
+   * A built-in Choice whose options the user may rename and add to (a Place's
+   * Kind): its App's options are where it starts. The user's labels and extra
+   * options are kept on the type's override record, under this key; an
+   * option is never removed, so no value a Document holds is orphaned.
+   */
+  userOptions?: boolean;
   /** link: restrict to one Document type or a family of them (undefined = any linkable type). */
   linkType?: string | string[];
   /** link: restrict to Documents playing a Role (ADR 0069) — its home type's and every wearer. Wins over `linkType`. */
@@ -122,6 +129,13 @@ export type TitleRule = "name" | "date" | "derived";
  */
 /** The Report kinds a type may choose (ADR 0076): ranking kinds rank a type's Documents, the others describe one Document. */
 export type ReportKind = "top" | "quiet" | "last" | "count" | "heatmap" | "topSeen" | "quietSeen" | "lastSeen" | "seenCount" | "seenHeatmap";
+/** A type's own words for the Seen family (ADR 0128): `{ verb: "visited", one: "visit", many: "visits" }`. */
+export interface SeenAs {
+  verb: string;
+  one: string;
+  many: string;
+}
+
 /** One chosen Report on a type, in the type's order, with its parameters. */
 export interface ReportSetting {
   kind: ReportKind;
@@ -208,9 +222,20 @@ export interface DocumentTypeDef {
    * Locatable, several places to a Document: a Pin for each place the reader
    * returns (a Person's Addresses). `id` is unique within the Document and
    * `name` replaces its title on the Pin. Declared in code only, by the
-   * owning App; `locatable` is left unset on such a type.
+   * owning App; `locatable` is left unset on such a type. `main` marks the
+   * one place a Document stands for when another stands at it (`locatableVia`,
+   * ADR 0122): none marked, and nothing stands there.
    */
-  locatablePins?: (doc: Document) => { id: string; name: string; lat: number; lon: number }[];
+  locatablePins?: (doc: Document) => { id: string; name: string; lat: number; lon: number; main?: boolean }[];
+  /**
+   * Locatable at another Document (ADR 0122): the Link Field naming the
+   * Document this one stands at (an Event's `at`). Its Pin is that
+   * Document's place, or its `main` one, under this Document's own title,
+   * and there is none when that Document has none. So an App puts its
+   * Documents on the map without reading where the linked one is. Declared
+   * in code only; `locatable` and `locatablePins` are left unset.
+   */
+  locatableVia?: string;
   /**
    * Reading mode offers a stopwatch. For types whose Documents are *performed*
    * from the page rather than consulted — a Writing given aloud (CONTEXT.md's
@@ -288,12 +313,44 @@ export interface DocumentTypeDef {
    */
   describe?: (doc: Document) => Promise<Record<string, unknown>>;
   /**
+   * Field keys `search_documents` gives with each of this type's hits, so an
+   * agent need not get each one to see what it found (a Place's address). The
+   * agent wall still holds: a walled key is never given. Declared in code.
+   */
+  searchFields?: string[];
+  /**
    * The agent wall (ADR 0114): keys of this type's Documents an agent never
    * reads or writes, whatever Fields declare them (a Person's Addresses and
    * Contact details). The MCP server strips them from every answer and refuses
    * them in every write, Command and Macro step.
    */
   agentWalled?: readonly string[];
+  /**
+   * Titles unique among the type's Documents in every folder, case and
+   * accents aside (a Place's, ADR 0128), where others are unique per folder.
+   * Core holds it on every write (`putDocument`, and so a rename, a page's
+   * title field, a Base cell, an agent's `update_document`), refusing with
+   * `TitleTaken`, which names and carries the Document that has the title.
+   */
+  uniqueTitles?: boolean;
+  /**
+   * How the owning App makes one of these from a name alone, by its own rules
+   * — so a field elsewhere (an Event's At, ADR 0128) can offer "Create …"
+   * without importing the App (ADR 0100). Answers the Document there is when
+   * the App refuses a second of that name.
+   */
+  createNamed?: (name: string) => Promise<Document>;
+  /**
+   * What the owning App keeps true of its own Documents when a Document of
+   * another type is saved (ADR 0121): a Place's To try, cleared once an Event
+   * that links to it has happened. After `putDocument` (and so `patchDocument`)
+   * writes a Document whose type is in `of`, Core calls `run` with it as
+   * written; the App works out what that Document means for its own, so
+   * neither App imports the other (ADR 0100). `run` must be idempotent and
+   * write only its own type's Documents. A failure is logged, never thrown:
+   * the save it follows stands.
+   */
+  afterSaveOf?: { of: readonly string[]; run: (saved: Document) => Promise<void> };
   /**
    * For an internal type (ADR 0098): the Document that speaks for one of its
    * own — a Lane's Project. `get_document` on the internal id answers as if
@@ -310,6 +367,11 @@ export interface DocumentTypeDef {
   order?: number;
   /** The Reports the user chose for this type (ADR 0076); absent = the defaults (`reportsOf`). */
   reports?: ReportSetting[];
+  /**
+   * What this type calls the Seen family (ADR 0128): a Place is "visited", its
+   * days "visits". Absent, it is Seen, counted in days.
+   */
+  seenAs?: SeenAs;
   /** Built-in (code) vs user-defined (data). */
   builtIn: boolean;
   /** A built-in whose label/icon/fields were customised by a user record. */
@@ -418,11 +480,13 @@ export function singularOf(def: Pick<DocumentTypeDef, "label" | "singular">): st
 
 /** Slug for a user-defined type id from its label: "Recipe idea" → "recipe-idea". */
 export function slugify(label: string): string {
-  return label
+  const slug = label
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 40);
+    .replace(/[^a-z0-9]+/g, "-");
+  // At most one "-" at each end now: trimmed by hand, no regex (CodeQL js/polynomial-redos).
+  const start = slug.startsWith("-") ? 1 : 0;
+  const end = slug.endsWith("-") && slug.length > start ? slug.length - 1 : slug.length;
+  return slug.slice(start, end).slice(0, 40);
 }

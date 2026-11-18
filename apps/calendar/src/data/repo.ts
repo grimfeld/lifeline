@@ -24,6 +24,8 @@ export async function addEvent(input: {
   end?: string | null;
   tags?: string[];
   with?: string[];
+  /** A Place's or a Person's id (ADR 0128). */
+  at?: string;
   /** Blockers to attach as it is made (its dialog's Before…/After…), written with it; ignored when it is all day. */
   attach?: readonly AttachPick[];
 }): Promise<string> {
@@ -39,6 +41,7 @@ export async function addEvent(input: {
     end: start ? (input.end || null) : null,
     tags: normalizeTags(input.tags),
     with: [...new Set(input.with)],
+    at: input.at ?? "",
   });
   // The Event and the blockers attached to it land together, or not at all.
   await putDocuments([ev, ...(await attachedBlockerRows(ev, input.attach ?? []))]);
@@ -77,9 +80,10 @@ export async function updateEvent(ev: Event, attach: readonly AttachPick[] = [])
   await writeMoved(normalizeEvent(was), now, await attachedBlockerRows(now, attach));
 }
 
-/** Edit an Event's own words — its notes, Tags and With — from wherever it is shown (its Peek, ADR 0085). */
-export async function editEvent(id: string, edit: { notes?: string; tags?: string[]; with?: string[] }): Promise<void> {
+/** Edit an Event's own words — its notes, Tags, With and At — from wherever it is shown (its Peek, ADR 0085). */
+export async function editEvent(id: string, edit: { notes?: string; tags?: string[]; with?: string[]; at?: string }): Promise<void> {
   const patch: Record<string, unknown> = {};
+  if (edit.at !== undefined) patch.at = edit.at;
   if (edit.notes !== undefined) patch.notes = edit.notes;
   if (edit.tags !== undefined) patch.tags = normalizeTags(edit.tags);
   if (edit.with !== undefined) patch.with = [...new Set(edit.with)];

@@ -1,7 +1,7 @@
 import { useId, useImperativeHandle, useState, type MutableRefObject, type ReactNode } from "react";
 import { Button, Field, TagInput, Textarea, useCommitDraft } from "@lifeline/ui";
 import { noteTiming, normalizeTag, useTagVocabulary } from "@lifeline/core";
-import { PeopleField } from "@lifeline/editor";
+import { AtField, PeopleField } from "@lifeline/editor";
 import { X } from "lucide-react";
 import type { BlockerSide, BlockerTemplate, Event } from "../domain/types";
 import { SIDE_LABELS } from "../domain/attached";
@@ -23,7 +23,7 @@ export type { EventDraft } from "../domain/eventForm";
  *   are the caller's to show, once saving has been tried.
  * - **editing** — an existing Event, written as it changes: its day and times
  *   through the guarded `setEventWhen` once they make an Event (`whenFormErrors`),
- *   its notes a moment after typing stops, With and Tags at once (`editEvent`).
+ *   its notes a moment after typing stops, With, At (ADR 0128) and Tags at once (`editEvent`).
  *   A change of day and times is noted to the Peek (`noteTiming`), which leaves
  *   one Undo for it on closing (ADR 0056, #536).
  *
@@ -32,8 +32,8 @@ export type { EventDraft } from "../domain/eventForm";
  * attaches as it saves; editing, the Event's bands are listed and a pick
  * attaches one at once. An all-day Event offers neither.
  *
- * `idPrefix` names its controls (`whenIds`, then `<prefix>notes`, `with` and
- * `tags`): the Peek may sit over a page with the dialog's. The user's own
+ * `idPrefix` names its controls (`whenIds`, then `<prefix>notes`, `with`, `at`
+ * and `tags`): the Peek may sit over a page with the dialog's. The user's own
  * Fields are not here: Core draws them under the Form in the Peek.
  */
 export type EventFormProps =
@@ -104,7 +104,7 @@ function EditingForm({ event, idPrefix, flushRef }: { event: Event; idPrefix?: s
   return (
     <EventFields
       idPrefix={idPrefix ?? ownPrefix}
-      value={{ ...when, notes: notes.draft, with: event.with ?? [], tags: event.tags ?? [] }}
+      value={{ ...when, notes: notes.draft, with: event.with ?? [], at: event.at ?? "", tags: event.tags ?? [] }}
       attach={
         event.start ? (
           <>
@@ -118,6 +118,7 @@ function EditingForm({ event, idPrefix, flushRef }: { event: Event; idPrefix?: s
       onChange={(patch) => {
         if (patch.notes !== undefined) notes.change(patch.notes);
         if (patch.with !== undefined) void editEvent(event.id, { with: patch.with });
+        if (patch.at !== undefined) void editEvent(event.id, { at: patch.at });
         if (patch.tags !== undefined) void editEvent(event.id, { tags: patch.tags });
         if (patch.when) {
           const next = patch.when;
@@ -156,7 +157,7 @@ function PickedBlockers({ picks, onPicks }: { picks: readonly BlockerPick[]; onP
 }
 
 /** What one control changed: a when as a whole (the day and time controls move together), or one other Field. */
-type FieldsPatch = Partial<Pick<EventDraft, "notes" | "with" | "tags">> & { when?: WhenForm };
+type FieldsPatch = Partial<Pick<EventDraft, "notes" | "with" | "at" | "tags">> & { when?: WhenForm };
 
 /** The one set of controls, in the order both modes show them. */
 function EventFields({
@@ -174,7 +175,7 @@ function EventFields({
   attach?: ReactNode;
 }) {
   const suggestions = useTagVocabulary().map((v) => v.tag);
-  const { notes, with: withIds, tags, ...when } = value;
+  const { notes, with: withIds, at, tags, ...when } = value;
   return (
     <div role="group" aria-label="Event" className="grid gap-4">
       <WhenFields
@@ -189,6 +190,9 @@ function EventFields({
       </Field>
       <Field label="With">
         <PeopleField id={`${idPrefix}with`} label="With" value={withIds} onChange={(ids) => onChange({ with: ids })} households />
+      </Field>
+      <Field label="At">
+        <AtField id={`${idPrefix}at`} value={at} onChange={(next) => onChange({ at: next })} />
       </Field>
       <Field label="Tags">
         <TagInput id={`${idPrefix}tags`} value={tags} onChange={(t) => onChange({ tags: t })} suggestions={suggestions} normalize={normalizeTag} placeholder="Add tag…" />

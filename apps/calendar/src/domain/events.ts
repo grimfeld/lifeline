@@ -12,6 +12,7 @@ export function normalizeEvent(e: Event): Event {
     end: e.end || null,
     tags: e.tags ?? [],
     with: Array.isArray(e.with) ? e.with.map(String).filter(Boolean) : [],
+    at: typeof e.at === "string" ? e.at : "",
   });
 }
 

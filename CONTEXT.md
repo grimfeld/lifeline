@@ -54,7 +54,7 @@ What one App hands to another's Intake: a title, a text in markdown, an origin U
 _Avoid_: payload, message, draft, clip
 
 ### Selection menu
-What selecting text in any Document's body offers — a Note, a Quote, a Thought, an Essay, a Day — reached by click or one shortcut, and filtered by typing. Grouped, top to bottom: **Link** (to the Document the text already names, or to one searched for), then each **Module** with what it can make from the text — a user-defined type homed there (Journal: Place), and each App's Intakes (Notes: Quote; Tasks: Task; Knowledge: Word, Sentence, Fact) — in Core's Module order with the Module the user is in first, and user-defined types homed nowhere last, under **Other**. A user-defined type is offered only for a short, one-line selection, and is **made at once**, titled by it, and undone rather than confirmed — Core is its owner, so this is no Intake, and its dialog is skipped. Linking, or making a Document of a Linkable type, turns the selection into a Wikilink to it — keeping the selected words as the link's text when they differ from its title, and adding them as an alias if the user asks — whether or not the body was open for writing; the user stays on the page, and a Document made this way opens in a Peek beside it. Only Document bodies offer it, never a form's inputs.
+What selecting text in any Document's body offers — a Note, a Quote, a Thought, an Essay, a Day — reached by click or one shortcut, and filtered by typing. Grouped, top to bottom: **Link** (to the Document the text already names, or to one searched for), then each **Module** with what it can make from the text — a user-defined type homed there (Journal: a user-defined type), and each App's Intakes (Notes: Quote; Tasks: Task; Knowledge: Word, Sentence, Fact) — in Core's Module order with the Module the user is in first, and user-defined types homed nowhere last, under **Other**. A user-defined type is offered only for a short, one-line selection, and is **made at once**, titled by it, and undone rather than confirmed — Core is its owner, so this is no Intake, and its dialog is skipped. Linking, or making a Document of a Linkable type, turns the selection into a Wikilink to it — keeping the selected words as the link's text when they differ from its title, and adding them as an alias if the user asks — whether or not the body was open for writing; the user stays on the page, and a Document made this way opens in a Peek beside it. Only Document bodies offer it, never a form's inputs.
 _Avoid_: context menu, hand-off menu, popup
 
 ### Handoff page
@@ -233,7 +233,10 @@ Dragging a Schedulable item to another day on a Surface. The owning App decides 
 _Avoid_: reschedule, pin (a pin is the Core fallback, not the concept)
 
 ### Event
-A thing that happens at a fixed time, owned by the Calendar App. Not work, not completable. A timed Event runs from a start (a day and a time) to an end (a day and a time) on any day — overnight, or across several. An Event is given an **end**; its length is shown, never asked. Work is the other way round: it is given a **length**. An all-day Event runs from a first day to a last day. The Calendar App owns Events; the Calendar Surface is Core's; it no longer owns Tasks.
+A thing that happens at a fixed time, owned by the Calendar App, optionally **At** a Place or a Person. Not work, not completable. A timed Event runs from a start (a day and a time) to an end (a day and a time) on any day — overnight, or across several. An Event is given an **end**; its length is shown, never asked. Work is the other way round: it is given a **length**. An all-day Event runs from a first day to a last day. The Calendar App owns Events; the Calendar Surface is Core's; it no longer owns Tasks.
+
+**At** — where an Event happens: one Place, or one Person, meaning their home. Several stops are several Events. At on a Person uses their current Address (the one labelled Home, else the first) for its map position and none if they have none; it never counts as seeing them (only **With** and note wikilinks do), and an agent sees the Person only, never the Address. At on a Place counts as a visit once the Event has happened, and clears the Place's To try.
+_Avoid_ (for At): location (the coordinates), venue (a Place Kind), attendees
 _Avoid_: appointment, meeting; duration (for an Event — it has an end, and its length is only shown)
 
 ### Event template
@@ -456,7 +459,7 @@ _Avoid_: note (that has a Source), idea (one kind of Thought), journal entry, fl
 _Retired_ — a passage taken from outside is a **Quote**, and every Quote has a Source.
 
 ### Reference
-Not a type: the informal name for any Document about a real-world thing (a person, a place, an organisation, a work) that other Documents link to. Person and place are user-defined types; works (books, films, albums, games) are References owned by their family App, Artworks by the Museum App. What makes something a Reference is being Linkable, not its type.
+Not a type: the informal name for any Document about a real-world thing (a person, a place, an organisation, a work) that other Documents link to. Person and Place are built-in types (Contacts, Atlas); works (books, films, albums, games) are References owned by their family App, Artworks by the Museum App. What makes something a Reference is being Linkable, not its type.
 _Avoid_: entity, contact, using "Reference" as a Document type name
 
 ### Writing
@@ -514,11 +517,19 @@ The Journal's review Documents for a longer stretch, one each per ISO week (`202
 _Avoid_: weekly note, review (a Review is my words on a work), period summary
 
 ### Journal
-The Module for living day to day in writing: Days and their Weeks, Months, Quarters and Years, the user-defined types they talk about (places, things…), and a writing interface of its own built for heavy markdown pages. Agnostic about what those other types are — the user defines them and homes them here. The Journal lists them as its **Types** and is where the user creates, edits and deletes them: a type made here is homed here, and one re-homed elsewhere leaves. It manages only the user-defined types homed in it — built-in types and types homed elsewhere are managed from Bases.
+The Module for living day to day in writing: Days and their Weeks, Months, Quarters and Years, the user-defined types they talk about (things, kinds of notes…), and a writing interface of its own built for heavy markdown pages. Agnostic about what those other types are — the user defines them and homes them here. The Journal lists them as its **Types** and is where the user creates, edits and deletes them: a type made here is homed here, and one re-homed elsewhere leaves. It manages only the user-defined types homed in it — built-in types and types homed elsewhere are managed from Bases.
 _Avoid_: diary, vault (the raw editor), collections (for its Types — a Collection is a Stat kind)
 
+### World
+The Module for the people and places of my life, titled World: **Contacts** (People) and **Atlas** (Places) side by side. It is Core's `people` Module, which keeps its id, so a Workspace that took People takes World with nothing to redo. Opens on one map of every Pin from both Apps (Places and People's current Addresses, told apart by each App's colour); Atlas's Places screen and the People screen sit beside it.
+_Avoid_: People (the Module's old name; People is Contacts' type, and a screen), Atlas (an App inside it), directory
+
+### Place
+One particular spot I can go to — a restaurant, café, museum, mall, a branch of a chain ("Lidl Prado") — a Linkable Document of its own built-in type (`atlas_place`), owned by the Atlas App in the **World** Module, never a user-defined type and never a Journal type. Has aliases (`[[Janou]]` lands on "Chez Janou"), a body for what I ordered and who recommended it, Tags, and no rating. Its title is unique among Places. A **Kind** (restaurant, café, bar, museum, gallery, shop, mall, park, venue, other; the user may rename and add), **To try** (kept until an Event At it, or linking to it, that has happened since it was marked clears it), and **closed** (when it shuts for good: it leaves the map and the lists of places to go, and keeps its links, body and history). Holds an address, postal text and coordinates found when it is picked or saved, never when a map is drawn; with coordinates and not closed, it is one Pin. **Visited** shows when I last went and how often, counted from Events At it or linking to it, once per day, only those that have happened; Days that link are Mentioned, never added. **Here**, on the Place form wherever the browser gives a position (the phone above all), reads my position once, on tap, to offer the places around me, or **Just here** to keep it as the Place's coordinates; the position itself is never stored. Not an Address: a home is never a Place, it stays an Address on its Person, behind the agent wall. Places are open to agents. Not a Shop (a chain Prices tracks) or a Storage.
+_Avoid_: location (the coordinates), venue, spot, address (a Person's), Pin (its dot on the map)
+
 ### Person
-Someone I know, or knew: a Linkable Document of its own built-in type, owned by the Contacts App in the **People** Module — never a user-defined type. Their other names are aliases, so `[[Mum]]` and `[[Anne Dupont]]` land on one Person. Has a body: the place for what I know of them. A Person may wear a Role (the Author Role, when they also wrote books). Only people in my life are People: an Author or Artist I have never met stays that App's own; one I come to know is **turned into a Person**, keeping the Role, the links, the aliases and the body. Like every Document, a Person is held by one Workspace, or shared: someone in both my work and my life is two People, one in each. Not a contact: a Person need not be reachable — the dead, someone met once. The type's id is `contacts_person`, not `person`, so a user-defined `person` type made before it stays the user's own, untouched.
+Someone I know, or knew: a Linkable Document of its own built-in type, owned by the Contacts App in the **World** Module — never a user-defined type. Their other names are aliases, so `[[Mum]]` and `[[Anne Dupont]]` land on one Person. Has a body: the place for what I know of them. A Person may wear a Role (the Author Role, when they also wrote books). Only people in my life are People: an Author or Artist I have never met stays that App's own; one I come to know is **turned into a Person**, keeping the Role, the links, the aliases and the body. Like every Document, a Person is held by one Workspace, or shared: someone in both my work and my life is two People, one in each. Not a contact: a Person need not be reachable — the dead, someone met once. The type's id is `contacts_person`, not `person`, so a user-defined `person` type made before it stays the user's own, untouched.
 _Avoid_: contact, friend, acquaintance, relation (a kind of Tie, not the Person)
 
 ### Given name
@@ -550,7 +561,7 @@ What a Person is to me — *my aunt*, *colleague*, *childhood friend* — a labe
 _Avoid_: role (a built-in type's fields lent to a Document), tag (Tags group, a Relationship names), tie
 
 ### Address
-A place a Person lives or can be found, held on that Person under a label of the user's own ("Home", "Work", "Holiday house"): postal text and the coordinates found for it when it is saved. Each current Address is a Pin of its own ("Marc · Work"); a Person with several stands on the map several times. A shared home is held by each Person who lives there. When someone moves, the old Address is marked **former** rather than removed: it leaves the map and stays on their page as history. Never shown to an agent: an agent reads the Person, never where they live. Not a Place (a user-defined type of the Journal's, a Document with links of its own); an Address is only ever part of its Person.
+A place a Person lives or can be found, held on that Person under a label of the user's own ("Home", "Work", "Holiday house"): postal text and the coordinates found for it when it is saved. Each current Address is a Pin of its own ("Marc · Work"); a Person with several stands on the map several times. A shared home is held by each Person who lives there. When someone moves, the old Address is marked **former** rather than removed: it leaves the map and stays on their page as history. Never shown to an agent: an agent reads the Person, never where they live. Never a Place (a Document of Atlas's with links of its own): a home is never a Place, and an Event held at someone's home is At the Person, resolved to their current Address on the map; an Address is only ever part of its Person.
 _Avoid_: location (the coordinates), place, household (the People who live together)
 
 ### Contact detail
@@ -581,7 +592,7 @@ _Avoid_: unlinked reference, suggestion, candidate, "unlinked here" (old label f
 Core Contract: a Document type whose Documents are wikilink targets by title and alias, and receive backlinks. A type may also supply **derived names** (a Person's Given name resolves `[[Anne]]` without being copied into aliases) and **members** a link reaches (a Household's People) — ADR 0117. Declarable by data (a user-defined type just says so).
 
 ### Report
-A read-only figure or table derived from the Documents of one type and the links to them — who was mentioned most this month, when a place was last mentioned, how often a person comes up over time. Two families never added together: **Mentioned** counts Days that link to a Document, **Seen** counts Events that link to it, each once per day. A link to a Household counts for each member on that date (Household reach, ADR 0117). Each type chooses its own Reports. Derived, never logged, never stored. Shown on a Journal period, on one Document, on the type's own page, and placeable as a Card. Not a Stat (a Stat is a series the user logs).
+A read-only figure or table derived from the Documents of one type and the links to them — who was mentioned most this month, when a Place was last visited, how often a person comes up over time. Two families never added together: **Mentioned** counts Days that link to a Document, **Seen** counts Events that link to it, each once per day (**Visited**, for a Place; an Event's At counts toward a Place, never toward a Person's Seen). A link to a Household counts for each member on that date (Household reach, ADR 0117). Each type chooses its own Reports. Derived, never logged, never stored. Shown on a Journal period, on one Document, on the type's own page, and placeable as a Card. Not a Stat (a Stat is a series the user logs).
 _Avoid_: stat, statistic, insight, summary, analytics
 
 ### Role
@@ -601,12 +612,12 @@ An unresolved wikilink name drawn on a Graph: a hole in the vault. Clicking it c
 _Avoid_: phantom, placeholder, unresolved node (fine in prose)
 
 ### Locatable
-Core Contract: a Document type whose Documents sit at a geographic point, so any map Surface can draw them. Declarable by data (a user-defined type with a geo field). Coordinates are the owning App's data (resolved when the entity is edited, never looked up at render time); an entity with an address but no coordinates is not Locatable yet.
+Core Contract: a Document type whose Documents sit at a geographic point, so any map Surface can draw them. Declarable by data (a user-defined type with a geo field). Coordinates are the owning App's data (resolved when the entity is edited, never looked up at render time); an entity with an address but no coordinates is not Locatable yet. A type may instead stand **at the Document it links to** (ADR 0122): an Event is drawn at its At's place, a Place's, or the Person's main Address (Home, else the first), never with coordinates of its own.
 _Avoid_: mappable, geolocated, placed (Placement is a calendar concept)
 
 ### Pin
 One Locatable entity drawn on a map: name, optional subtitle, coordinates, and a way to open the entity. Coloured by owning App. Not stored — read live from the Apps.
-_Avoid_: marker (a rendering detail), place (a Note type), location (that's the coordinates, not the entity)
+_Avoid_: marker (a rendering detail), place (a Place is a Document of Atlas's, not a Pin), location (that's the coordinates, not the entity)
 
 ### Daylog
 Core Contract (behaviour — code only): an App reports what *happened* on a day — completed tasks, chore completions, logged entries, media started/finished, events. Rendered live wherever a Daylog block appears (a Day's fenced `daylog` block, or a Card); never written as text.

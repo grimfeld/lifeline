@@ -44,6 +44,7 @@ const ADDS: Record<string, { command: string; as?: Record<string, string | strin
   sculpture: { command: "museum.add", as: { artistId: "artist" } },
   architecture: { command: "museum.add", as: { artistId: "artist" } },
   contacts_person: { command: "people.add" },
+  atlas_place: { command: "places.add" },
   thought: { command: "thoughts.capture" },
   ledger_transaction: { command: "ledger.add", as: { accountId: "account", categoryId: "category" } },
   pocket_spend: { command: "pocket.spend", as: { allowanceId: "allowance" } },
@@ -157,6 +158,8 @@ leave("the image is filled from the Peek or a lookup, not at capture", MUSEUM, [
 leave("stamped with today by the App when the Artwork is added", MUSEUM, ["addedOn"]);
 leave("the place is pinned from the Peek's map, not typed at capture", ["architecture"], ["geo"]);
 leave("whether a Person is left out of drifting is a choice made from their Peek", ["contacts_person"], ["excludedFromDrifting"]);
+leave("a Place's coordinates come from its address, looked up once (places.add's address), or from Here on the Add place dialog", ["atlas_place"], ["geo"]);
+leave("a new Place is open; closing it is done from its Peek", ["atlas_place"], ["closed"]);
 leave("a Shop's note is written from its Peek", ["price_shop"], ["note"]);
 leave("noticed is set when the Receipt is checked against its prices, from the Peek", ["price_receipt"], ["noticed"]);
 leave("the amount is the Offence's price, which swearjar.fine reads; a fine is never typed", ["swearjar_fine"], ["amount"]);

@@ -700,7 +700,7 @@ for (const w of WIDTHS) {
       await open(page, "/base/contacts_person");
       await page.getByRole("link", { name: /^Aoife Brennan/ }).first().click();
       // A row peeks the Person; the Peek's way through is their page.
-      await page.getByRole("dialog", { name: "Aoife Brennan" }).getByRole("button", { name: "Open in People" }).click();
+      await page.getByRole("dialog", { name: "Aoife Brennan" }).getByRole("button", { name: "Open in World" }).click();
       await expect(page).toHaveURL(/\/app\/people\/person\//);
       await expect(page.getByLabel("Relationship")).toHaveValue("Best friend");
       await expect(page.getByText("also Aoife")).toBeVisible();

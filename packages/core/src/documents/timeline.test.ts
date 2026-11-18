@@ -1,13 +1,25 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { buildLinkIndex, type Document, type DocumentTypeDef } from "@lifeline/core";
-import { householdTypeDef, personTypeDef } from "../types";
-import { timelineMonths, timelineOf, timelineSides, type TimelineEntry } from "./timeline";
-import type { UpcomingOccasion } from "./occasions";
+import { buildLinkIndex } from "./links";
+import type { Document, DocumentTypeDef } from "./types";
+import { PERSON_TYPE } from "../people";
+import { PLACE_TYPE } from "../places";
+import { timelineMonths, timelineOf, timelineSides, type TimelineEntry, type TimelineOccasion } from "./timeline";
+
+/** A Household, as Contacts declares it (ADR 0117): a link to it counts for whoever was a member on the source's day. */
+const householdTypeDef: DocumentTypeDef = {
+  id: "contacts_household",
+  label: "Households",
+  titleRule: "name",
+  body: "optional",
+  fields: [{ key: "aliases", label: "Aliases", kind: "list" }],
+  linkable: { members: (doc) => ((doc as unknown as { members: { personId: string; since?: string; until?: string }[] }).members ?? []).map(({ personId, ...days }) => ({ id: personId, ...days })) },
+  builtIn: true,
+};
 
 const base = { folder: "", tags: [], createdAt: "2026-01-01", updatedAt: "2026-06-30T10:00:00Z", deleted: 0 as const };
 const anne = { ...base, id: "anne", type: "contacts_person", title: "Anne", body: "", aliases: ["Mum"], relationship: "mother" } as unknown as Document;
 const types: DocumentTypeDef[] = [
-  personTypeDef,
+  { id: PERSON_TYPE, label: "People", titleRule: "name", body: "optional", fields: [{ key: "aliases", label: "Aliases", kind: "list" }], linkable: true, builtIn: true },
   { id: "event", label: "Events", titleRule: "name", body: "none", fields: [{ key: "with", label: "With", kind: "link" }, { key: "notes", label: "Notes", kind: "longtext" }], linkingText: ["notes"], builtIn: true },
   { id: "daily", label: "Days", titleRule: "date", body: "optional", fields: [], builtIn: true },
   { id: "note", label: "Notes", titleRule: "name", body: "optional", fields: [], builtIn: true },
@@ -52,7 +64,7 @@ describe("the two sides of the Today line", () => {
   afterEach(() => vi.unstubAllEnvs());
   const today = "2026-11-14";
   const entry = (sourceId: string, day: string | null): TimelineEntry => ({ sourceId, type: "event", title: sourceId, day, ownDay: day !== null, field: "with" });
-  const occasion = (label: string, date: string, inDays: number): UpcomingOccasion => ({ personId: "anne", occasionId: label, name: "Anne", label, date, inDays, age: null });
+  const occasion = (label: string, date: string, inDays: number): TimelineOccasion => ({ label, date, inDays });
   const names = (months: ReturnType<typeof timelineSides>["ahead"]) =>
     months.map((m) => [m.month, m.stops.map((s) => (s.kind === "occasion" ? s.occasion.label : s.entry.sourceId))]);
   // As timelineOf gives them: newest first. "dinner" shares today with "Today's" and sorts before it by title.
@@ -143,6 +155,25 @@ describe("an undated entry's day", () => {
   it("ignores a date in the title of a note, but not of a Day", () => {
     vi.stubEnv("TZ", "UTC");
     expect(timelineWith({ title: "2025-01-01 resolutions", updatedAt: "2026-06-30T10:00:00Z" })[0]?.day).toBe("2026-06-30");
+  });
+});
+
+describe("a Place's timeline (ADR 0128)", () => {
+  const placeTypes: DocumentTypeDef[] = [
+    { id: PLACE_TYPE, label: "Places", titleRule: "name", body: "optional", fields: [], linkable: true, builtIn: true },
+    { id: "event", label: "Events", titleRule: "name", body: "none", fields: [{ key: "at", label: "At", kind: "link", linkType: [PLACE_TYPE] }, { key: "notes", label: "Notes", kind: "longtext" }], linkingText: ["notes"], builtIn: true },
+    { id: "daily", label: "Days", titleRule: "date", body: "optional", fields: [], builtIn: true },
+  ];
+  const janou = { ...base, id: "janou", type: PLACE_TYPE, title: "Chez Janou", body: "" } as unknown as Document;
+  const ev = (id: string, date: string) => ({ ...base, id, type: "event", title: id, date, at: "janou", notes: "" }) as unknown as Document;
+  const day = { ...base, id: "d", type: "daily", title: "2026-11-12", body: "back at [[Chez Janou]]" } as unknown as Document;
+  const pidx = buildLinkIndex([janou, ev("dinner", "2026-11-10"), ev("tonight", "2026-11-15"), ev("booked", "2026-11-20"), ev("birthday", "2026-12-04"), day], placeTypes);
+
+  it("puts today's and upcoming Events above the Today line, the nearest last, and the past below it", () => {
+    const { ahead, past } = timelineSides(timelineOf(pidx, "janou"), [], "2026-11-15");
+    const of = (months: typeof ahead) => months.flatMap((m) => m.stops).map((s) => (s.kind === "entry" ? [s.entry.sourceId, s.entry.field] : []));
+    expect(of(ahead)).toEqual([["birthday", "at"], ["booked", "at"], ["tonight", "at"]]);
+    expect(of(past)).toEqual([["d", undefined], ["dinner", "at"]]);
   });
 });
 

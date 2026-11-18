@@ -50,7 +50,7 @@ export function EventDialog({
   onSaved?: (id: string) => void;
 }) {
   const [title, setTitle] = useState("");
-  const [draft, setDraft] = useState<EventDraft>(() => ({ ...newDraft(todayStr(), {}), notes: "", with: [], tags: [] }));
+  const [draft, setDraft] = useState<EventDraft>(() => ({ ...newDraft(todayStr(), {}), notes: "", with: [], at: "", tags: [] }));
   /** Blockers picked from Before…/After…, attached when the Event is added (#497). */
   const [picks, setPicks] = useState<BlockerPick[]>([]);
   /** Errors show once saving has been tried, and clear as each field is fixed. */
@@ -69,6 +69,7 @@ export function EventDialog({
       ...newDraft(preDate ?? defaultDate ?? todayStr(), { start: preStart, endDate: preEndDate, end: preEnd }),
       notes: handoff ? [handoff.url, handoff.author ? `From ${handoff.author}` : ""].filter(Boolean).join("\n") : initialText(initial, "notes"),
       with: [],
+      at: "",
       tags: initialList(initial, "tags"),
     });
   }, [open, defaultDate, handoff, initial, preTitle, preDate, preStart, preEndDate, preEnd]);
@@ -91,7 +92,7 @@ export function EventDialog({
     }
     // An all-day Event takes no attached blockers: what was picked before it was made all day is dropped.
     const attach = draft.allDay ? [] : picks.map((p) => ({ templateId: p.template.id, side: p.side }));
-    const id = await addEvent({ title: title.trim(), notes: draft.notes.trim(), ...whenOf(draft), tags: draft.tags, with: draft.with, attach });
+    const id = await addEvent({ title: title.trim(), notes: draft.notes.trim(), ...whenOf(draft), tags: draft.tags, with: draft.with, at: draft.at, attach });
     toast.success("Event added");
     onSaved?.(id);
     onOpenChange(false);

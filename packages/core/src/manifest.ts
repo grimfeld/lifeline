@@ -89,9 +89,9 @@ export const MODULES: ModuleDef[] = [
   // the shelf of Sources, keeping the old Note-taking id because Workspaces and
   // Phone bars store it.
   { id: "journal", title: "Journal" },
-  // People (ADR 0113): the people in my life, through the Contacts App's
-  // built-in Person. Right after the Journal, which writes about them.
-  { id: "people", title: "People" },
+  // World (ADR 0128, after ADR 0113): the people and places of my life. It was
+  // People and keeps that id, because Workspaces and Phone bars store it.
+  { id: "people", title: "World" },
   { id: "notes", title: "Notes" },
   { id: "research", title: "Research" },
   { id: "manuscript", title: "Manuscript" },

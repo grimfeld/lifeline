@@ -67,7 +67,7 @@ describe("compareTemplates", () => {
 });
 
 describe("fillFromTemplate", () => {
-  const draft = { title: "", notes: "", with: [] as string[], tags: [] as string[], date: "2026-11-20", endDate: "", allDay: false, start: "09:00", end: "10:00" };
+  const draft = { title: "", notes: "", with: [] as string[], at: "", tags: [] as string[], date: "2026-11-20", endDate: "", allDay: false, start: "09:00", end: "10:00" };
 
   it("takes the title, the usual start and the length, on the draft's day", () => {
     const f = fillFromTemplate(tpl({ title: "Gym", defaultStart: "18:00", durationMin: 90 }), draft);

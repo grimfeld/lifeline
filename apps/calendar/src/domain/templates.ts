@@ -39,7 +39,7 @@ export function compareTemplates(a: EventTemplate, b: EventTemplate): number {
   return a.title.localeCompare(b.title);
 }
 
-/** What an Event dialog holds that a template fills: its title and the Event Form's draft (when, notes, With, Tags). */
+/** What an Event dialog holds that a template fills: its title and the Event Form's draft (when, notes, With, At, Tags). */
 export type TemplateFillable = EventDraft & { title: string };
 
 /**
