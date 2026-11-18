@@ -1,0 +1,33 @@
+{
+  "reference": "reference.html",
+  "reference_view": "#place={place}&look={look}&theme={theme}",
+  "reference_scope": ".mny",
+  "looks": ["pro", "play"],
+  "themes": ["dark", "light"],
+  "viewports": { "desk": { "width": 1280, "height": 800 }, "phone": { "width": 390, "height": 844 } },
+  "settle_ms": 400,
+  "places": {
+    "overview": { "app": "/module/money" },
+    "pocket": { "app": "/app/pocket" },
+    "transactions": { "app": "/app/ledger" },
+    "budget": { "app": "/app/ledger/budget" },
+    "reports": { "app": "/app/ledger/reports" },
+    "prices": { "app": "/app/prices" },
+    "settings": {}
+  },
+  "tokens": {
+    "--background": { "pro-dark": "#181c20", "pro-light": "#f4f1e8", "play-dark": "#23211e", "play-light": "#fff7e8" },
+    "--card": { "pro-dark": "#1e2328", "pro-light": "#faf8f2", "play-dark": "#2c2a26", "play-light": "#fffdf8" },
+    "--muted": { "pro-dark": "#282e34", "pro-light": "#ebe6d5", "play-dark": "#3a3731", "play-light": "#ffecc8" },
+    "--accent": { "pro-dark": "#282e34", "pro-light": "#ebe6d5", "play-dark": "#3a3731", "play-light": "#ffecc8" },
+    "--foreground": { "pro-dark": "#cdc9be", "pro-light": "#2a3630", "play-dark": "#d9d2c5", "play-light": "#3a342d" },
+    "--muted-foreground": { "pro-dark": "#969e97", "pro-light": "#5b685f", "play-dark": "#aaa193", "play-light": "#6b6257" },
+    "--border": { "pro-dark": "#313940", "pro-light": "#cfd3c8", "play-dark": "#403c35", "play-light": "#ead9b6" },
+    "--primary": { "pro-dark": "#bfab78", "pro-light": "#1f5c43", "play-dark": "#e8c36a", "play-light": "#5a3df0" },
+    "--primary-foreground": { "pro-dark": "#181c20", "pro-light": "#f4f1e8", "play-dark": "#23211e", "play-light": "#fff7e8" },
+    "--success": { "pro-dark": "#74c79a", "pro-light": "#1f5c43", "play-dark": "#7fd1a6", "play-light": "#0c7a4d" },
+    "--destructive": { "pro-dark": "#e58f80", "pro-light": "#a3271a", "play-dark": "#ee9a8b", "play-light": "#c2371f" },
+    "--secondary": { "pro-dark": "#2e353b", "pro-light": "#dcd8c8", "play-dark": "#413d36", "play-light": "#f0e2c6" },
+    "--sidebar": { "pro-dark": "#121518", "pro-light": "#1f5c43" }
+  }
+}
