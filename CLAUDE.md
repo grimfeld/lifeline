@@ -85,7 +85,8 @@ name can match another agent's run.
 
 Agents working in parallel run only their own change's e2e specs, with
 `pnpm test:e2e:quiet` (dot reporter: a dot per case, then the failures); the whole gate runs once, before the integration
-branch merges. A subagent reports in ten lines at most: branch, commit, what failed, and
+branch merges. Runs share the machine through slots, one per 5 GB: a run that finds them all taken waits and says
+whose they are (`E2E_SLOTS` overrides; `shell/e2e/README.md`). A subagent reports in ten lines at most: branch, commit, what failed, and
 each decision it took.
 
 An orchestrator sets each subagent's `model`: `haiku` for lookups and for resolving a merge that conflicts (merge a clean branch yourself, inline), `sonnet` for

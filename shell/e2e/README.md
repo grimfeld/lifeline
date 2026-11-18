@@ -69,7 +69,15 @@ themselves and are exempt.
 
 Each run starts its own servers on the first free three ports from 1421 on (1421, 1424,
 1427…), so runs in several worktrees at once don't collide; `E2E_PORT` picks the first of
-the three instead. In a cloud container the config launches the Chromium in
+the three instead.
+
+Runs also share the machine's memory: each starts its own Vite server (about 1.1 GB) and a
+Chromium per worker. So a run takes a slot before its servers start, one slot per 5 GB of
+memory (three on a 15 GB container). When every slot is taken, it names the runs that hold them
+(worktree and process id) and waits for one to finish. A run that crashes or is killed frees
+its slot for the next taker. `E2E_SLOTS=<n>` sets the count, and `E2E_SLOTS=0` turns the limit
+off. CI and `--list` never take one. The locks are files in the temp directory
+(`lifeline-e2e-slots/`). In a cloud container the config launches the Chromium in
 `/opt/pw-browsers` on its own, whatever build it is: never run `playwright install` there,
 and never change that directory. The two Demo builds start only when the run includes the `demo` or
 `demo-setup` project (no `--project` at all, or one of those).

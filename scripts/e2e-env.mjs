@@ -1,6 +1,7 @@
 // Helpers for shell/playwright.config.ts, kept apart so node --test can reach them.
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, linkSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
+import { tmpdir, totalmem } from "node:os";
 import { join } from "node:path";
 
 /** Where cloud containers ship their Chromium (and cannot download another). */
@@ -56,4 +57,114 @@ export function preinstalledChromium(dir = PW_BROWSERS, platform = process.platf
     }
   }
   return undefined;
+}
+
+/**
+ * How many e2e runs may share this machine at once (#596): `E2E_SLOTS` when set, `0` for no
+ * limit; otherwise one per 5 GB of memory, at least one. Each run starts its own Vite server
+ * (about 1.1 GB) and a Chromium per worker, and six at once on 15 GB ran out of memory.
+ */
+export function slotCount(env = process.env, memory = totalmem()) {
+  const set = env.E2E_SLOTS?.trim();
+  if (set) {
+    const n = Number(set);
+    if (!Number.isInteger(n) || n < 0) throw new Error(`E2E_SLOTS must be a whole number, 0 for no limit: got "${set}"`);
+    return n;
+  }
+  return Math.max(1, Math.floor(memory / 5e9));
+}
+
+/** Whether process `pid` still runs (EPERM: it does, as another user's). */
+export function alive(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (e) {
+    return e.code === "EPERM";
+  }
+}
+
+const slotFile = (dir, i) => join(dir, `slot-${i}.json`);
+const readSlot = (file) => {
+  try {
+    return JSON.parse(readFileSync(file, "utf8"));
+  } catch {
+    return undefined; // gone, or half written by a run taking it this instant
+  }
+};
+
+/**
+ * Takes the first free one of `count` slots in `dir`: a lock file holding the run's pid and
+ * worktree, created only if absent. A lock whose process is gone is free: it is moved aside
+ * under a name of this run's own, checked, and only then removed, so two runs that find the
+ * same dead lock can't both take its slot. Returns `{ slot, release }`, or `{ holders }`
+ * when every slot is taken.
+ */
+export function tryTakeSlot({ dir, count, pid = process.pid, worktree, isAlive = alive }) {
+  mkdirSync(dir, { recursive: true });
+  const holders = [];
+  for (let i = 0; i < count; i++) {
+    const file = slotFile(dir, i);
+    const held = readSlot(file);
+    if (held && !isAlive(held.pid)) {
+      const aside = `${file}.${pid}.stale`;
+      try {
+        renameSync(file, aside);
+        const moved = readSlot(aside);
+        // Another run took the slot between the read and the move: put its lock back.
+        if (moved?.pid !== held.pid) linkSync(aside, file);
+        unlinkSync(aside);
+      } catch {
+        // Another run moved it first.
+      }
+    }
+    try {
+      writeFileSync(file, JSON.stringify({ pid, worktree }), { flag: "wx" });
+      return {
+        slot: i,
+        release: () => {
+          if (readSlot(file)?.pid === pid) rmSync(file, { force: true });
+        },
+      };
+    } catch (e) {
+      if (e.code !== "EEXIST") throw e;
+      const now = readSlot(file);
+      if (now) holders.push(now);
+    }
+  }
+  return { holders };
+}
+
+/**
+ * Takes a slot, waiting while every one is taken: it says which runs hold them once, and
+ * again only when that changes. Resolves to the slot, or undefined when `count` is 0. The
+ * slot goes back when this process exits; a run killed outright leaves a lock its next
+ * taker finds dead.
+ */
+export async function takeSlot({
+  count,
+  dir = join(tmpdir(), "lifeline-e2e-slots"),
+  worktree,
+  pid = process.pid,
+  isAlive = alive,
+  log = (line) => console.log(line),
+  sleep = (ms) => new Promise((r) => setTimeout(r, ms)),
+  every = 3000,
+}) {
+  if (count === 0) return undefined;
+  let said = "";
+  for (;;) {
+    const got = tryTakeSlot({ dir, count, pid, worktree, isAlive });
+    if ("slot" in got) {
+      process.once("exit", got.release);
+      if (said) log(`e2e: slot ${got.slot + 1} of ${count} is free; starting`);
+      return got.slot;
+    }
+    const line = got.holders.map((h) => `${h.worktree} (pid ${h.pid})`).sort().join(", ");
+    if (line !== said) {
+      log(`e2e: all ${count} slots are taken, by ${line}; waiting for one (E2E_SLOTS sets the count, shell/e2e/README.md)`);
+      said = line;
+    }
+    await sleep(every);
+  }
 }
