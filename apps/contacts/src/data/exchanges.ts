@@ -29,11 +29,15 @@ async function namesOf(ids: readonly string[]): Promise<string[]> {
 /** The title an Exchange has as it stands: its kind and its People's names. */
 const titleFor = async (x: Document) => exchangeTitle(x.kind, await namesOf(withOf(x)));
 
-/** The ids, each once, refused unless every one is a Person here. */
-async function people(ids: readonly string[]): Promise<string[]> {
-  const unique = [...new Set(ids)];
-  for (const id of unique) if ((await getDocument(id))?.type !== PERSON_TYPE) throw new Error("Only People can be in an exchange's With.");
-  return unique;
+/** The People named, each once, in order; refused unless every one is a Person here. */
+async function people(ids: readonly string[]): Promise<Document[]> {
+  const out: Document[] = [];
+  for (const id of new Set(ids)) {
+    const p = await getDocument(id);
+    if (p?.type !== PERSON_TYPE) throw new Error("Only People can be in an exchange's With.");
+    out.push(p);
+  }
+  return out;
 }
 
 /** Log an Exchange (ADR 0131); throws in words for a day to come, nobody, or what is no Person. */
@@ -41,10 +45,10 @@ export async function addExchange(input: ExchangeInput): Promise<Exchange> {
   const date = input.date?.trim() || todayStr();
   const problem = exchangeProblem({ with: input.with, date }, todayStr());
   if (problem) throw new Error(problem);
-  const withIds = await people(input.with);
+  const found = await people(input.with);
   const kind = exchangeKindOf(input.kind);
-  const title = exchangeTitle(kind, await namesOf(withIds));
-  return (await createDocument({ type: EXCHANGE_TYPE, title, folder: EXCHANGES_FOLDER, body: input.body ?? "", fields: { kind, date, with: withIds } })) as Exchange;
+  const title = exchangeTitle(kind, found.map((p) => p.title));
+  return (await createDocument({ type: EXCHANGE_TYPE, title, folder: EXCHANGES_FOLDER, body: input.body ?? "", fields: { kind, date, with: found.map((p) => p.id) } })) as Exchange;
 }
 
 /** Change an Exchange's kind, day or People (its Peek); refused as an add would be. Its title follows. */
@@ -54,7 +58,7 @@ export async function editExchange(id: string, patch: ExchangePatch): Promise<vo
   const next = { kind: exchangeKindOf(patch.kind ?? x.kind), date: patch.date ?? String(x.date ?? ""), with: patch.with ? [...patch.with] : withOf(x) };
   const problem = exchangeProblem(next, todayStr());
   if (problem) throw new Error(problem);
-  if (patch.with) next.with = await people(patch.with);
+  if (patch.with) next.with = (await people(patch.with)).map((p) => p.id);
   const row = { ...x, ...next };
   await putDocument({ ...row, title: await titleFor(row) });
 }
