@@ -47,7 +47,7 @@ test("the Event dialog and the Event's Peek show the same Form, and the Events s
   await page.getByRole("button", { name: "New event" }).click();
   const dialog = page.getByRole("dialog", { name: "New event" });
   const adding = await formLabels(dialog);
-  expect(adding).toEqual(["Day", "Start", "End", "All day", "Notes", "With", "Tags"]);
+  expect(adding).toEqual(["Day", "Start", "End", "All day", "Notes", "With", "At", "Tags"]);
   await dialog.getByRole("button", { name: "Cancel" }).click();
   await expect(dialog).toBeHidden();
 

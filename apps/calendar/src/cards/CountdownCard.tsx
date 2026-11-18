@@ -2,6 +2,7 @@ import { formatHuman, nowClock, todayStr, type CardOption, type CardProps, type 
 import { CardUnavailable } from "@lifeline/ui";
 import { countdownWord, daysUntil, futureEvents, isOver } from "../domain/countdown";
 import { describeTime } from "../domain/events";
+import { AtText } from "../components/EventAt";
 import { useEvents } from "../data/repo";
 
 function shortDate(d: string): string {
@@ -55,7 +56,10 @@ export function CountdownCard({ settings, configure }: CardProps) {
       </div>
       <div className="text-muted-foreground text-xs">{word ? (passed ? "ended" : " ") : passed ? "days ago" : "days"}</div>
       <div className="mt-1 w-full truncate px-2 text-sm font-medium">{ev.title}</div>
-      <div className="text-muted-foreground w-full truncate px-2 text-xs">{when}</div>
+      <div className="text-muted-foreground w-full truncate px-2 text-xs">
+        {when}
+        <AtText at={ev.at} />
+      </div>
     </div>
   );
 }

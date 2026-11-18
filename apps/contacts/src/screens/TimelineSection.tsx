@@ -1,29 +1,15 @@
-import { useMemo, type ReactNode } from "react";
-import { PERSON_TYPE, documentType, formatHuman, linkFieldLabel, singularOf, todayStr, useLinkIndex, useOpenPeek, type Document, type LinkIndex } from "@lifeline/core";
-import { cn } from "@lifeline/ui";
+import { useMemo } from "react";
+import { PERSON_TYPE, formatHuman, timelineOf, timelineSides, todayStr, useLinkIndex, type AheadStop, type Document, type TimelineStop as Stop } from "@lifeline/core";
+import { TimelineEntryStop, TimelineMonths, TimelineStop, TimelineToday } from "@lifeline/editor";
 import type { Person } from "../domain/types";
-import { upcomingOccasions, whenOf } from "../domain/occasions";
-import { dotJoin } from "../domain/dots";
-import { monthLabel } from "../components/format";
-import { timelineOf, timelineSides, type AheadStop, type TimelineEntry, type TimelineMonth, type TimelineStop } from "../domain/timeline";
+import { upcomingOccasions, whenOf, type UpcomingOccasion } from "../domain/occasions";
 import { Section } from "../components/Section";
 
-/** One stop on the line: a dot on the rail, its text beside it. */
-function Stop({ strong, children }: { strong?: boolean; children: ReactNode }) {
-  return (
-    <li className="relative min-w-0 pb-3 pl-6">
-      <span aria-hidden className="bg-border absolute top-0 bottom-0 left-1.5 w-px" />
-      <span aria-hidden className={cn("ring-background absolute top-1.5 left-0.5 size-2.5 rounded-full ring-4", strong ? "bg-primary" : "bg-muted-foreground")} />
-      {children}
-    </li>
-  );
-}
-
 /** An Occasion ahead: its label, the age it brings, and how soon it is (the stop's, as a Document's is). */
-function OccasionStop({ stop }: { stop: Extract<AheadStop, { kind: "occasion" }> }) {
+function OccasionStop({ stop }: { stop: Extract<AheadStop<UpcomingOccasion>, { kind: "occasion" }> }) {
   const u = stop.occasion;
   return (
-    <Stop strong>
+    <TimelineStop strong>
       <p className="min-w-0 text-sm break-words">
         <span className="font-medium">{u.label}</span>
         {u.age !== null && <span className="text-muted-foreground"> · turns {u.age}</span>}
@@ -31,26 +17,7 @@ function OccasionStop({ stop }: { stop: Extract<AheadStop, { kind: "occasion" }>
       <p className="text-muted-foreground text-xs">
         {formatHuman(stop.day)} · {whenOf(stop.inDays)}
       </p>
-    </Stop>
-  );
-}
-
-const monthName = (month: string | null) => (month !== null ? monthLabel(month, { month: "long", year: "numeric" }) : "Undated");
-
-/** How an entry links: through a Household, through a Link field, or by name in its text. */
-function howItLinks(e: TimelineEntry, index: LinkIndex): string {
-  if (e.via) return `via ${index.byId.get(e.via)?.title || "a Household"}`;
-  if (e.field) return `via ${linkFieldLabel(index.byId.get(e.sourceId), documentType(e.type), e.field)}`;
-  return "mentioned";
-}
-
-/** A month of stops under its name. */
-function Month({ month, stops, render }: TimelineMonth & { render: (s: TimelineStop) => ReactNode }) {
-  return (
-    <li className="min-w-0">
-      <h3 className="text-muted-foreground pb-2 pl-6 text-xs font-medium">{monthName(month)}</h3>
-      <ol className="min-w-0">{stops.map(render)}</ol>
-    </li>
+    </TimelineStop>
   );
 }
 
@@ -60,46 +27,29 @@ function Month({ month, stops, render }: TimelineMonth & { render: (s: TimelineS
  * (Events with them, Tasks for them, Days and notes that name them, and "via
  * the Smiths" what links to their Household then) from before. Both by month,
  * newest first. Each Document opens in a Peek. A Household's (ADR 0117) is
- * what links to it, with no Occasions.
+ * what links to it, with no Occasions. The rail is the editor's, shared with
+ * a Place's page (ADR 0128).
  */
 export function TimelineSection({ doc }: { doc: Document }) {
   const index = useLinkIndex();
-  const openPeek = useOpenPeek();
   const today = todayStr();
   const entries = useMemo(() => timelineOf(index, doc.id), [index, doc.id]);
   const occasions = useMemo(() => (doc.type === PERSON_TYPE ? upcomingOccasions([doc as Person], today, 364) : []), [doc, today]);
   const { ahead, past } = useMemo(() => timelineSides(entries, occasions, today), [entries, occasions, today]);
 
-  const render = (s: TimelineStop) => {
-    if (s.kind === "occasion") return <OccasionStop key={`${s.occasion.occasionId}@${s.occasion.date}`} stop={s} />;
-    const e = s.entry;
-    const def = documentType(e.type);
-    return (
-      <Stop key={e.sourceId}>
-        <button type="button" onClick={() => void openPeek(e.sourceId)} className="hover:bg-accent focus-visible:ring-ring -mx-1 block w-full min-w-0 rounded-md px-1 text-left focus-visible:ring-2 focus-visible:outline-none">
-          <span className="block min-w-0 truncate text-sm">{e.title || "Untitled"}</span>
-          <span className="text-muted-foreground block min-w-0 truncate text-xs">
-            {dotJoin([def && singularOf(def), e.day && formatHuman(e.day), s.inDays !== null && whenOf(s.inDays), howItLinks(e, index)])}
-          </span>
-        </button>
-      </Stop>
+  const render = (s: Stop<UpcomingOccasion>) =>
+    s.kind === "occasion" ? (
+      <OccasionStop key={`${s.occasion.occasionId}@${s.occasion.date}`} stop={s} />
+    ) : (
+      <TimelineEntryStop key={s.entry.sourceId} entry={s.entry} index={index} when={s.inDays !== null ? whenOf(s.inDays) : undefined} />
     );
-  };
 
   return (
     <Section title="Timeline">
       <ol className="min-w-0">
-        {ahead.map((m) => (
-          <Month key={`ahead-${m.month ?? "undated"}`} {...m} render={render} />
-        ))}
-        <li className="flex items-center gap-2 pb-3" aria-label="Today">
-          <span aria-hidden className="bg-primary size-3.5 shrink-0 rounded-full" />
-          <span className="text-primary text-xs font-medium">Today</span>
-          <span aria-hidden className="bg-border h-px flex-1" />
-        </li>
-        {past.map((m) => (
-          <Month key={`past-${m.month ?? "undated"}`} {...m} render={render} />
-        ))}
+        <TimelineMonths months={ahead} render={render} />
+        <TimelineToday />
+        <TimelineMonths months={past} render={render} />
       </ol>
       {entries.length === 0 && (
         <p className="text-muted-foreground text-sm">

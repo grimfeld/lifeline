@@ -1,8 +1,9 @@
 import { useMemo } from "react";
 import { addDays, diffDays, formatHuman, type DateStr } from "../dates";
-import { mentionable, type LinkIndex } from "./links";
+import { mentionable, type Backlink, type LinkIndex } from "./links";
 import { dayOf, eventSpan, MAX_SPAN } from "./sourceDays";
-import type { DocumentTypeDef, ReportKind, ReportSetting } from "./types";
+import type { Document, DocumentTypeDef, ReportKind, ReportSetting, SeenAs } from "./types";
+import { PERSON_TYPE } from "../people";
 
 /**
  * Reports (CONTEXT.md, ADR 0076): read-only figures about the Documents of one
@@ -68,6 +69,15 @@ export function reportsIn(def: DocumentTypeDef | undefined, family: ReportFamily
   return reportsOf(def).filter((r) => reportKind(r.kind).family === family);
 }
 
+/**
+ * What a Journal period rolls up for a type (ADR 0076, ADR 0128): its Top
+ * mentioned, then its Top seen (a Place's Top visited) — never added together.
+ */
+export function periodReportsOf(def: DocumentTypeDef | undefined): ReportSetting[] {
+  const chosen = reportsOf(def);
+  return (["top", "topSeen"] as const).flatMap((kind) => chosen.filter((r) => r.kind === kind));
+}
+
 /** A stretch of days, both ends included; an open end runs on. */
 export interface ReportWindow {
   from?: DateStr;
@@ -97,15 +107,28 @@ export function mentionDays(index: LinkIndex, docId: string): DateStr[] {
  */
 export type DaysSource = (index: LinkIndex, docId: string) => DateStr[];
 
+/** The Event's At field (ADR 0128): where it happens, a Place or a Person's home. */
+export const EVENT_AT_FIELD = "at";
+
+/**
+ * Whether an Event's link counts its target as Seen (ADR 0128): every link
+ * does, but an At on a Person — being at Marc's home is not seeing Marc. With,
+ * and a wikilink in the notes, still count; At on a Place counts (Visited).
+ */
+export const countsAsSeen = (b: Backlink, target: Document | undefined): boolean => !(b.field === EVENT_AT_FIELD && target?.type === PERSON_TYPE);
+
 /**
  * The distinct days (oldest first, none after `today`) on which Events that
  * reach one Document are on: once per day however many Events, each day of a
- * multi-day Event, nothing in the future. Markers and Tasks are not Events.
- * Through a Household (ADR 0117), only the days they were a member.
+ * multi-day Event, nothing in the future. Markers and Tasks are not Events,
+ * and an Event's At on a Person is no sighting (`countsAsSeen`). Through a
+ * Household (ADR 0117), only the days they were a member.
  */
 export function seenDays(index: LinkIndex, docId: string, today: DateStr): DateStr[] {
   const days = new Set<DateStr>();
+  const target = index.byId.get(docId);
   for (const b of index.reaches(docId)) {
+    if (!countsAsSeen(b, target)) continue;
     const span = eventSpan(index.byId.get(b.sourceId));
     if (!span) continue;
     if (b.via) {
@@ -117,6 +140,14 @@ export function seenDays(index: LinkIndex, docId: string, today: DateStr): DateS
   }
   return [...days].sort();
 }
+
+/**
+ * An Event's last day: its end day, the day before when it ends at 00:00
+ * (`lastDayCovered`, ADR 0090), its first when it has no later end; none for
+ * any other Document or an undated Event. What Seen counts to, and what says
+ * an Event has happened (ADR 0128).
+ */
+export const eventLastDay = (doc: Document | undefined): DateStr | undefined => eventSpan(doc)?.to;
 
 /** The days source of a Report family, as of `today`. */
 export function sourceOf(source: ReportSource, today: DateStr): DaysSource {
@@ -135,8 +166,25 @@ const WORDS: Record<ReportSource, ReportWords> = {
   seen: { count: "Seen", heatmap: "days seen", linker: "Event" },
 };
 
-export function reportWords(source: ReportSource): ReportWords {
-  return WORDS[source];
+/** The words a Report of one source uses, in the type's own words for Seen (a Place's Visits). */
+export function reportWords(source: ReportSource, def?: DocumentTypeDef): ReportWords {
+  if (source !== "seen" || !def?.seenAs) return WORDS[source];
+  return { count: capital(def.seenAs.many), heatmap: `days ${def.seenAs.verb}`, linker: WORDS.seen.linker };
+}
+
+/** A kind's label for one type: the Seen kinds in its own words (a Place's "Last visited", ADR 0128). */
+export function reportLabel(kind: ReportKind, def?: DocumentTypeDef): string {
+  const k = reportKind(kind);
+  const w = def?.seenAs;
+  if (k.source !== "seen" || !w) return k.label;
+  const labels: Record<ReportShape, string> = {
+    top: `Top ${w.verb}`,
+    quiet: `Not ${w.verb} lately`,
+    last: `Last ${w.verb}`,
+    count: capital(w.many),
+    heatmap: `${capital(w.verb)} heatmap`,
+  };
+  return labels[k.shape];
 }
 
 /** How long ago, said in days. */
@@ -144,6 +192,21 @@ export function agoText(days: number): string {
   if (days <= 0) return "today";
   if (days === 1) return "yesterday";
   return `${days} days ago`;
+}
+
+/** The Seen family's words when a type gives none: seen, in days. */
+const SEEN: SeenAs = { verb: "seen", one: "day", many: "days" };
+const seenAs = (def: DocumentTypeDef | undefined): SeenAs => def?.seenAs ?? SEEN;
+const capital = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/**
+ * One Document's Seen in a line, in its type's words: "Last visited 10 Nov ·
+ * 1 visit" for a Place (ADR 0128), "Last seen … · 3 days" for a Person.
+ */
+export function seenSummary(f: Pick<DocumentFigures, "last" | "allTime">, def: DocumentTypeDef | undefined): string {
+  const w = seenAs(def);
+  if (!f.last) return `Not ${w.verb} yet`;
+  return `Last ${w.verb} ${formatHuman(f.last)} · ${f.allTime} ${f.allTime === 1 ? w.one : w.many}`;
 }
 
 /** A "Last …" Report's value: the last day and how long ago, or never. */

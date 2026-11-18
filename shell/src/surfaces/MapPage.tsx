@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { useLocatablePins, useLocatableTypes } from "@lifeline/core";
+import { openPin, useLocatablePins, useLocatableTypes } from "@lifeline/core";
 import { cn, MapView, PageHeader, PhoneDock } from "@lifeline/ui";
 import { MapPin } from "lucide-react";
 
@@ -67,7 +67,7 @@ export function MapPage() {
         {providers.length === 0 ? (
           <div className="text-muted-foreground flex h-full items-center justify-center text-sm">No Document type is Locatable yet — give a type a Coordinates field.</div>
         ) : (
-          <MapView pins={pins} focus={focus} onOpen={(p) => p.href && navigate(p.href)} />
+          <MapView pins={pins} focus={focus} onOpen={(p) => openPin(p, navigate)} />
         )}
       </div>
     </div>

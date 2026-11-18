@@ -89,6 +89,11 @@ export function TypeEditor({
     const ownKeys = new Set((base?.fields ?? []).map((f) => f.key));
     return (record?.fields ?? []).filter((f) => !ownKeys.has(f.key));
   }, [record, base]);
+  // The user's options on a built-in's own Choice (a Place's Kinds) are kept on this record too, edited by their App: kept as they are.
+  const ownOptions = useMemo(() => {
+    const open = new Set((base?.fields ?? []).filter((f) => f.userOptions).map((f) => f.key));
+    return (record?.fields ?? []).filter((f) => open.has(f.key));
+  }, [record, base]);
   const [rows, setRows] = useState<Row[]>(
     record || base ? toRows(savedFields) : [withUid(newKnownFieldDraft(knownField("aliases")))],
   );
@@ -155,7 +160,7 @@ export function TypeEditor({
         label: label.trim(),
         icon,
         folder: normalizeFolder(folder),
-        fields: next,
+        fields: [...ownOptions, ...next],
         body: base ? undefined : body,
         linkable: base ? undefined : linkable,
         locatableField: base ? undefined : geoRows.some((r) => r.key === locatableField) ? locatableField : (geoRows[0]?.key ?? ""),

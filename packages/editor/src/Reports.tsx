@@ -11,6 +11,7 @@ import {
   lastText,
   rankingRows,
   reportKind,
+  reportLabel,
   reportWords,
   reportsIn,
   sourceOf,
@@ -62,7 +63,7 @@ export function RankingReport({
   const kind = reportKind(setting.kind);
   return (
     <section className="min-w-0">
-      <h3 className={HEADING}>{title ?? kind.label}</h3>
+      <h3 className={HEADING}>{title ?? reportLabel(setting.kind, documentType(typeId))}</h3>
       {rows.length === 0 ? <p className="text-muted-foreground text-xs">{empty ?? `No ${reportWords(kind.source).linker} links to any yet.`}</p> : <RankList index={index} rows={rows} quiet={kind.shape === "quiet"} onOpen={onOpen} />}
     </section>
   );
@@ -92,7 +93,7 @@ function RankList({ index, rows, quiet, onOpen }: { index: LinkIndex; rows: Rank
   );
 }
 
-/** One Document's own Reports, in its type's order: last mentioned, counts, heatmap. Nothing when the type chose none. */
+/** One Document's own Reports, in its type's order and words (a Place's Last visited): last mentioned, counts, heatmap. Nothing when the type chose none. */
 export function DocumentReports({
   index,
   def,
@@ -116,9 +117,9 @@ export function DocumentReports({
       {chosen.map((r) => {
         const k = reportKind(r.kind);
         const f = k.source === "seen" ? seen : mentioned;
-        if (k.shape === "heatmap") return <MentionHeatmap key={r.kind} days={f.days} today={today} unit={reportWords(k.source).heatmap} />;
-        if (k.shape === "last") return <FigureLine key={r.kind} label={k.label} value={lastText(f)} />;
-        return <FigureLine key={r.kind} label={reportWords(k.source).count} value={`${f.thisYear} this year · ${f.allTime} in all`} numeric />;
+        if (k.shape === "heatmap") return <MentionHeatmap key={r.kind} days={f.days} today={today} unit={reportWords(k.source, def).heatmap} />;
+        if (k.shape === "last") return <FigureLine key={r.kind} label={reportLabel(r.kind, def)} value={lastText(f)} />;
+        return <FigureLine key={r.kind} label={reportWords(k.source, def).count} value={`${f.thisYear} this year · ${f.allTime} in all`} numeric />;
       })}
     </section>
   );

@@ -1,10 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { buildLinkIndex, linkFieldLabel, PERSON_TYPE } from "@lifeline/core";
+import { buildLinkIndex, linkFieldLabel, PERSON_TYPE, timelineOf } from "@lifeline/core";
 import type { Document, DocumentTypeDef, OwnedCommand } from "@lifeline/core";
 import { calendarApp, EVENT_TYPE } from "@lifeline/app-calendar";
 import { contactsApp } from "@lifeline/app-contacts";
-import { timelineOf } from "../../apps/contacts/src/domain/timeline";
 
 // calendar_add_event's With (#452): the tool call over the real manifests, core's store stood in for as in people.test.ts.
 const types = new Map<string, DocumentTypeDef>();

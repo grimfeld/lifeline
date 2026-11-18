@@ -1,12 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { buildLinkIndex, linkFieldLabel, PERSON_TYPE } from "@lifeline/core";
+import { buildLinkIndex, linkFieldLabel, PERSON_TYPE, timelineOf } from "@lifeline/core";
 import type { Document, DocumentTypeDef, OwnedCommand } from "@lifeline/core";
 import { tasksApp } from "@lifeline/app-tasks";
 import { ledgerApp } from "@lifeline/app-ledger";
 import { libraryApp } from "@lifeline/app-library";
 import { contactsApp } from "@lifeline/app-contacts";
-import { timelineOf } from "../../apps/contacts/src/domain/timeline";
 
 // For on tasks_add and ledger_add, Recommended by on the Library's add tools (#453): the tool call over the real manifests, core's store stood in for as in people.test.ts.
 const types = new Map<string, DocumentTypeDef>();

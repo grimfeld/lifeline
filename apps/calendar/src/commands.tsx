@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { formatTime, initialText, peopleArg, peopleIn, peopleNamed, todayStr, type CommandDef, type CommandDialogProps } from "@lifeline/core";
+import { EVENT_AT_FIELD, PERSON_TYPE, PLACE_TYPE, formatTime, getDocument, initialText, peopleArg, peopleIn, peopleNamed, todayStr, type CommandDef, type CommandDialogProps } from "@lifeline/core";
 import { toast } from "@lifeline/ui";
 import { Ban, CalendarPlus, LayoutTemplate, Zap } from "lucide-react";
 import { EventDialog } from "./components/EventDialog";
@@ -61,6 +61,13 @@ export const calendarCommands: CommandDef[] = [
       { key: "notes", label: "Notes", kind: "longtext" },
       { key: "tags", label: "Tags", kind: "list" },
       peopleArg("with", "With", "The People there"),
+      {
+        key: EVENT_AT_FIELD,
+        label: "At",
+        kind: "link",
+        linkType: [PLACE_TYPE, PERSON_TYPE],
+        hint: "Optional: where it happens, one Place, or one Person meaning their home. An id, a title or an alias. At on a Person does not count as seeing them.",
+      },
     ],
     returnsDocument: true,
     async invoke(a) {
@@ -79,9 +86,12 @@ export const calendarCommands: CommandDef[] = [
         notes: a.notes as string | undefined,
         tags: a.tags as string[] | undefined,
         with: people,
+        at: a.at as string | undefined,
       });
-      const at = start ? ` at ${start}${end ? `–${endDate && endDate !== a.date ? `${endDate} ` : ""}${end}` : ""}` : "";
-      return { id, message: `Added event “${a.title}” on ${a.date}${at}${await peopleNamed("with", people)}` };
+      const time = start ? ` at ${start}${end ? `–${endDate && endDate !== a.date ? `${endDate} ` : ""}${end}` : ""}` : "";
+      // The Place's or Person's title only (ADR 0114): never where a Person lives.
+      const where = a.at ? (await getDocument(a.at as string))?.title : undefined;
+      return { id, message: `Added event “${a.title}” on ${a.date}${time}${where ? `, At ${where}` : ""}${await peopleNamed("with", people)}` };
     },
   },
   {

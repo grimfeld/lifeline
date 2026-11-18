@@ -3,6 +3,7 @@ import { PERSON_TYPE } from "@lifeline/core";
 import type { Document, DocumentTypeDef, MacroRecord, OwnedCommand, TimedProvider } from "@lifeline/core";
 import { pinsOf } from "@lifeline/core";
 import { contactsApp } from "@lifeline/app-contacts";
+import { calendarApp } from "@lifeline/app-calendar";
 
 /**
  * The agent wall (ADR 0114): no tool answer ever carries a Person's Addresses
@@ -11,7 +12,9 @@ import { contactsApp } from "@lifeline/app-contacts";
  * A ticket that adds a tool which can return a Person (or anything made from
  * one: an Occasion marker, a Tie, a Report) adds a call to `PERSON_TOOLS`
  * below; a ticket that adds a Timed provider for People pushes it onto
- * `timed`. The sweep then checks it with every other tool.
+ * `timed`. The sweep then checks it with every other tool. An Event At a
+ * Person (ADR 0128) is in the sweep too; eventAt.test.ts runs every tool that
+ * can return an Event, writes included, over the real store.
  */
 
 // Core's store is stood in for, as in handlers.test.ts.
@@ -60,6 +63,7 @@ const { runTool, WallRefused } = await import("./handlers");
 // Through the manifest only, as the server takes it (apps.ts).
 const personTypeDef = contactsApp.types.find((t) => t.id === PERSON_TYPE)!;
 const contactsTimed = contactsApp.timed!;
+const eventTypeDef = calendarApp.types.find((t) => t.id === "event")!;
 
 // Every value is one no answer may hold: distinctive, so a hit is a leak, not a coincidence.
 const addresses = [
@@ -114,6 +118,10 @@ const PERSON_TOOLS: { name: string; args: Record<string, unknown> }[] = [
   { name: "search_documents", args: { type: PERSON_TYPE } },
   { name: "get_document", args: { id: "p1" } },
   { name: "get_document", args: { id: "t1" } },
+  // An Event At the Person (ADR 0128): the Person's id and title, never where they live.
+  { name: "get_document", args: { id: "e1" } },
+  { name: "search_documents", args: { type: "event" } },
+  { name: "search_documents", args: { query: "tea" } },
   { name: "agenda", args: { start: "2026-11-01", end: "2026-11-30" } },
   { name: "list_types", args: {} },
   { name: "list_types", args: { type: PERSON_TYPE } },
@@ -128,11 +136,13 @@ beforeEach(() => {
   commands.length = 0;
   timed.length = 0;
   macros.length = 0;
-  timed.push(contactsTimed);
+  timed.push(contactsTimed, calendarApp.timed!);
   for (const fn of Object.values(core)) fn.mockReset().mockResolvedValue(undefined);
   core.createDocument.mockImplementation(async (input: { type: string; title: string }) => ({ ...person("new", input.title), ...input }));
   types.set(PERSON_TYPE, withGiftIdeas);
   types.set(tieType.id, tieType);
+  types.set(eventTypeDef.id, eventTypeDef);
+  docs.set("e1", { id: "e1", type: "event", title: "Tea at Mum's", folder: "", tags: [], createdAt: "", updatedAt: "", deleted: 0, date: "2026-11-20", endDate: null, start: "16:00", end: "17:00", notes: "", with: [], at: "p1" } as unknown as Document);
   docs.set("p1", person("p1", "Anne Dupont", "People", { giftIdeas: "a good sable brush", occasions: [{ id: "o1", label: "Birthday", day: "1961-11-12", yearly: true }] }));
   docs.set("t1", { id: "t1", type: tieType.id, title: "Anne – Léa", folder: "", tags: [], createdAt: "", updatedAt: "", deleted: 0 } as unknown as Document);
   commands.push(...contactsApp.commands.map((c) => ({ ...c, appId: "contacts" })));
@@ -180,6 +190,17 @@ describe("the agent wall: what an agent reads of a Person (ADR 0114)", () => {
     expect(await runTool("search_documents", { query: "secret" })).toMatchObject({ total: 0 });
     await expect(runTool("get_document", { id: "p2" })).rejects.toThrow(/No Document p2/);
   });
+
+  it("names no Private Person an Event is At or With, in get_document, search or agenda", async () => {
+    docs.set("p3", person("p3", "Hidden host", "Private/People"));
+    docs.set("e3", { id: "e3", type: "event", title: "Supper Qvx", folder: "", tags: [], createdAt: "", updatedAt: "", deleted: 0, date: "2026-11-21", endDate: null, start: "19:00", end: "20:00", notes: "", with: ["p3", "p1"], at: "p3" } as unknown as Document);
+    const got = (await runTool("get_document", { id: "e3" })) as { fields: Record<string, unknown> };
+    expect(got.fields.at).toBeUndefined();
+    expect(got.fields.with).toEqual(["p1"]);
+    expect(JSON.stringify(await runTool("search_documents", { query: "Qvx" }))).not.toContain("p3");
+    expect(await runTool("search_documents", { query: "p3" })).toMatchObject({ total: 0 });
+    expect(JSON.stringify(await runTool("agenda", { start: "2026-11-21", end: "2026-11-21" }))).not.toContain("p3");
+  });
 });
 
 describe("the agent wall: a Person's Pins (#418)", () => {
@@ -192,6 +213,15 @@ describe("the agent wall: a Person's Pins (#418)", () => {
       for (const word of pinWords) expect(answer, `${name} leaked the Pin “${word}”`).not.toContain(word);
     }
     for (const t of ["search_documents", "list_types"]) expect(JSON.stringify(await runTool(t, {}))).not.toMatch(/"lat"|"lon"/);
+  });
+
+  it("stands an Event At them at that Address (#505), yet no tool answer locates the Event", async () => {
+    const pins = pinsOf([docs.get("e1")!, docs.get("p1")!], [withGiftIdeas, eventTypeDef], ["event"], []);
+    expect(pins.map((p) => [p.key, p.lat, p.lon])).toEqual([["event/e1", 48.871234, 2.381234]]);
+    for (const { name, args } of PERSON_TOOLS) {
+      const answer = JSON.stringify(await runTool(name, args));
+      for (const word of ["event/e1", "48.87", "2.38"]) expect(answer, `${name} located the Event: “${word}”`).not.toContain(word);
+    }
   });
 });
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { appsOfModule, inhabitedModules, moduleOfApp, moduleOfPath, moduleScreens, navSectionsOf } from "./registry";
 import { initApps } from "./registry";
-import { DASHBOARD_FRAME, VAULT_FRAME, type AppManifest, type AppScreenDef } from "./manifest";
+import { MODULES, DASHBOARD_FRAME, VAULT_FRAME, type AppManifest, type AppScreenDef } from "./manifest";
 
 const screen = (id: string, extra: Partial<AppScreenDef> = {}): AppScreenDef => ({
   id,
@@ -116,5 +116,12 @@ describe("moduleScreens", () => {
   it("lists a Module's listed Dashboard screens only", () => {
     expect(moduleScreens("culture").map((s) => s.id)).toEqual(["library"]);
     expect(moduleScreens("house").map((s) => s.id)).toEqual(["chores"]);
+  });
+});
+
+describe("the World Module (ADR 0128)", () => {
+  it("is the people Module, retitled: the id stays so stored Workspaces and phone bars keep it", () => {
+    expect(MODULES.find((m) => m.id === "people")?.title).toBe("World");
+    expect(MODULES.some((m) => m.title === "People")).toBe(false);
   });
 });

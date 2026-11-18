@@ -552,6 +552,59 @@ async function longAddresses(page: Page) {
 }
 
 /**
+ * The seeded Place at its longest (ADR 0128): a Kind renamed as long as a
+ * person could type, long aliases, Tags and address, on the map, and a Day
+ * linking to it with an unlinked mention beside.
+ */
+async function seedLongPlace(page: Page) {
+  await workLocally(page);
+  await inCore(
+    page,
+    async (core, a: { long: string; word: string; address: string }) => {
+      const [doc] = await core.documentsOf("atlas_place");
+      await core.saveFieldOptions("atlas_place", "kind", [{ value: "restaurant", label: `${a.long} ${a.word}` }]);
+      await core.patchDocument(doc!.id, { kind: "restaurant", aliases: [`${a.long} ${a.word}`, a.word], tags: [`${a.word}-tag`], address: `${a.address} ${a.word}`, geo: [43.3, 5.4] });
+      await core.createDocument({ type: "daily", title: "2001-03-04", body: `Lunch at [[${doc!.title}]]. ${doc!.title} again ${a.long}.` });
+      // Its timeline and Visited: a long-titled Event that happened, and one ahead of the Today line.
+      await core.createDocument({ type: "event", title: `${a.long} ${a.word}`, fields: { date: "2001-03-05", at: doc!.id } });
+      await core.createDocument({ type: "event", title: `${a.word} ${a.long}`, fields: { date: core.addDays(core.todayStr(), 30), at: doc!.id } });
+    },
+    { long: longText("A kind"), word: LONG_WORD, address: longText("An address") },
+  );
+}
+
+/** The Places screen and a Place page at their longest: the seeded Place, its Kind's long name shown. */
+async function longPlaces(page: Page) {
+  await seedLongPlace(page);
+  await expect(page.getByText(/^A kind/).first()).toBeVisible();
+}
+
+/**
+ * Add place with Here's list open (#501): a granted, faked position, and Photon's
+ * reverse lookup answering with places as long as a name and address could be.
+ */
+async function openHere(page: Page) {
+  await page.context().grantPermissions(["geolocation"]);
+  await page.context().setGeolocation({ latitude: 43.29, longitude: 5.37 });
+  await page.route(/^https:\/\/(?!localhost)/, (route) => {
+    if (!route.request().url().startsWith("https://photon.komoot.io/reverse")) return route.abort();
+    const poi = (n: number) => ({ geometry: { coordinates: [5.37, 43.29] }, properties: { osm_key: "amenity", name: `${longText(`A place ${n}`)} ${LONG_WORD}`, street: `${longText("A street")} ${LONG_WORD}`, city: "Marseille", country: "France" } });
+    return route.fulfill({ json: { features: [poi(1), poi(2)] } });
+  });
+  await longPlaces(page);
+  await page.getByRole("button", { name: "Add place", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Add a place" });
+  await dialog.getByRole("button", { name: "Here", exact: true }).click();
+  await expect(dialog.getByRole("group", { name: "Places here" }).getByRole("button", { name: "Just here" })).toBeVisible();
+}
+
+/** World's map with the long Place on it and its Kind's long name in the Kind filter. */
+async function longWorld(page: Page) {
+  await seedLongPlace(page);
+  await expect(page.getByRole("button", { name: /^Places 1$/ })).toBeVisible();
+}
+
+/**
  * The seeded Household (its title as long as a person could type) holding
  * every seeded Person, and a second as long, so a Person's page names two
  * Households and the Household's page lists its members (ADR 0117).
@@ -954,7 +1007,7 @@ const SCREENS: ScreenCase[] = [
   { name: "Progress", path: "/module/progress", afterOpen: workLocally },
   { name: "Knowledge module", path: "/module/languages" },
   { name: "Journal module", path: "/module/journal" },
-  { name: "People module", path: "/module/people" },
+  { name: "World module", path: "/module/people", afterOpen: longWorld },
   { name: "Notes module", path: "/module/notes" },
   { name: "Thoughts module", path: "/module/thoughts" },
   { name: "Research module", path: "/module/research" },
@@ -1245,6 +1298,24 @@ const SCREENS: ScreenCase[] = [
   },
   { name: "Person", path: "/app/people/person/:id", type: "contacts_person", afterOpen: async (page) => { await longAddresses(page); await longContactDetails(page); } },
   { name: "Person · Edit", path: "/app/people/person/:id", type: "contacts_person", afterOpen: async (page) => { await longAddresses(page); await longContactDetails(page); await page.getByRole("button", { name: "Edit", exact: true }).click(); } },
+  { name: "Places", path: "/app/places", afterOpen: longPlaces },
+  { name: "Place", path: "/app/places/place/:id", type: "atlas_place", afterOpen: longPlaces },
+  { name: "Places · Kinds", path: "/app/places", afterOpen: async (page) => { await longPlaces(page); await page.getByRole("button", { name: "Kinds", exact: true }).click(); await expect(page.getByRole("dialog", { name: "Kinds" })).toBeVisible(); } },
+  { name: "Places · Add place", path: "/app/places", afterOpen: async (page) => { await longPlaces(page); await page.getByRole("button", { name: "Add place", exact: true }).click(); await expect(page.getByRole("dialog", { name: "Add a place" })).toBeVisible(); } },
+  {
+    name: "Places · Add place, a long address typed",
+    path: "/app/places",
+    afterOpen: async (page) => {
+      await longPlaces(page);
+      await page.getByRole("button", { name: "Add place", exact: true }).click();
+      const dialog = page.getByRole("dialog", { name: "Add a place" });
+      await dialog.getByLabel("Name").fill(`${longText("A name")} ${LONG_WORD}`);
+      await dialog.getByLabel("Address").fill(`${longText("An address")} ${LONG_WORD}`);
+      await dialog.getByRole("heading", { name: "Add a place" }).click();
+      await expect(dialog.getByText(/^Not on the map yet/)).toBeVisible();
+    },
+  },
+  { name: "Places · Add place, Here's places", path: "/app/places", afterOpen: openHere },
   { name: "Person · Households", path: "/app/people/person/:id", type: "contacts_person", afterOpen: async (page) => { await longHouseholds(page); await expect(page.getByRole("link", { name: /^Another household/ })).toBeVisible(); } },
   { name: "Households", path: "/app/people/households", afterOpen: async (page) => { await longHouseholds(page); await expect(page.getByRole("link", { name: /^Another household/ })).toBeVisible(); } },
   { name: "Household", path: "/app/people/household/:id", type: "contacts_household", afterOpen: async (page) => { await workLocally(page); await expect(page.getByText("No members yet.")).toBeVisible(); } },

@@ -269,6 +269,12 @@ export interface TimedItem {
    * Person's Occasion): whoever may not see that Document may not see the item.
    */
   docId?: string;
+  /**
+   * Where it happens (an Event's At, ADR 0128): the Place's or Person's id
+   * and title, never more — At on a Person is the Person, not their Address
+   * (ADR 0114). Absent when it happens nowhere in particular.
+   */
+  at?: { docId: string; title: string };
   /** Where an item with no Document comes from — a Calendar subscription's name — for its read-only card (#538). */
   source?: string;
 }

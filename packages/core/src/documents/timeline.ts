@@ -1,7 +1,9 @@
-import { DAY_TYPE, diffDays, isDateStr, lastDayCovered, todayStr, type DateStr, type LinkIndex, type Reach } from "@lifeline/core";
-import type { UpcomingOccasion } from "./occasions";
+import { lastDayCovered } from "../contracts/timed";
+import { diffDays, todayStr, type DateStr } from "../dates";
+import type { LinkIndex, Reach } from "./links";
+import { DAY_TYPE, isDateStr } from "./sourceDays";
 
-/** One thing on a Person's timeline (#422): a Document that links to them, on its own day. */
+/** One thing on a Document's timeline (#422: a Person's, ADR 0128: a Place's): a Document that links to it, on its own day. */
 export interface TimelineEntry {
   sourceId: string;
   type: string;
@@ -58,15 +60,16 @@ function dayOf(d: { type: string; title: string } & Record<string, unknown>): En
 const outranks = (r: Reach, kept: TimelineEntry): boolean => !r.via && !!r.field && !kept.field;
 
 /**
- * What links to a Person, newest first: Events with them, Tasks for them,
- * notes and Days that name them, and what links to a Household they were a
- * member of then (ADR 0117). Each Document once, by its Link field when it has
- * one (a Day naming them by name and by alias is one entry), and by a direct
- * link over one through their Household.
+ * What links to a Document, newest first: for a Person, Events with them,
+ * Tasks for them, notes and Days that name them, and what links to a
+ * Household they were a member of then (ADR 0117); for a Place, Events At it
+ * and what names it (ADR 0128). Each Document once, by its Link field when it
+ * has one (a Day naming it by name and by alias is one entry), and by a direct
+ * link over one through a Household.
  */
-export function timelineOf(index: LinkIndex, personId: string): TimelineEntry[] {
+export function timelineOf(index: LinkIndex, docId: string): TimelineEntry[] {
   const byId = new Map<string, TimelineEntry>();
-  for (const b of index.reaches(personId)) {
+  for (const b of index.reaches(docId)) {
     const d = index.byId.get(b.sourceId);
     if (!d) continue;
     const had = byId.get(b.sourceId);
@@ -77,9 +80,17 @@ export function timelineOf(index: LinkIndex, personId: string): TimelineEntry[] 
   return [...byId.values()].sort((a, b) => (b.day ?? "").localeCompare(a.day ?? "") || a.title.localeCompare(b.title));
 }
 
+/** What a timeline's owner adds above the Today line besides what links in: a Person's Occasions (#449). */
+export interface TimelineOccasion {
+  label: string;
+  date: DateStr;
+  /** Days from today. */
+  inDays: number;
+}
+
 /** A stop above the Today line: an Occasion, or a Document dated today or later, or one still under way. */
-export type AheadStop = { day: DateStr } & (
-  | { kind: "occasion"; occasion: UpcomingOccasion; /** Days from today. */ inDays: number }
+export type AheadStop<O extends TimelineOccasion = TimelineOccasion> = { day: DateStr } & (
+  | { kind: "occasion"; occasion: O; /** Days from today. */ inDays: number }
   | { kind: "entry"; entry: TimelineEntry; /** Days from today; null for an Event under way, begun before today. */ inDays: number | null }
 );
 
@@ -92,17 +103,17 @@ export interface PastStop {
 }
 
 /** One stop on the line: an Occasion ahead, or a Document that links in. */
-export type TimelineStop = AheadStop | PastStop;
+export type TimelineStop<O extends TimelineOccasion = TimelineOccasion> = AheadStop<O> | PastStop;
 
-export interface TimelineMonth {
+export interface TimelineMonth<O extends TimelineOccasion = TimelineOccasion> {
   /** "2026-11"; null for what has no day. */
   month: string | null;
-  stops: TimelineStop[];
+  stops: TimelineStop<O>[];
 }
 
 /** Groups stops by month, in the order given; stops with no day go in a month that is null. */
-export function timelineMonths(stops: readonly TimelineStop[]): TimelineMonth[] {
-  const months: TimelineMonth[] = [];
+export function timelineMonths<O extends TimelineOccasion = TimelineOccasion>(stops: readonly TimelineStop<O>[]): TimelineMonth<O>[] {
+  const months: TimelineMonth<O>[] = [];
   for (const s of stops) {
     const month = s.day?.slice(0, 7) ?? null;
     const last = months.at(-1);
@@ -112,23 +123,24 @@ export function timelineMonths(stops: readonly TimelineStop[]): TimelineMonth[] 
   return months;
 }
 
-const stopTitle = (s: TimelineStop) => (s.kind === "occasion" ? s.occasion.label : s.entry.title);
+const stopTitle = (s: TimelineStop<TimelineOccasion>) => (s.kind === "occasion" ? s.occasion.label : s.entry.title);
 /** On a shared day, an Occasion comes before a Document. */
-const kindRank = (s: TimelineStop) => (s.kind === "occasion" ? 0 : 1);
+const kindRank = (s: TimelineStop<TimelineOccasion>) => (s.kind === "occasion" ? 0 : 1);
 
 /**
  * The two sides of the Today line, each by month, newest first. Ahead:
  * Occasions and what links in from today on, one order, the furthest at the
  * top and the soonest just above the line; an Event still under way (begun,
  * its End day not passed) is ahead too, by its first day, with no "how soon".
- * Below: what is past, then what has no day.
+ * Below: what is past, then what has no day. A Person's page passes their
+ * Occasions (#449); a Place's (ADR 0128) and a Household's pass none.
  */
-export function timelineSides(
+export function timelineSides<O extends TimelineOccasion = TimelineOccasion>(
   entries: readonly TimelineEntry[],
-  occasions: readonly UpcomingOccasion[],
+  occasions: readonly O[],
   today: DateStr,
-): { ahead: TimelineMonth[]; past: TimelineMonth[] } {
-  const ahead: AheadStop[] = occasions.map((occasion) => ({ kind: "occasion", day: occasion.date, occasion, inDays: occasion.inDays }));
+): { ahead: TimelineMonth<O>[]; past: TimelineMonth<O>[] } {
+  const ahead: AheadStop<O>[] = occasions.map((occasion) => ({ kind: "occasion", day: occasion.date, occasion, inDays: occasion.inDays }));
   const past: PastStop[] = [];
   for (const entry of entries) {
     if (entry.ownDay && entry.day !== null && (entry.endDay ?? entry.day) >= today)
@@ -136,5 +148,5 @@ export function timelineSides(
     else past.push({ kind: "entry", day: entry.day, entry, inDays: null });
   }
   ahead.sort((a, b) => b.day.localeCompare(a.day) || kindRank(a) - kindRank(b) || stopTitle(a).localeCompare(stopTitle(b)));
-  return { ahead: timelineMonths(ahead), past: timelineMonths(past) };
+  return { ahead: timelineMonths<O>(ahead), past: timelineMonths<O>(past) };
 }

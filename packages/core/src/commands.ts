@@ -122,11 +122,16 @@ function namesOf(d: LinkableDocument): string[] {
   return [d.title, ...aliasesOf(d, documentTypeSync(d.type))];
 }
 
-/** What a link argument names, in a refusal: its one type's singular ("Person", though the argument is "With"), else its own label. */
+/**
+ * What a link argument names, in a refusal: its types' singulars ("Person",
+ * though the argument is "With"; "Place or Person" for an Event's At, ADR
+ * 0128), else its own label.
+ */
 function linkNoun(arg: CommandArg): string {
   const types = linkTypes(arg);
-  const def = !arg.linkRole && types?.length === 1 ? documentTypeSync(types[0]!) : undefined;
-  return def ? singularOf(def) : arg.label;
+  if (arg.linkRole || !types?.length) return arg.label;
+  const defs = types.map((t) => documentTypeSync(t));
+  return defs.every((d) => d) ? defs.map((d) => singularOf(d!)).join(" or ") : arg.label;
 }
 
 /**

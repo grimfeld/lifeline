@@ -31,11 +31,15 @@ export const isUnplaced = (a: Pick<Address, "lat" | "lon" | "former">) => !a.for
 /**
  * The Pins of a Person (#418): one for each current Address with coordinates,
  * titled "Person · label". A former Address, or one whose lookup found
- * nothing, is not on the map.
+ * nothing, is not on the map. The main one, where an Event At the Person
+ * stands (#505, ADR 0122), is the current Address labelled Home, else the
+ * first current one; when that one has no coordinates, none is main.
  */
-export function addressPinsOf(person: Document): { id: string; name: string; lat: number; lon: number }[] {
-  return normalizeAddresses(person.addresses).flatMap((a) =>
-    !a.former && a.lat !== undefined && a.lon !== undefined ? [{ id: a.id, name: `${person.title} · ${a.label}`, lat: a.lat, lon: a.lon }] : [],
+export function addressPinsOf(person: Document): { id: string; name: string; lat: number; lon: number; main?: boolean }[] {
+  const current = normalizeAddresses(person.addresses).filter((a) => !a.former);
+  const main = (current.find((a) => a.label.trim().toLowerCase() === "home") ?? current[0])?.id;
+  return current.flatMap((a) =>
+    a.lat !== undefined && a.lon !== undefined ? [{ id: a.id, name: `${person.title} · ${a.label}`, lat: a.lat, lon: a.lon, ...(a.id === main ? { main: true } : {}) }] : [],
   );
 }
 

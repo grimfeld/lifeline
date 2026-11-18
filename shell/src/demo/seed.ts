@@ -9,6 +9,7 @@ import { seedMedia } from "./life/media";
 import { seedDayTemplate, seedWriting } from "./life/writing";
 import { seedWindows } from "./life/windows";
 import { seedHome, seedOverviews } from "./life/screens";
+import { seedAt, seedPlaces } from "./life/places";
 
 /**
  * The Demo life (CONTEXT.md "Demo", ADR 0077): a made-up person's life written
@@ -34,10 +35,11 @@ async function seedRest(clock: LifeClock): Promise<void> {
   // Side by side: the slices write disjoint types and name nothing of each
   // other's. Each write makes the screen already up read the store again; the
   // more writes land between two of those reads, the fewer reads in all.
-  await Promise.all([seedWork(clock), seedMedia(clock), seedTracking(clock), seedWriting(clock), seedMoney(clock), seedWindows(clock)]);
+  await Promise.all([seedWork(clock), seedMedia(clock), seedTracking(clock), seedWriting(clock), seedMoney(clock), seedWindows(clock), seedPlaces()]);
   // Last: the Overviews and the Events' With name Documents the slices made.
   await seedOverviews(clock);
   await seedWith();
+  await seedAt();
 }
 
 /** Write the whole Demo life, dated around `visitDay`. */

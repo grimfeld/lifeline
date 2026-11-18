@@ -17,11 +17,12 @@ export type WhenForm = Omit<EventForm, "title">;
 /**
  * An Event's own Fields as the Form holds them — everything but its title, which
  * is the add dialog's (or the Peek frame's) own: when it happens, its notes, With
- * (Person ids) and Tags.
+ * (Person ids), At (a Place's or Person's id, ADR 0128; "" for nowhere) and Tags.
  */
 export interface EventDraft extends WhenForm {
   notes: string;
   with: string[];
+  at: string;
   tags: string[];
 }
 

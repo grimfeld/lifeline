@@ -1,3 +1,7 @@
+---
+amended-by: ADR 0122 (in part — a Document may stand at the Document it links to; an Event at its At)
+---
+
 # Locatable contract carries coordinates only, geocoded at edit time; maps are Leaflet over OSM raster tiles
 
 The Map is a Core Surface (screen, Card, and a reusable mini-map) over a new `Locatable` Contract, so any App can put its entities on a map (ADR 0001) — the Notes App's Place notes are the first provider. The Contract exposes *Pins* with resolved coordinates only: address → coordinates (Nominatim, OSM's geocoder) happens once, on an explicit "Locate" click while editing the owning entity, and the result is stored in that entity and syncs with it. The Surface never geocodes at render time — that would be slow, opaque when it fails, and violate Nominatim's usage policy (1 req/s, cache results, no bulk) as pins multiply. Rendering is Leaflet with `tile.openstreetmap.org` raster tiles: zero-config, runs in the Tauri/Android/web webviews without WebGL concerns, and free for one user's traffic; MapLibre vector tiles were rejected because OSM does not serve them and every provider needs a key or self-hosting.

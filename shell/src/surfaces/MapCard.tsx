@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router";
-import { useLocatablePins, useLocatableTypes, type CardProps } from "@lifeline/core";
+import { openPin, useLocatablePins, useLocatableTypes, type CardProps } from "@lifeline/core";
 import { MapView } from "@lifeline/ui";
 
 /** Options for the Map card's filter: every Locatable Document type. */
@@ -12,5 +12,5 @@ export function MapCard({ settings }: CardProps) {
   const navigate = useNavigate();
   const app = String(settings.app ?? "");
   const pins = useLocatablePins(app ? [app] : undefined);
-  return <MapView pins={pins} zoomControl={false} onOpen={(p) => p.href && navigate(p.href)} />;
+  return <MapView pins={pins} zoomControl={false} onOpen={(p) => openPin(p, navigate)} />;
 }

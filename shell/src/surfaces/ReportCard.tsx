@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { REPORT_KINDS, displayTitle, mentionable, reportKind, reportWords, singularOf, todayStr, useAllDocuments, sourceOf, documentFigures, useDocumentType, useDocumentTypes, useLinkIndex, type CardOption, type CardProps, type ReportKind, type ReportWindow } from "@lifeline/core";
+import { REPORT_KINDS, displayTitle, mentionable, reportKind, reportLabel, reportWords, singularOf, todayStr, useAllDocuments, sourceOf, documentFigures, useDocumentType, useDocumentTypes, useLinkIndex, type CardOption, type CardProps, type ReportKind, type ReportWindow } from "@lifeline/core";
 import { DocumentReports, RankingReport, useOpenLinkRef } from "@lifeline/editor";
 
 /**
@@ -69,7 +69,7 @@ export function ReportCard({ settings, configure }: CardProps) {
   if (!def) return choose("a type");
   return (
     <div className="h-full min-w-0 overflow-y-auto p-1">
-      <RankingReport index={index} typeId={def.id} setting={{ kind, n: Number(settings.n ?? 5) || 5 }} window={window} title={`${def.label} · ${reportKind(kind).label}`} onOpen={onOpen} />
+      <RankingReport index={index} typeId={def.id} setting={{ kind, n: Number(settings.n ?? 5) || 5 }} window={window} title={`${def.label} · ${reportLabel(kind, def)}`} onOpen={onOpen} />
     </div>
   );
 }
@@ -79,10 +79,11 @@ export function useReportTitle(settings: CardProps["settings"]): string {
   const types = useDocumentTypes();
   const docs = useAllDocuments();
   const kind = REPORT_KINDS.find((k) => k.kind === settings.kind) ?? reportKind("top");
+  // In the type's own words: a Place's Seen is Visited (ADR 0128).
   if (kind.family === "document") {
     const d = docs.find((x) => x.id === settings.doc);
-    return d ? `${d.title} · ${kind.label}` : kind.label;
+    return d ? `${d.title} · ${reportLabel(kind.kind, types.find((x) => x.id === d.type))}` : kind.label;
   }
   const t = types.find((x) => x.id === settings.type);
-  return t ? `${t.label} · ${kind.label}` : kind.label;
+  return t ? `${t.label} · ${reportLabel(kind.kind, t)}` : kind.label;
 }
