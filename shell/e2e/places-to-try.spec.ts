@@ -37,7 +37,6 @@ async function eventAt(page: Page, placeId: string, days: number) {
   );
 }
 
-/** The test's own Places in the list, leaving the seeded one out. */
 /** The seed's Places (and People's Addresses) out of the way, so the counts are the test's own. */
 async function onlyOurs(page: Page) {
   await inCore(
@@ -51,7 +50,7 @@ async function onlyOurs(page: Page) {
 
 const listed = (page: Page) => page.getByRole("list", { name: "Places" }).getByRole("link", { name: /^(Chez Janou|Café de Flore|Café Kitsuné)/ });
 
-/** Switch the Places screen to one of its lists: a switch on the desk, a select under Filters on a phone. */
+/** Switch the Places screen to one of its lists, with the switch the desktop width shows. */
 async function showList(page: Page, name: "All" | "To try" | "Closed") {
   await page.getByRole("radio", { name, exact: true }).click();
 }

@@ -94,13 +94,8 @@ test("the Places screen lists Places A to Z and filters them by Kind, and Kinds 
   const list = page.getByRole("list", { name: "Places" });
   await expect(list.getByRole("link", { name: /^(Atelier Café|Bar du Port|Zinc Bar)/ })).toHaveText([/^Atelier Café/, /^Bar du Port/, /^Zinc Bar/]);
 
-  // On a phone the Kind is under Filters, whose sheet hides the page until it closes.
-  const filters = page.getByRole("button", { name: /^Filters/ });
-  const phone = await filters.isVisible();
-  if (phone) await filters.click();
   await page.getByRole("combobox", { name: "Kind" }).click();
   await page.getByRole("option", { name: "Bar", exact: true }).click();
-  if (phone) await page.keyboard.press("Escape");
   await expect(list.getByRole("link", { name: /^(Atelier Café|Bar du Port|Zinc Bar)/ })).toHaveText([/^Bar du Port/, /^Zinc Bar/]);
 
   await page.getByRole("button", { name: "Kinds", exact: true }).click();
