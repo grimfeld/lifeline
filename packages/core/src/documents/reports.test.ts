@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { formatHuman } from "../dates";
 import { buildLinkIndex } from "./links";
-import { DEFAULT_REPORTS, REPORT_KINDS, agoText, periodReportsOf, reportLabel, seenSummary, documentFigures, lastText, reportWords, mentionDays, notMentionedSince, rankingRows, seenDays, sourceOf, talkedDays, reportsIn, reportsOf, topMentioned } from "./reports";
+import { DEFAULT_REPORTS, REPORT_KINDS, agoText, periodReportsOf, reportLabel, seenSummary, documentFigures, lastText, reportWords, mentionDays, notMentionedSince, rankingRows, seenDays, sourceOf, talkedDays, lastTalkedExchange, reportsIn, reportsOf, topMentioned } from "./reports";
 import type { Document, DocumentTypeDef } from "./types";
 import { PERSON_TYPE } from "../people";
 import { EXCHANGE_TYPE } from "./sourceDays";
@@ -272,6 +272,13 @@ describe("Talked (ADR 0131)", () => {
       ["talkedCount", "Talked count", "count"],
       ["talkedHeatmap", "Talked heatmap", "heatmap"],
     ]);
+  });
+  it("finds the newest Exchange that counts, none to come, none through a body link or a Household they had left", () => {
+    expect(lastTalkedExchange(tidx, "gran", today)?.id).toBe("x3");
+    expect(lastTalkedExchange(tidx, "gran", "2026-10-30")?.id).toBe("x4");
+    expect(lastTalkedExchange(tidx, "lucie", today)).toBeUndefined();
+    expect(lastTalkedExchange(tidx, "tom", today)?.id).toBe("x5");
+    expect(lastTalkedExchange(tidx, "paul", today)?.id).toBe("x6");
   });
   it("ranks Top talked and Not talked in N days", () => {
     expect(rankingRows(tidx, "person", { kind: "topTalked" }, {}, today).map((r) => [r.docId, r.count])).toEqual([["gran", 2], ["paul", 2], ["tom", 1]]);

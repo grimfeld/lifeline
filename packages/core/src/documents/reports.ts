@@ -183,6 +183,23 @@ export function talkedDays(index: LinkIndex, docId: string, today: DateStr): Dat
 }
 
 /**
+ * The newest Exchange that counts as Talked for one Document (ADR 0131), none
+ * after `today`: on the last talked day, the one logged last. What says how
+ * someone was last in touch ("call · 120 days ago"); nothing when never.
+ */
+export function lastTalkedExchange(index: LinkIndex, docId: string, today: DateStr): Document | undefined {
+  let best: { doc: Document; day: DateStr } | undefined;
+  for (const b of index.reaches(docId)) {
+    const src = index.byId.get(b.sourceId);
+    const day = exchangeDay(src);
+    if (!src || !day || day > today || !talkedThrough(b, src)) continue;
+    if (b.via && !b.days?.includes(day)) continue;
+    if (!best || day > best.day || (day === best.day && src.createdAt > best.doc.createdAt)) best = { doc: src, day };
+  }
+  return best?.doc;
+}
+
+/**
  * An Event's last day: its end day, the day before when it ends at 00:00
  * (`lastDayCovered`, ADR 0090), its first when it has no later end; none for
  * any other Document or an undated Event. What Seen counts to, and what says
