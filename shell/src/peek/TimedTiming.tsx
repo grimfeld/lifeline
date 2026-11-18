@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useReducer } from "react";
 import { Button, Checkbox, DatePicker, Field, formatLength, QuickTiming, TimeField, toast } from "@lifeline/ui";
 import {
   addDays,
@@ -7,22 +7,19 @@ import {
   canRescheduleTimed,
   closePeek,
   describeEnd,
-  forgetTiming,
   formatHuman,
   formatTime,
   moveTimedItem,
-  noteTiming,
   removeTimedItem,
   rescheduleTimedItem,
   SNAP_MIN,
   spanLength,
   todayStr,
-  type SurfaceTimedItem,
-  type TimedWhen,
+  type HoursTapped,
 } from "@lifeline/core";
 import { Trash2 } from "lucide-react";
-import { useWriteQueue } from "./useWriteQueue";
-import { contractWhen, timedControls, timedAllDay, timedEndingAt, timedNudged, timedOnDay, timedStartingAt, timedWhenOf, type WhenTime } from "./timedTiming";
+import { timedVisit } from "./peekVisit";
+import { contractWhen, timedControls, timedAllDay, timedEndingAt, timedNudged, timedOnDay, timedStartingAt, type WhenTime } from "./timedTiming";
 
 /** "Tue, Nov 10 · 10:00 – 11:00", "… · all day", or ending another day. */
 function describeWhen(w: WhenTime): string {
@@ -43,38 +40,28 @@ function describeWhen(w: WhenTime): string {
  *
  * Every change is written at once and noted to the Peek (`noteTiming`), which
  * leaves one Undo on closing (#536). Delete acts at once with its own Undo.
+ * The when is the visit's (`timedVisit`), kept while the Peek is open.
  */
-export function TimedTiming({ item }: { item: SurfaceTimedItem }) {
-  const initial = useRef(timedWhenOf(item)).current;
-  const [when, setWhen] = useState<WhenTime>(initial);
+export function TimedTiming({ tapped }: { tapped: HoursTapped & { kind: "timed" } }) {
+  const item = tapped.item;
+  // The visit keeps the when, so Back from a link shows what was last written (F1).
+  const visit = timedVisit(tapped);
+  const [, changed] = useReducer((n: number) => n + 1, 0);
+  const { when } = visit;
   const controls = timedControls(item, { reschedule: canRescheduleTimed(item.appId), move: canMoveTimed(item.appId) });
   /** Through the hook the App has: a reschedule writes the whole when, a move only the day. */
   const put = (w: WhenTime) => (controls === "retime" ? rescheduleTimedItem(item, contractWhen(w)) : moveTimedItem(item, w.date));
-  const key = `timed:${item.appId}/${item.itemId}`;
-
-  const { run, settled } = useWriteQueue();
 
   function write(next: WhenTime) {
-    setWhen(next);
-    run(() => put(next));
-    noteTiming<TimedWhen>({
-      key,
-      label: item.title,
-      before: contractWhen(initial),
-      after: contractWhen(next),
-      restore: async () => {
-        await settled();
-        await put(initial);
-      },
-    });
+    visit.write(next, put);
+    changed();
   }
 
   function remove() {
-    forgetTiming(key);
+    const removed = visit.remove(() => removeTimedItem(item));
     closePeek();
-    run(async () => {
-      const undo = await removeTimedItem(item);
-      toast.success(`${item.title} deleted`, { action: { label: "Undo", onClick: () => void undo().catch((e: Error) => toast.error(`Could not bring it back: ${e.message}`)) } });
+    void removed.then((undo) => {
+      if (undo) toast.success(`${item.title} deleted`, { action: { label: "Undo", onClick: () => void undo().catch((e: Error) => toast.error(`Could not bring it back: ${e.message}`)) } });
     });
   }
 

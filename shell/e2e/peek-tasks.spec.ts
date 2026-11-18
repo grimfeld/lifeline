@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import type { Placement } from "@lifeline/core";
 import { inCore } from "./support/core";
 import { openCalendar, pickDate, pickInCalendar } from "./support/date-picker";
 import { setTime } from "./support/time-field";
@@ -329,4 +330,75 @@ test.describe("on a phone, what was tapped on the hours is scrolled above the Pe
     await inCore(page, async (core, title: string) => void (await core.putDocument({ type: "event", title, notes: "", date: "2026-11-10", endDate: null, start: "21:00", end: "22:00", tags: [] })), stamp);
     await tapAndExpectAboveSheet(page, page.locator('[data-col="2026-11-10"] [data-focus-key]', { hasText: stamp }), stamp);
   });
+});
+
+// --- a visit's timing outlives a link followed in the Peek and Back (F1) ---
+
+/** A Task on Tue 10 Nov with a 45-minute Estimate and no block yet, and another Task to follow a link to; the Week open. */
+async function addChipTask(page: Page, title: string): Promise<{ id: string; other: string }> {
+  await page.goto("/calendar?view=week&d=2026-11-09");
+  await workLocally(page);
+  return inCore(
+    page,
+    async (core, title: string) => {
+      const task = (t: string) => core.putDocument({ type: "task", title: t, status: "active", date: "2026-11-10", completedOn: null, recurrence: null, notes: "", tags: [], estimate: 45 });
+      return { id: (await task(title)).id, other: (await task(`Linked task ${Date.now()}`)).id };
+    },
+    title,
+  );
+}
+
+/** The Task's Time blocks, live (removed ones left out). */
+const storedBlocks = (page: Page, taskId: string) =>
+  inCore(
+    page,
+    async (core, taskId: string) => {
+      const rows = await core.all<Placement>("placements");
+      return rows.filter((p) => p.itemId === taskId && p.start).map((p) => ({ date: p.date, start: p.start, end: p.end }));
+    },
+    taskId,
+  );
+
+/** Follow a link in the open Peek to `docId`, then come back with its Back button. */
+async function followAndComeBack(page: Page, peek: ReturnType<Page["getByRole"]>, docId: string) {
+  await inCore(page, async (core, id: string) => core.pushPeek(id), docId);
+  await peek.getByRole("button", { name: "Back", exact: true }).click();
+}
+
+test("a chip given a time in its Peek, then left by a link and come back to, nudges the same block; the close Undo removes it", async ({ page }) => {
+  const title = `Pay rent ${Date.now()}`;
+  const { id, other } = await addChipTask(page, title);
+  await page.locator("[data-focus-key]").filter({ hasText: title }).first().click();
+  const peek = page.getByRole("dialog", { name: title, exact: true });
+  const timing = peek.getByRole("region", { name: "Time block" });
+  await setTime(timing.getByRole("combobox", { name: "Start" }), "09:30");
+  await expect.poll(() => storedBlocks(page, id)).toEqual([{ date: "2026-11-10", start: "09:30", end: "10:15" }]);
+
+  await followAndComeBack(page, page.getByRole("dialog").first(), other);
+  await expect(timing.getByRole("combobox", { name: "Start" }), "the visit's own time, not the chip's").toHaveValue("09:30");
+  await timing.getByRole("button", { name: "15 minutes later" }).click();
+  await expect.poll(() => storedBlocks(page, id), "one block, moved").toEqual([{ date: "2026-11-10", start: "09:45", end: "10:30" }]);
+
+  await page.keyboard.press("Escape");
+  await expect(peek).toBeHidden();
+  await page.locator("[data-sonner-toast]", { hasText: `${title} updated` }).getByRole("button", { name: "Undo" }).click();
+  await expect.poll(() => storedBlocks(page, id)).toEqual([]);
+});
+
+test("a Time blocker moved in its Peek, then left by a link and come back to, shows its new time", async ({ page }) => {
+  const title = `Focus hour ${Date.now()}`;
+  const { other } = await addChipTask(page, `Linked from ${title}`);
+  await inCore(page, async (core, title: string) => void (await core.putDocument({ type: "time_blocker", title, date: "2026-11-10", endDate: "2026-11-10", weekdays: [], start: "08:00", end: "09:00", color: null, active: true, tags: [] })), title);
+  await page.locator('[data-col="2026-11-10"]').getByLabel(title, { exact: false }).click();
+  const peek = page.getByRole("dialog", { name: title, exact: true });
+  const timing = peek.getByRole("region", { name: "Timing" });
+  await timing.getByRole("button", { name: "15 minutes later" }).click();
+  await expect(timing.getByRole("combobox", { name: "Start" })).toHaveValue("08:15");
+
+  await followAndComeBack(page, page.getByRole("dialog").first(), other);
+  await expect(timing.getByRole("combobox", { name: "Start" })).toHaveValue("08:15");
+  await timing.getByRole("button", { name: "15 minutes later" }).click();
+  await expect
+    .poll(() => inCore(page, async (core, title: string) => (await core.documentsOf("time_blocker")).find((d) => d.title === title)?.start, title))
+    .toBe("08:30");
 });
