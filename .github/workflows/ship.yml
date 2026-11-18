@@ -164,10 +164,12 @@ jobs:
           git config user.name "ship" && git config user.email "claude@grimfeld.tech"
           open=$(gh pr list --state open --json headRefName --jq '[.[] | select(.headRefName | startswith(env.LAND_BRANCH_PREFIX))] | length')
           [ "$open" = 0 ] || { echo "A batch is already open; the next run takes the rest."; exit 0; }
+          # Green apart from this workflow: on a just-labelled PR its own jobs and the `ship` status are still running.
           # shellcheck disable=SC2016 # a jq program, not shell
           prs=$(gh pr list --label "$SHIP_LABEL" --state open --json number,isDraft,headRefName,statusCheckRollup --jq '
             [.[] | select(.isDraft | not) | select(.headRefName | startswith(env.LAND_BRANCH_PREFIX) | not)
-                 | select(all(.statusCheckRollup[]; (.conclusion // .state) as $s | $s == "SUCCESS" or $s == "SKIPPED" or $s == "NEUTRAL"))
+                 | select(all(.statusCheckRollup[] | select(.workflowName != "Ship" and .context != "ship");
+                             (.conclusion // .state) as $s | $s == "SUCCESS" or $s == "SKIPPED" or $s == "NEUTRAL"))
                  | .number] | map(tostring) | join(" ")')
           [ -n "$prs" ] || { echo "Nothing to land."; exit 0; }
           echo "Landing: $prs"
