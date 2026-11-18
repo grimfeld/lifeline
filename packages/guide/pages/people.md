@@ -167,6 +167,24 @@ on either page (with Undo) and both change. A Tie is never to you, only between 
 Deleting a Person removes their Ties; the other Person's page is untouched. A Tie is not a link
 in a body, so it adds no Backlink and counts for no Report.
 
+**Suggested ties.** From Ties that have a kind, each Person's Ties card **suggests** the Ties that follow, under a
+**Suggested** heading: with Paul the father of Tom and of Lily, Lily's card offers "Tom is Lily's
+brother" and Tom's "Lily is Tom's sister" (the words follow what you wrote: Tom is a "son", Lily a
+"daughter"). Lifeline suggests, one step at a time:
+
+- children of the same parent as siblings;
+- a parent's parent as a grandparent;
+- a parent's brother or sister as an aunt or uncle, and their children as cousins;
+- a brother's or sister's parent as a parent;
+- a parent's partner as a parent ("Alice is Lily's mother", with Alice Paul's wife).
+
+Nothing is added on its own. **Add** makes it a real Tie, shown on both pages like any other, and
+any Ties that follow from it are suggested in turn. **Dismiss** hides it on both pages for good,
+whatever Ties change later; **Undo** on the message brings it back, and there is no other list of
+dismissed ones. With two or more suggestions, **Add all** adds them at once. Two People already
+tied in any way, even by free words, are never suggested, and neither is anyone outside this
+Workspace. Free-word Ties suggest nothing, and nor does Claude: suggestions live on the card only.
+
 Removing anything from a Person's page (an Occasion, an Address, a Contact detail or a Tie)
 happens at once, with **Undo** on the message that follows: it puts back just that one, even
 if you have added something since.
