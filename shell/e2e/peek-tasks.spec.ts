@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import type { Placement } from "@lifeline/core";
 import { inCore } from "./support/core";
 import { openCalendar, pickDate, pickInCalendar } from "./support/date-picker";
 import { setTime } from "./support/time-field";
@@ -153,6 +154,24 @@ test("an Event peeked from the Vault gets a time there; an end before its start 
   expect((await field(page, id)).end).toBe("09:00");
 });
 
+test("an Event peeked from the Vault takes Notes and Tags through the Event Form, written as they change", async ({ page }) => {
+  const stamp = Date.now();
+  await page.goto("/vault");
+  await workLocally(page);
+  const id = await inCore(
+    page,
+    async (core, title: string) =>
+      (await core.putDocument({ type: "event", title, date: "2026-03-02", endDate: null, start: null, end: null, notes: "", tags: [] })).id as string,
+    `Review ${stamp}`,
+  );
+  const dialog = await peek(page, id);
+  const form = dialog.getByRole("group", { name: "Event" });
+  await form.getByLabel("Notes").fill("Room 4");
+  await form.getByPlaceholder("Add tag…").fill("work");
+  await form.getByPlaceholder("Add tag…").press("Enter");
+  await expect.poll(async () => { const d = await field(page, id); return { notes: d.notes, tags: d.tags }; }).toEqual({ notes: "Room 4", tags: ["work"] });
+});
+
 /**
  * A People field in a Peek (#446, #447): a Person picked by alias is stored at
  * once, removed, picked again, and then shows on their Timeline via the field.
@@ -208,4 +227,256 @@ test("a Task's For is edited in its Peek: a Person picked by alias is stored at 
     title,
   );
   await pickAndRemovePerson(page, id, title, "For", "for");
+});
+
+test("an Event's Peek nudges the Start, sets a length and moves to Tomorrow, written at once, an overnight End on the next day", async ({ page }) => {
+  const stamp = Date.now();
+  await page.goto("/vault");
+  await workLocally(page);
+  const id = await inCore(
+    page,
+    async (core, title: string) =>
+      (await core.putDocument({ type: "event", title, date: "2099-03-02", endDate: null, start: "09:00", end: "10:00", notes: "", tags: [] })).id as string,
+    `Quick timing ${stamp}`,
+  );
+  const dialog = await peek(page, id);
+  const stored = async () => { const d = await field(page, id); return { date: d.date, endDate: d.endDate, start: d.start, end: d.end }; };
+
+  await dialog.getByRole("button", { name: "15 minutes later" }).click();
+  await expect.poll(stored).toEqual({ date: "2099-03-02", endDate: null, start: "09:15", end: "10:15" });
+  await dialog.getByRole("button", { name: "15 minutes earlier" }).click();
+  await dialog.getByRole("button", { name: "15 minutes earlier" }).click();
+  await expect.poll(stored).toEqual({ date: "2099-03-02", endDate: null, start: "08:45", end: "09:45" });
+
+  await dialog.getByRole("group", { name: "Length", exact: true }).getByRole("button", { name: "2h", exact: true }).click();
+  await expect.poll(stored).toEqual({ date: "2099-03-02", endDate: null, start: "08:45", end: "10:45" });
+
+  await dialog.getByRole("button", { name: "Tomorrow" }).click();
+  await expect.poll(async () => (await stored()).date).not.toBe("2099-03-02");
+  expect(await stored()).toMatchObject({ start: "08:45", end: "10:45" });
+
+  // An End earlier than the Start lands on the next day (ADR 0090).
+  await setTime(dialog.getByRole("combobox", { name: "End" }), "07:00");
+  await expect.poll(async () => (await stored()).endDate).not.toBeNull();
+
+  // There is one set of day and time controls, never two.
+  await expect(dialog.getByRole("combobox", { name: "Start" })).toHaveCount(1);
+  await expect(dialog.getByRole("button", { name: "15 minutes earlier" })).toHaveCount(1);
+});
+
+// --- On a phone the Peek is a bottom sheet, and what was tapped is scrolled above it (ADR 0124) ---
+
+test.describe("on a phone, what was tapped on the hours is scrolled above the Peek's sheet", () => {
+  test.skip(({ isMobile }) => !isMobile, "the bottom sheet is the phone's");
+
+  /** Events titled `title` on each day from `from` for `days` days, 10:00–11:00. */
+  const addEvents = (page: Page, title: string, from: string, days: number) =>
+    inCore(
+      page,
+      async (core, a: { title: string; from: string; days: number }) => {
+        for (let i = 0; i < a.days; i++) await core.putDocument({ type: "event", title: `${a.title} ${i}`, notes: "", date: core.addDays(a.from, i), endDate: null, start: "10:00", end: "11:00", tags: [] });
+      },
+      { title, from, days },
+    );
+
+  /** Tapped from low on the screen, the item ends up above the sheet once it has settled: wholly, or (one taller than the room above the sheet) from its start. */
+  async function tapAndExpectAboveSheet(page: Page, item: ReturnType<Page["locator"]>, title: string) {
+    await item.evaluate((el) => el.scrollIntoView({ block: "end" }));
+    const before = (await item.boundingBox())!;
+    expect(before.y, "the item starts low on the screen, where the sheet will cover it").toBeGreaterThan(780 / 2);
+    // Held before the tap: once the sheet is up, the page behind it is hidden from role queries.
+    const held = (await item.elementHandle())!;
+    await item.tap();
+    const sheet = page.getByRole("dialog", { name: title, exact: true });
+    await expect(sheet.getByRole("combobox", { name: "Start" })).toBeVisible();
+    await expect
+      .poll(async () => {
+        const [a, s] = [await held.boundingBox(), await sheet.boundingBox()];
+        return !!a && !!s && a.y >= 0 && a.y + Math.min(a.height, 24) <= s.y + 1 ? true : JSON.stringify({ a, s });
+      })
+      .toBe(true);
+  }
+
+  test("from Upcoming", async ({ page }) => {
+    const stamp = `Upcoming filler ${Date.now()}`;
+    await page.goto("/calendar?view=upcoming&d=2026-11-09");
+    await workLocally(page);
+    await addEvents(page, stamp, "2026-11-09", 21);
+    await tapAndExpectAboveSheet(page, page.getByRole("button", { name: `${stamp} 20`, exact: true }), `${stamp} 20`);
+  });
+
+  test("from the Month", async ({ page }) => {
+    const stamp = `Month late ${Date.now()}`;
+    await page.goto("/calendar?view=month&d=2026-11-09");
+    await workLocally(page);
+    await addEvents(page, stamp, "2026-11-30", 1);
+    await tapAndExpectAboveSheet(page, page.locator("[data-focus-key]", { hasText: `${stamp} 0` }), `${stamp} 0`);
+  });
+
+  test("from the Agenda Card", async ({ page }) => {
+    const stamp = `Agenda late ${Date.now()}`;
+    await page.goto("/screen/e2elongcontent1");
+    await workLocally(page);
+    const today = await inCore(page, async (core) => core.todayStr(), null);
+    await addEvents(page, stamp, today, 1);
+    const card = page.locator('[data-slot="card"]').filter({ has: page.getByText("Today's agenda", { exact: true }) });
+    await tapAndExpectAboveSheet(page, card.getByRole("button").filter({ hasText: `${stamp} 0` }), `${stamp} 0`);
+  });
+
+  test("from the Week", async ({ page }) => {
+    const stamp = `Week late ${Date.now()}`;
+    await page.goto("/calendar?view=week&d=2026-11-09");
+    await workLocally(page);
+    await inCore(page, async (core, title: string) => void (await core.putDocument({ type: "event", title, notes: "", date: "2026-11-10", endDate: null, start: "21:00", end: "22:00", tags: [] })), stamp);
+    await tapAndExpectAboveSheet(page, page.locator('[data-col="2026-11-10"] [data-focus-key]', { hasText: stamp }), stamp);
+  });
+});
+
+// --- a work chip's actions (Push, Move to day…, Unplace) reach a phone through its Peek ---
+
+test.describe("on a phone, a Task on the Month is pushed, moved or unplaced from its Peek", () => {
+  test.skip(({ isMobile }) => !isMobile, "the phone has no right-click menu");
+
+  test("Move to day… and Unplace in the Peek's Time block section", async ({ page }) => {
+    const title = `Month chip ${Date.now()}`;
+    await page.goto("/calendar?view=month&d=2026-11-09");
+    await workLocally(page);
+    const id = await inCore(page, async (core, t: string) => (await core.putDocument({ type: "task", title: t, status: "active", date: "2026-11-10", completedOn: null, recurrence: null, estimateMin: 30, notes: "", tags: [] })).id as string, title);
+    await page.locator("[data-focus-key]", { hasText: title }).tap();
+    const sheet = page.getByRole("dialog", { name: title, exact: true });
+    const section = sheet.getByRole("region", { name: "Time block" });
+    await expect(section.getByRole("button", { name: "Push" })).toBeVisible();
+    await expect(section.getByRole("button", { name: "Unplace" })).toBeVisible();
+    await section.getByRole("button", { name: "Move to day…" }).tap();
+    const dialog = page.getByRole("dialog", { name: `Move "${title}"` });
+    await pickDate(page, dialog.getByLabel(/^Day, /), "2026-11-12");
+    await dialog.getByRole("button", { name: "Move" }).tap();
+    await expect.poll(async () => (await field(page, id)).date).toBe("2026-11-12");
+    await expect(sheet).toBeHidden();
+
+    await page.locator("[data-focus-key]", { hasText: title }).tap();
+    await sheet.getByRole("region", { name: "Time block" }).getByRole("button", { name: "Unplace" }).tap();
+    await expect.poll(async () => (await field(page, id)).date).toBeNull();
+    await expect(sheet).toBeHidden();
+  });
+});
+
+// --- a visit's timing outlives a link followed in the Peek and Back (F1) ---
+
+/** A Task on Tue 10 Nov with a 45-minute Estimate and no block yet, and another Task to follow a link to; the Week open. */
+async function addChipTask(page: Page, title: string): Promise<{ id: string; other: string }> {
+  await page.goto("/calendar?view=week&d=2026-11-09");
+  await workLocally(page);
+  return inCore(
+    page,
+    async (core, title: string) => {
+      const task = (t: string) => core.putDocument({ type: "task", title: t, status: "active", date: "2026-11-10", completedOn: null, recurrence: null, notes: "", tags: [], estimate: 45 });
+      return { id: (await task(title)).id, other: (await task(`Linked task ${Date.now()}`)).id };
+    },
+    title,
+  );
+}
+
+/** The Task's Time blocks, live (removed ones left out). */
+const storedBlocks = (page: Page, taskId: string) =>
+  inCore(
+    page,
+    async (core, taskId: string) => {
+      const rows = await core.all<Placement>("placements");
+      return rows.filter((p) => p.itemId === taskId && p.start).map((p) => ({ date: p.date, start: p.start, end: p.end }));
+    },
+    taskId,
+  );
+
+/** Follow a link in the open Peek to `docId`, then come back with its Back button. */
+async function followAndComeBack(page: Page, peek: ReturnType<Page["getByRole"]>, docId: string) {
+  await inCore(page, async (core, id: string) => core.pushPeek(id), docId);
+  await peek.getByRole("button", { name: "Back", exact: true }).click();
+}
+
+test("a chip given a time in its Peek, then left by a link and come back to, nudges the same block; the close Undo removes it", async ({ page }) => {
+  const title = `Pay rent ${Date.now()}`;
+  const { id, other } = await addChipTask(page, title);
+  await page.locator("[data-focus-key]").filter({ hasText: title }).first().click();
+  const peek = page.getByRole("dialog", { name: title, exact: true });
+  const timing = peek.getByRole("region", { name: "Time block" });
+  await setTime(timing.getByRole("combobox", { name: "Start" }), "09:30");
+  await expect.poll(() => storedBlocks(page, id)).toEqual([{ date: "2026-11-10", start: "09:30", end: "10:15" }]);
+
+  await followAndComeBack(page, page.getByRole("dialog").first(), other);
+  await expect(timing.getByRole("combobox", { name: "Start" }), "the visit's own time, not the chip's").toHaveValue("09:30");
+  await timing.getByRole("button", { name: "15 minutes later" }).click();
+  await expect.poll(() => storedBlocks(page, id), "one block, moved").toEqual([{ date: "2026-11-10", start: "09:45", end: "10:30" }]);
+
+  await page.keyboard.press("Escape");
+  await expect(peek).toBeHidden();
+  await page.locator("[data-sonner-toast]", { hasText: `${title} updated` }).getByRole("button", { name: "Undo" }).click();
+  await expect.poll(() => storedBlocks(page, id)).toEqual([]);
+});
+
+test("a Time blocker moved in its Peek, then left by a link and come back to, shows its new time", async ({ page }) => {
+  const title = `Focus hour ${Date.now()}`;
+  const { other } = await addChipTask(page, `Linked from ${title}`);
+  await inCore(page, async (core, title: string) => void (await core.putDocument({ type: "time_blocker", title, date: "2026-11-10", endDate: "2026-11-10", weekdays: [], start: "08:00", end: "09:00", color: null, active: true, tags: [] })), title);
+  await page.locator('[data-col="2026-11-10"]').getByLabel(title, { exact: false }).click();
+  const peek = page.getByRole("dialog", { name: title, exact: true });
+  const timing = peek.getByRole("region", { name: "Timing" });
+  await timing.getByRole("button", { name: "15 minutes later" }).click();
+  await expect(timing.getByRole("combobox", { name: "Start" })).toHaveValue("08:15");
+
+  await followAndComeBack(page, page.getByRole("dialog").first(), other);
+  await expect(timing.getByRole("combobox", { name: "Start" })).toHaveValue("08:15");
+  await timing.getByRole("button", { name: "15 minutes later" }).click();
+  await expect
+    .poll(() => inCore(page, async (core, title: string) => (await core.documentsOf("time_blocker")).find((d) => d.title === title)?.start, title))
+    .toBe("08:30");
+});
+
+// --- Complete, and focus after Remove block, in the Time block section (F2, F10) ---
+
+test("a recurring Task's chip on the phone's Week is completed from its Peek: that occurrence is done, the next is not", async ({ page }) => {
+  const title = `Water plants ${Date.now()}`;
+  await page.goto("/calendar?view=week&d=2026-11-09");
+  await workLocally(page);
+  const id = await inCore(
+    page,
+    async (core, title: string) => (await core.putDocument({ type: "task", title, status: "active", date: null, createdAt: "2026-11-01", completedOn: null, recurrence: { kind: "weekly", weekdays: [2] }, notes: "", tags: [], estimate: 30 })).id as string,
+    title,
+  );
+  await page.locator("[data-focus-key]").filter({ hasText: title }).first().click();
+  const timing = page.getByRole("dialog", { name: title, exact: true }).getByRole("region", { name: "Time block" });
+  await timing.getByRole("button", { name: "Complete", exact: true }).click();
+  const done = () =>
+    inCore(
+      page,
+      async (core, taskId: string) =>
+        (await core.documentsOf("task_occurrence")).filter((o) => o.taskId === taskId && o.completedOn).map((o) => o.sourceDate as string),
+      id,
+    );
+  await expect.poll(done).toEqual(["2026-11-10"]);
+  await expect(timing.getByRole("button", { name: "Complete", exact: true }), "a done item offers no Complete").toHaveCount(0);
+
+  // The next occurrence, a week on, is still to do.
+  await page.keyboard.press("Escape");
+  await page.goto("/calendar?view=week&d=2026-11-16");
+  await workLocally(page);
+  await page.locator("[data-focus-key]").filter({ hasText: title }).first().click();
+  const next = page.getByRole("dialog", { name: title, exact: true }).getByRole("region", { name: "Time block" });
+  await expect(next.getByRole("button", { name: "Complete", exact: true }), "the next occurrence is not done").toBeVisible();
+  expect(await done(), "only the occurrence completed").toEqual(["2026-11-10"]);
+});
+
+test("Remove block by keyboard leaves focus inside the Peek", async ({ page }) => {
+  const title = `Pay rent ${Date.now()}`;
+  await addChipTask(page, title);
+  await page.locator("[data-focus-key]").filter({ hasText: title }).first().click();
+  const peek = page.getByRole("dialog", { name: title, exact: true });
+  const timing = peek.getByRole("region", { name: "Time block" });
+  await setTime(timing.getByRole("combobox", { name: "Start" }), "09:30");
+  const remove = timing.getByRole("button", { name: "Remove block" });
+  await remove.focus();
+  await page.keyboard.press("Enter");
+  await expect(remove).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => !!document.activeElement?.closest('[role="dialog"]'))).toBe(true);
+  await expect(timing.getByRole("combobox", { name: "Start" }), "the section stays, so focus goes to its Start").toBeFocused();
 });

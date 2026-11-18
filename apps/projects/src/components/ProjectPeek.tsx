@@ -1,11 +1,11 @@
 import { Link } from "react-router";
 import { Button, CommitField } from "@lifeline/ui";
 import { useTasks } from "@lifeline/app-tasks";
-import { todayStr, type Document } from "@lifeline/core";
+import { noteTiming, peekTapped, timedTimingKey, todayStr, type DateStr, type Document } from "@lifeline/core";
 import { ArrowUpRight } from "lucide-react";
-import { byRank, nextTaskOf, progressOf } from "../domain/board";
-import { projectHref, type Project } from "../domain/types";
-import { updateProject, useLanes, useMilestones } from "../data/repo";
+import { byRank, markerId, nextTaskOf, progressOf } from "../domain/board";
+import { APP_ID, projectHref, type Project } from "../domain/types";
+import { setDeadline, updateProject, useLanes, useMilestones } from "../data/repo";
 import { StageControl } from "./StageControl";
 import { Deadline, Progress } from "./parts";
 
@@ -22,6 +22,19 @@ export function ProjectPeek({ doc }: { doc: Document }) {
   const lanes = useLanes();
   const milestones = useMilestones().filter((m) => m.project === project.id).sort(byRank);
   const next = nextTaskOf(lanes, tasks, project.id, todayStr());
+  // Opened on its Deadline from the hours, this field is the Peek's timing (ADR 0124): a change is
+  // noted to the Peek, which leaves one Undo on closing (#536), as the shell's timing section would.
+  const tapped = peekTapped();
+  const marker = { appId: APP_ID, itemId: markerId(project.id) };
+  const openedOnDeadline = tapped?.kind === "timed" && tapped.item.appId === marker.appId && tapped.item.itemId === marker.itemId;
+  function commitDeadline(value: string) {
+    const deadline: DateStr | null = value || null;
+    if (openedOnDeadline) {
+      const before = project.deadline ?? null;
+      noteTiming({ key: timedTimingKey(marker), label: project.title, before, after: deadline, restore: () => setDeadline(project.id, before) });
+    }
+    return updateProject(project, { title: project.title, deadline });
+  }
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -31,7 +44,7 @@ export function ProjectPeek({ doc }: { doc: Document }) {
       <CommitField label="Outcome" value={project.outcome ?? ""} placeholder="What finished looks like" onCommit={(outcome) => updateProject(project, { title: project.title, outcome })} />
       <div className="grid grid-cols-2 gap-3">
         <CommitField label="Start" type="date" value={project.start ?? ""} onCommit={(start) => updateProject(project, { title: project.title, start: start || null })} />
-        <CommitField label="Deadline" type="date" min={project.start ?? undefined} value={project.deadline ?? ""} onCommit={(deadline) => updateProject(project, { title: project.title, deadline: deadline || null })} />
+        <CommitField label="Deadline" type="date" min={project.start ?? undefined} value={project.deadline ?? ""} onCommit={commitDeadline} />
       </div>
       <Progress {...progressOf(tasks, project.id)} />
       {next && (

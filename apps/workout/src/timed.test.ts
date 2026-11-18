@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sessionItems } from "./timed";
+import { sessionItems, workoutTimed } from "./timed";
 import { sessionClock } from "./data/repo";
 import type { Session, Workout } from "./domain/types";
 
@@ -40,3 +40,10 @@ describe("sessionClock", () => {
 function local(y: number, m: number, d: number, h: number, min: number): string {
   return new Date(y, m - 1, d, h, min).toISOString();
 }
+
+describe("workoutTimed.peekOf (#538)", () => {
+  it("peeks the Session tapped on the hours", () => {
+    const [item] = sessionItems([session("a", "2026-10-01", "w1")], [], { start: "2026-10-01", end: "2026-10-01" });
+    expect(workoutTimed.peekOf!(item!)).toBe("a");
+  });
+});

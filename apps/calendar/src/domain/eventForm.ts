@@ -1,9 +1,9 @@
-import { addDays, clockMinutes, clockOf, DAY_MIN, diffDays, lastDayCovered, NEW_TIMED_MIN, spanLasting, spanLength, spanProblem, todayStr, whenProblem, type DateStr, type TimeStr } from "@lifeline/core";
+import { addDays, clockMinutes, clockOf, DAY_MIN, diffDays, lastDayCovered, NEW_TIMED_MIN, nudgeClock, spanLasting, spanLength, spanProblem, todayStr, whenProblem, type DateStr, type TimeStr } from "@lifeline/core";
 
 /** What the Event dialog holds while it is being filled in. */
 export interface EventForm {
   title: string;
-  date: string;
+  date: DateStr;
   /** All day: the last day ("" = the first). Timed: the day the End is on ("" = the Start's day). */
   endDate: string;
   allDay: boolean;
@@ -13,6 +13,17 @@ export interface EventForm {
 
 /** When something happens, as a form holds it: an Event's, or a one-off Time blocker's (which is never all day). */
 export type WhenForm = Omit<EventForm, "title">;
+
+/**
+ * An Event's own Fields as the Form holds them — everything but its title, which
+ * is the add dialog's (or the Peek frame's) own: when it happens, its notes, With
+ * (Person ids) and Tags.
+ */
+export interface EventDraft extends WhenForm {
+  notes: string;
+  with: string[];
+  tags: string[];
+}
 
 /** The message under each of a when's fields that is missing or wrong. */
 export type WhenFormErrors = Partial<Record<keyof Omit<WhenForm, "allDay">, string>>;
@@ -156,4 +167,20 @@ export function withAllDay<F extends Times & Pick<EventForm, "allDay">>(f: F, al
   // An end at 00:00 reaches midnight: the day before is the last one it touches.
   const last = endDate && f.date ? lastDayCovered({ date: f.date, endDate, end: f.end }) : endDate;
   return { ...f, allDay, endDate: last && last !== f.date ? last : "" };
+}
+
+/**
+ * The form with its Start moved `minutes` earlier (negative) or later, within
+ * the day, its End going with it so the length is kept (ADR 0090). A form with
+ * no readable Start is left as it is.
+ */
+export function nudgeStart<F extends Times>(f: F, minutes: number): F {
+  const next = nudgeClock(f.start, minutes);
+  return next === null || next === f.start ? f : withStart(f, next);
+}
+
+/** The form with its End `minutes` after its Start (into the next day when it runs past midnight); left as it is without a readable Start. */
+export function withLength<F extends Times>(f: F, minutes: number): F {
+  if (clockMinutes(f.start) === null || minutes <= 0) return f;
+  return { ...f, ...endAt(f.date ?? "", f.start, minutes) };
 }

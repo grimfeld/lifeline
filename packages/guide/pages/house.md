@@ -9,7 +9,8 @@ House has five places: **Home**, **Chores**, **Pantry**, **Shopping** and **Cale
   (**Add card**) or remove Cards; **Reset to default** brings back the starting layout. Each
   Workspace keeps its own arrangement.
 - **Calendar** is the Calendar scoped to your Chores, in **Month** and **Upcoming** only (chores
-  have no hours). It keeps its own day and view, apart from the main Calendar.
+  have no hours). It keeps its own day and view, apart from the main Calendar. Tapping a chore
+  there opens the chore's Peek.
 
 ## Chores
 
@@ -29,7 +30,11 @@ Housework that comes back: each chore has a schedule and is due again once done.
 - **Chore heatmap** — a Card: completions per day over the last weeks (4–52, 12 by default), for
   all chores or one you pick. Where: a Card you can place.
 - **Peek** — open a chore from a link or a Base to see when it is due, mark it done, pause,
-  archive, or change its schedule in place.
+  archive, or change its schedule in place. Tapping a chore's Time block or untimed chip on any
+  Calendar view (or the Agenda Card) opens its Peek too, with a **Time block** section above its
+  fields: the block's day, start and length, **Remove block** (the chore stays), or a start to
+  give an untimed chip a block, and **Complete** and the chip's own actions (**Unpin** for a chore
+  pinned to a day by a drag) — on a phone too. See [Calendar](calendar.md).
 
 ## Pantry
 

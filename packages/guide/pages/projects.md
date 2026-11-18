@@ -69,7 +69,8 @@ start and Deadline, Milestones, a Board, and the material that links to it.
 - **Deleting** — in **Edit**. The Project, its Milestones and Lanes go; its Tasks stay as loose
   Tasks. To let a Project go, drop it instead.
 - **Deadlines on the Calendar** — while a Project is Planned, Active or Paused, its Deadline (and
-  each open Milestone's) shows as an all-day flag. Drag it to another day to change the Deadline.
+  each open Milestone's) shows as an all-day flag. Drag it to another day to change the Deadline,
+  or tap it: its Peek opens with the Deadline's day on top, to move it there.
 - **Timeline** — Projects across the months, each a bar from start to Deadline with Milestone
   Deadlines flagged and today as a line. Page with the arrows or **Today**; **Done & dropped**
   shows ended ones. Where: the Timeline place.
@@ -114,7 +115,10 @@ Milestones.
 - **Quick add** — a Card: one box, Enter adds a Task to the Unassigned pool or to Today (you
   choose). Where: a Card you can place.
 - **Peek** — a Task opened from anywhere: Done / Not done, Push, Archive, and its fields (day, Project,
-  Estimate, notes, For (picked People, saved at once) and Tags) edited in place.
+  Estimate, notes, For (picked People, saved at once) and Tags) edited in place. Opened from a Time
+  block on the [Calendar](calendar.md), it has the block's **Time block** section above them: its
+  day, start (15 minutes earlier / later, **Tomorrow**) and length, and **Remove block**, which keeps
+  the Task. Opened from an untimed chip, **Give it a time** makes a new block, the chip staying.
 
 Each repeat of a recurring Task is ticked and moved on its own. A missed one stops being overdue
 once the next one comes round.

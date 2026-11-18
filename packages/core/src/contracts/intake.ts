@@ -13,8 +13,8 @@ export type { Handoff };
 
 /**
  * What is already known of a timed thing when its Intake's dialog opens from
- * inside Lifeline — the Schedule's quick add's "More…": its title, day, start,
- * end day and end. Whatever is left out takes the dialog's usual default.
+ * inside Lifeline — an empty hour or a swept range of the Schedule: its title,
+ * day, start, end day and end. Whatever is left out takes the dialog's usual default.
  */
 export interface IntakePrefill {
   title?: string;
@@ -29,7 +29,7 @@ export interface IntakeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   handoff: Handoff;
-  /** What is already typed elsewhere (the quick add's "More…"); it beats the Handoff's title. A dialog that has no use for it ignores it. */
+  /** What is already known from where it was opened (an empty hour of the Schedule); it beats the Handoff's title. A dialog that has no use for it ignores it. */
   prefill?: IntakePrefill;
   /**
    * Called once the dialog has saved, with the Document it made, just before it

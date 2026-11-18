@@ -64,9 +64,9 @@ async function writeMoved(was: Event, now: Event, added: readonly DocumentInput[
 }
 
 /**
- * The Event dialog's save: everything at once, its attached blockers
- * following a new time, and those picked in the dialog (`attach`) attached
- * against it in the same write.
+ * An Event written whole, everything at once (the demo's agenda): its
+ * attached blockers following a new time, and any picks (`attach`) attached
+ * against it in the same write. The Event Form writes field by field instead.
  */
 export async function updateEvent(ev: Event, attach: readonly AttachPick[] = []): Promise<void> {
   const next = midnightNextDay({ ...ev, type: EVENT_TYPE, tags: normalizeTags(ev.tags ?? []) });

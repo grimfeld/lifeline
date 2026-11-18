@@ -62,6 +62,27 @@ export function clockOf(minutes: number): TimeStr {
   return `${pad2(Math.floor(m / 60))}:${pad2(m % 60)}`;
 }
 
+/** The Schedule's quarter-hour grid: every drag, nudge and new block lands on it, and the quick timing controls move a Start by it. */
+export const SNAP_MIN = 15;
+
+/**
+ * A Start moved `minutes` earlier (negative) or later by the quick timing
+ * controls (ADR 0124), kept inside its day: from midnight to `latest` minutes
+ * past it (by default the last quarter hour; a Time block passes where its
+ * length still fits). null for text that is no time.
+ */
+export function nudgeClock(start: string, minutes: number, latest: number = DAY_MIN - SNAP_MIN): TimeStr | null {
+  const at = clockMinutes(start);
+  if (at === null) return null;
+  return clockOf(Math.max(0, Math.min(latest, at + minutes)));
+}
+
+/** A Time block's end, `min` after its start, kept on its day (a Placement has one date, ADR 0028): "24:00" at the latest. */
+export function blockEndAt(start: TimeStr, min: number): TimeStr {
+  const end = Math.min(DAY_MIN, (clockMinutes(start) ?? 0) + min);
+  return end === DAY_MIN ? "24:00" : clockOf(end);
+}
+
 /** Minutes from one moment to another (negative when the second is earlier); null when either time is no time. */
 function minutesFrom(from: Moment, to: Moment): number | null {
   const [a, b] = [clockMinutes(from.time), clockMinutes(to.time)];
@@ -115,6 +136,15 @@ export function spanIsValid(span: TimedSpan): boolean {
 /** A piece's whole span, or the piece's own hours where its provider reports none (an end-less item is a moment). */
 function wholeOf(piece: Pick<TimedItem, "date" | "start" | "end" | "span">): TimedSpan {
   return piece.span ?? { date: piece.date, start: piece.start ?? "00:00", endDate: piece.date, end: piece.end ?? piece.start ?? "00:00" };
+}
+
+/** A Timed item's when in full (#538): always an end day, the end null where the item has none. */
+export type WholeWhen = Required<TimedWhen>;
+
+/** The whole of an item from any of its pieces (ADR 0090): a piece of an item across days gives the item, from its start. */
+export function wholeWhenOf(t: Pick<TimedItem, "date" | "start" | "end" | "span">): WholeWhen {
+  if (t.span) return { ...t.span, end: t.end === null ? null : t.span.end };
+  return { date: t.date, start: t.start, endDate: t.date, end: t.start ? t.end : null };
 }
 
 /**
@@ -239,6 +269,8 @@ export interface TimedItem {
    * Person's Occasion): whoever may not see that Document may not see the item.
    */
   docId?: string;
+  /** Where an item with no Document comes from — a Calendar subscription's name — for its read-only card (#538). */
+  source?: string;
 }
 
 /** Whether a Deadline marker's day has passed (ADR 0061): it stays there, red, and never rolls forward. An Occasion is never missed. */
@@ -294,8 +326,8 @@ export interface TimedProvider {
   create?(input: { title: string; date: DateStr; start: TimeStr | null; endDate: DateStr; end: TimeStr | null }): Promise<void>;
   /**
    * The Intake (ADR 0050, its `appId/id` key) whose dialog is the full form
-   * for what `create` makes: the Schedule's quick add opens it, prefilled
-   * with what is typed so far, from "More…".
+   * for what `create` makes: an empty hour of the Schedule opens it,
+   * prefilled with that day and hour (or the range swept).
    */
   createIntake?: string;
   /** React hook. Quick-add templates this App offers planning surfaces (ADR 0027). */
@@ -313,6 +345,20 @@ export interface TimedProvider {
   rename?(itemId: string, title: string): Promise<void>;
   /** Optional route that opens the item where its App edits it in full. */
   href?(itemId: string): string;
+  /**
+   * The Document whose Peek opens when the item is tapped on the hours (#536):
+   * the whole Event for any of its pieces (ADR 0090), a Time blocker's own, a
+   * Person's for an Occasion. null, or no hook, means the item has no Document
+   * (an iCal subscription's): a tap shows a small read-only card instead (#538).
+   */
+  peekOf?(item: TimedItem): string | null;
+  /**
+   * Whether the App's own part of that Peek draws the item's timing (an
+   * Event's Form does). Otherwise the Peek draws a **timing section** for it
+   * above the App's part, through the hooks above: editable where the App
+   * reschedules, read-only where it does not (#538).
+   */
+  timingInPeek?(item: TimedItem): boolean;
 }
 
 export interface SurfaceTimedItem extends TimedItem {
@@ -435,6 +481,16 @@ export async function renameTimedItem(item: Pick<TimedItem, "appId" | "itemId">,
   await provider.rename(item.itemId, title);
 }
 
+/** The Document a tap on the item peeks (its App's `peekOf`); null when the App names none. */
+export function timedPeekId(item: TimedItem): string | null {
+  return providerOf(item.appId)?.peekOf?.(item) ?? null;
+}
+
+/** Whether the item's App draws its timing in its own part of the Peek; else the Peek's timing section does. */
+export function timedTimingInPeek(item: TimedItem): boolean {
+  return providerOf(item.appId)?.timingInPeek?.(item) ?? false;
+}
+
 /** Where the owning App edits the item in full; undefined when it offers no route. */
 export function timedHref(item: Pick<TimedItem, "appId" | "itemId">): string | undefined {
   return providerOf(item.appId)?.href?.(item.itemId);
@@ -473,9 +529,22 @@ export function describeSpan(span: TimedSpan): string {
 }
 
 /**
+ * A day and time on one line, a Timed item's or a work item's block:
+ * "Mon, Aug 10 · 10:00 – 11:00", "… · 10:00" with no end, "… · all day", or
+ * "… · 22:00 – Tue 06:00" when it ends another day. The Peek's timing section
+ * and the hours card share it.
+ */
+export function describeDayAndTime(w: { date: DateStr; start: TimeStr | null; endDate?: DateStr; end: TimeStr | null }): string {
+  const day = formatHuman(w.date);
+  if (!w.start) return `${day} · all day`;
+  if (!w.end) return `${day} · ${formatTime(w.start)}`;
+  return `${day} · ${describeSpan({ date: w.date, start: w.start, endDate: w.endDate ?? w.date, end: w.end })}`;
+}
+
+/**
  * The readout beside an End, ahead of its length: "until 18:00", or "until
- * Tue, Aug 25 06:00" style when it ends on another day. The Event form, the
- * Schedule's quick add and the Hours editor show it.
+ * Tue, Aug 25 06:00" style when it ends on another day. The Event form and
+ * a Peek's timing section show it.
  */
 export function describeEnd(span: Pick<TimedSpan, "date" | "endDate" | "end">): string {
   return `until ${span.endDate !== span.date ? `${formatHuman(span.endDate)} ` : ""}${formatTime(span.end)}`;

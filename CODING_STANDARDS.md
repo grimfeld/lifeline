@@ -49,6 +49,9 @@ nearest existing pattern and don't hand-roll a new one.
   `aria-label`, so the name is written once and the tooltip shows exactly what a screen
   reader hears. **(check)** No `aria-label` on the element inside a `<Tip label>`.
 - A component copied between apps belongs in `packages/parts`.
+- A built-in type's Fields are drawn by one Form component in its App, shared by its add dialog
+  (adding) and its Peek or page (editing); no second set of Field controls for the same type
+  (ADR 0124).
 
 ### Colour
 
