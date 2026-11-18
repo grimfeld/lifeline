@@ -168,7 +168,7 @@ function PeekBody({ doc, def, writing, onToggleWriting }: { doc: Document; def: 
   );
 }
 
-export const TIMING_TOAST_ID = "peek-timing";
+const TIMING_TOAST_ID = "peek-timing";
 
 /** One Undo for every timing a closed Peek changed, put back last first; nothing when none changed. */
 function offerTimingUndo(changes: TimingChange[]) {

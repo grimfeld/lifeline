@@ -4,11 +4,10 @@ import { noteTiming, normalizeTag, useTagVocabulary } from "@lifeline/core";
 import { PeopleField } from "@lifeline/editor";
 import type { Event } from "../domain/types";
 import { whenFormErrors, whenOf, type EventDraft, type WhenForm, type WhenFormErrors } from "../domain/eventForm";
-
-export type { EventDraft } from "../domain/eventForm";
 import { editEvent, setEventWhen } from "../data/repo";
 import { WhenFields } from "./WhenFields";
 
+export type { EventDraft } from "../domain/eventForm";
 
 /**
  * The Calendar's one **Form** for an Event (CONTEXT.md, #530): the add dialog and

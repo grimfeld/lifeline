@@ -1,5 +1,6 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { inCore } from "./support/core";
+import type { Document as StoredDoc } from "@lifeline/core";
 import { openPalette } from "./support/palette";
 import { setTime } from "./support/time-field";
 
@@ -35,7 +36,7 @@ const storedEvent = (page: Page, title: string) =>
   inCore(
     page,
     async (core, t: string) => {
-      const ev = (await core.documentsOf("event")).find((d) => d.title === t) as unknown as { date: string; endDate: string | null; start: string | null; end: string | null } | undefined;
+      const ev = (await core.documentsOf<StoredDoc & { date: string; endDate: string | null; start: string | null; end: string | null }>("event")).find((d) => d.title === t);
       return ev ? { date: ev.date, endDate: ev.endDate, start: ev.start, end: ev.end } : null;
     },
     title,
@@ -45,7 +46,7 @@ const storedBlocker = (page: Page, title: string) =>
   inCore(
     page,
     async (core, t: string) => {
-      const b = (await core.documentsOf("time_blocker")).find((d) => d.title === t) as unknown as { date: string; start: string; end: string } | undefined;
+      const b = (await core.documentsOf<StoredDoc & { date: string; start: string; end: string }>("time_blocker")).find((d) => d.title === t);
       return b ? { date: b.date, start: b.start, end: b.end } : null;
     },
     title,

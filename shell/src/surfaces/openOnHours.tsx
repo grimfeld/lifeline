@@ -8,12 +8,12 @@ import { HoursCard } from "./HoursCard";
  * untimed chip (#537); a Time blocker's, another App's item's (#538). Null for
  * an item with no Document — an iCal subscription's — which shows a card.
  */
-export function peekIdOnHours(tapped: HoursTapped): string | null {
+function peekIdOnHours(tapped: HoursTapped): string | null {
   return tapped.kind === "timed" ? timedPeekId(tapped.item) : schedulablePeekId(tapped.item);
 }
 
 /**
- * Opening what was tapped on a time Surface (the Schedule, Month, Upcoming,
+ * Opening what was tapped on the hours (the Schedule, Month, Upcoming,
  * the Agenda Card): its Peek, told what was tapped and where, so it can draw
  * that timing, keep the item above it on a phone and hand the focus back on
  * close (#284) — or, for an item with no Document, a small read-only card,
