@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Person, Tie } from "./types";
-import { PRESETS, genderOf, kindOfWords, presetWords, otherNameOf, tieCandidates, tieDraft, tieQuestions, tiesSeenFrom } from "./ties";
+import { PRESETS, genderOf, presetPressed, selectPreset, kindOfWords, presetWords, otherNameOf, tieCandidates, tieDraft, tieQuestions, tiesSeenFrom } from "./ties";
 
 const person = (id: string, title: string) => ({ id, title }) as Person;
 const anne = person("p1", "Anne");
@@ -12,11 +12,11 @@ const motherDaughter = tie("t1", "p1", "p2", "mother", "daughter");
 
 describe("a Tie read from either end", () => {
   it("shows Anne the other end's word and Léa, as 'daughter: Léa'", () => {
-    expect(tiesSeenFrom("p1", [motherDaughter], [anne, lea])).toEqual([{ id: "t1", otherId: "p2", otherName: "Léa", label: "daughter", ownLabel: "mother" }]);
+    expect(tiesSeenFrom("p1", [motherDaughter], [anne, lea])).toEqual([{ id: "t1", otherId: "p2", otherName: "Léa", label: "daughter", ownLabel: "mother", kind: "parent" }]);
   });
 
   it("shows Léa the labels swapped, as 'mother: Anne'", () => {
-    expect(tiesSeenFrom("p2", [motherDaughter], [anne, lea])).toEqual([{ id: "t1", otherId: "p1", otherName: "Anne", label: "mother", ownLabel: "daughter" }]);
+    expect(tiesSeenFrom("p2", [motherDaughter], [anne, lea])).toEqual([{ id: "t1", otherId: "p1", otherName: "Anne", label: "mother", ownLabel: "daughter", kind: "child" }]);
   });
 
   it("leaves out Ties of other People", () => {
@@ -48,6 +48,7 @@ describe("the Tie dialog", () => {
   it("opens blank for a new Tie, and on the row's other Person and words for an edit", () => {
     expect(tieDraft(undefined)).toEqual({ otherId: "", label: "", ownLabel: "" });
     expect(tieDraft({ id: "t1", otherId: "p2", otherName: "Léa", label: "daughter", ownLabel: "mother" })).toEqual({ otherId: "p2", label: "daughter", ownLabel: "mother" });
+    expect(tieDraft({ id: "t1", otherId: "p2", otherName: "Léa", label: "daughter", ownLabel: "mother", kind: "parent" })).toEqual({ otherId: "p2", label: "daughter", ownLabel: "mother", kind: "parent" });
   });
   it("names the other Person picked, else the row's, else nobody yet", () => {
     expect(otherNameOf([anne, lea], "p2", undefined)).toBe("Léa");
@@ -112,5 +113,29 @@ describe("Gender reading and the chip's inverse word (#609)", () => {
     expect(presetWords(preset("mother"), "male")).toEqual({ label: "mother", ownLabel: "son", kind: "child" });
     expect(presetWords(preset("cousin"), "female")).toEqual({ label: "cousin", ownLabel: "cousin", kind: "cousin" });
     expect(presetWords(preset("niece"), "neutral")).toEqual({ label: "niece", ownLabel: "aunt or uncle", kind: "auntUncle" });
+  });
+});
+
+describe("Tapping a preset chip in the dialog (#611)", () => {
+  const daughter = PRESETS.find((p) => p.word === "daughter")!;
+  const blank = { otherId: "p2", label: "", ownLabel: "" };
+
+  it("fills both words and the kind", () => {
+    expect(selectPreset(blank, daughter, "female")).toEqual({ otherId: "p2", label: "daughter", ownLabel: "mother", kind: "parent" });
+  });
+  it("shows the chip pressed while its word and kind stand", () => {
+    const d = selectPreset(blank, daughter, "neutral");
+    expect(presetPressed(d, daughter)).toBe(true);
+    expect(presetPressed(d, PRESETS.find((p) => p.word === "son")!)).toBe(false);
+  });
+  it("keeps the kind when a word is edited, with no chip pressed", () => {
+    const edited = { ...selectPreset(blank, daughter, "female"), ownLabel: "mum" };
+    expect(edited.kind).toBe("parent");
+    expect(presetPressed(edited, daughter)).toBe(true);
+    expect(presetPressed({ ...edited, label: "girl" }, daughter)).toBe(false);
+  });
+  it("clears the kind and leaves the words when the pressed chip is tapped again", () => {
+    const d = selectPreset(blank, daughter, "female");
+    expect(selectPreset(d, daughter, "female")).toEqual({ otherId: "p2", label: "daughter", ownLabel: "mother" });
   });
 });

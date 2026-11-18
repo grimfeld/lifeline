@@ -4,7 +4,7 @@ import { Button, Combobox, Dialog, DialogContent, DialogDescription, DialogFoote
 import { Link2, Search } from "lucide-react";
 import { personHref } from "../constants";
 import { type Person } from "../domain/types";
-import { otherNameOf, tieCandidates, tieDraft, tieQuestions, tiesSeenFrom, type TieDraft, type TieRow } from "../domain/ties";
+import { PRESETS, genderOf, otherNameOf, presetPressed, selectPreset, tieCandidates, tieDraft, tieQuestions, tiesSeenFrom, type Preset, type TieDraft, type TieRow } from "../domain/ties";
 import { removeTie, restoreTie, saveTieFrom, useTies } from "../data/ties";
 import { message, removeWithUndo } from "../components/writes";
 import { usePeople } from "../data/repo";
@@ -23,6 +23,8 @@ function TieDialog({ person, row, onOpenChange }: { person: Person; row?: TieRow
   const [query, setQuery] = useState("");
   const [error, setError] = useState("");
   const set = (patch: Partial<TieDraft>) => setDraft((d) => ({ ...d, ...patch }));
+  const ties = useTies();
+  const gender = useMemo(() => genderOf(person.id, ties), [person.id, ties]);
   const options = useMemo(() => tieCandidates(person.id, people), [people, person.id]);
   const otherName = otherNameOf(people, draft.otherId, row);
   const questions = tieQuestions(person.title, otherName);
@@ -55,6 +57,7 @@ function TieDialog({ person, row, onOpenChange }: { person: Person; row?: TieRow
           <Field label={questions.label} error={error || undefined}>
             <Input value={draft.label} onChange={(e) => set({ label: e.target.value })} placeholder="daughter" autoComplete="off" />
           </Field>
+          {(row || draft.otherId !== "") && <PresetChips draft={draft} onTap={(preset) => setDraft((d) => selectPreset(d, preset, gender))} />}
           <Field label={questions.ownLabel}>
             <Input value={draft.ownLabel} onChange={(e) => set({ ownLabel: e.target.value })} placeholder="mother" autoComplete="off" />
           </Field>
@@ -67,6 +70,22 @@ function TieDialog({ person, row, onOpenChange }: { person: Person; row?: TieRow
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** The preset chips (ADR 0130): one tap fills both words and sets the kind; the pressed one clears it. They wrap, never scroll. */
+function PresetChips({ draft, onTap }: { draft: TieDraft; onTap: (preset: Preset) => void }) {
+  return (
+    <div role="group" aria-label="Presets" className="flex flex-wrap gap-1.5">
+      {PRESETS.map((preset) => {
+        const on = presetPressed(draft, preset);
+        return (
+          <Button key={preset.word} type="button" size="sm" variant={on ? "default" : "outline"} aria-pressed={on} onClick={() => onTap(preset)}>
+            {preset.word}
+          </Button>
+        );
+      })}
+    </div>
   );
 }
 
