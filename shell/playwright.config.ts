@@ -60,7 +60,7 @@ const projects = selectedProjects();
 const needsDemo = projects.length === 0 || projects.some((p) => p.test("demo") || p.test("demo-setup"));
 
 /** One of these spec files, by name. */
-const specs = (names: string[]) => new RegExp(`(^|/)(${names.map((n) => n.replace(/\./g, "\\.")).join("|")})$`);
+const specs = (names: string[]) => new RegExp(`(^|/)(${names.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})$`);
 /** The UI checks (ADR 0129): how screens look and read. Nightly, at both widths, in their own projects. */
 const UI_CHECKS = specs(UI_CHECK_SPECS);
 /** Specs the gate projects never run: the UI checks and the Demo (its own `demo` project). */
