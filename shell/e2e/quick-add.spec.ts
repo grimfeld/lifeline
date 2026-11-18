@@ -1,15 +1,16 @@
-import { test, expect, type Locator, type Page } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { inCore } from "./support/core";
 import type { Document as StoredDoc } from "@lifeline/core";
-import { openPalette } from "./support/palette";
 import { setTime } from "./support/time-field";
 
 /**
  * An empty hour of the Schedule opens the Event dialog (#539): a tap (a
  * double-click on the desk) starts it at that day and hour, a desk sweep with
- * that start and end — an End earlier than the Start being the next day's
+ * that start and end — a sweep to midnight ending at 00:00 the next day
  * (ADR 0090). Below the Form, "Or place here" places a Blocker template or
  * unplaced work at the Form's day and start; all day, it asks for a start.
+ * The range a sweep snaps to is `hours.test.ts`'s; a template's start at an
+ * hour `templates.test.ts`'s; an End before the Start `eventForm.test.ts`'s.
  */
 
 // A Monday a year before any run's seed: the seed dates its Events and Blockers
@@ -76,51 +77,20 @@ async function openAtNine(page: Page, tap = false) {
   return { column, dialog };
 }
 
-/** Where an hour of the column sits on screen now (the hours scroll). */
-async function hourAt(column: Locator, hours: number) {
-  const box = (await column.boundingBox())!;
-  return { x: box.x + 40, y: box.y + (hours - FIRST_HOUR) * HOUR_PX };
-}
-
-test("an empty hour opens the Event dialog at that day and hour; an End earlier than the Start is the next day's", { tag: "@also-phone" }, async ({ page, isMobile }) => {
-  const title = `Night shift ${Date.now()}`;
+test("an empty hour opens the Event dialog at that day and hour, and Add saves the Event there", { tag: "@also-phone" }, async ({ page, isMobile }) => {
+  const title = `Stand-up ${Date.now()}`;
   const { dialog } = await openAtNine(page, isMobile);
   await expect(dialog.getByRole("combobox", { name: "Start" })).toHaveValue(/^9:00|^09:00/);
   await expect(dialog.getByRole("combobox", { name: "End" })).toHaveValue(/^10:00/);
   await expect(page.getByRole("dialog", { name: /^Add on / }), "the add-at-hour popover is gone").toHaveCount(0);
 
   await dialog.getByLabel("Title").fill(title);
-  await setTime(dialog.getByRole("combobox", { name: "Start" }), "22:00");
-  await setTime(dialog.getByRole("combobox", { name: "End" }), "01:30");
   await dialog.getByRole("button", { name: "Add event" }).click();
   await expect(dialog).toBeHidden();
-  await expect.poll(() => storedEvent(page, title)).toEqual({ date: DAY, endDate: "2025-11-18", start: "22:00", end: "01:30" });
+  await expect.poll(() => storedEvent(page, title)).toEqual({ date: DAY, endDate: null, start: "09:00", end: "10:00" });
 });
 
-test("a desk sweep from 10:00 to 11:45 opens the Event dialog with that range", async ({ page }) => {
-  const title = `Workshop ${Date.now()}`;
-  const column = await openDay(page);
-  const press = await hourAt(column, 10 + 5 / 60);
-  const release = await hourAt(column, 11.6);
-  await page.mouse.move(press.x, press.y);
-  await page.mouse.down();
-  await page.mouse.move(release.x, release.y, { steps: 8 });
-  // The ghost range, snapped to the quarter hours.
-  await expect(column.getByText(/^10:00\s?AM–11:45\s?AM$|^10:00–11:45$/)).toBeVisible();
-  await page.mouse.up();
-
-  const dialog = page.getByRole("dialog", { name: "New event" });
-  await expect(dialog.getByRole("combobox", { name: "Start" })).toHaveValue(/^10:00/);
-  await expect(dialog.getByRole("combobox", { name: "End" })).toHaveValue(/^11:45/);
-  await expect(dialog.getByText(/· 1h 45m$/)).toBeVisible();
-  await expect(column.getByText(/–11:45/), "the ghost goes once the dialog is open").toBeHidden();
-  await dialog.getByLabel("Title").fill(title);
-  await dialog.getByRole("button", { name: "Add event" }).click();
-  await expect(dialog).toBeHidden();
-  await expect.poll(() => storedEvent(page, title)).toEqual({ date: DAY, endDate: null, start: "10:00", end: "11:45" });
-});
-
-test("a desk sweep down to midnight ends the Event at 00:00 the next day", async ({ page }) => {
+test("a desk sweep opens the Event dialog with the range swept; swept down to midnight, the Event ends at 00:00 the next day", async ({ page }) => {
   const title = `Late shift ${Date.now()}`;
   const day = "2025-11-18";
   await page.goto("/calendar");
@@ -147,38 +117,28 @@ test("a desk sweep down to midnight ends the Event at 00:00 the next day", async
   const dialog = page.getByRole("dialog", { name: "New event" });
   await expect(dialog.getByRole("combobox", { name: "Start" })).toHaveValue(/^(22|10):00/);
   await expect(dialog.getByText(/· 2h$/)).toBeVisible();
+  await expect(column.getByText(/^(10:00\s?PM–12:00\s?AM|22:00–0?0:00)$/), "the ghost goes once the dialog is open").toBeHidden();
   await dialog.getByLabel("Title").fill(title);
   await dialog.getByRole("button", { name: "Add event" }).click();
   await expect.poll(() => storedEvent(page, title)).toEqual({ date: day, endDate: "2025-11-19", start: "22:00", end: "00:00" });
 });
 
-test("an Event template picked at an hour fills the Form, keeps the hour and saves nothing until Add", async ({ page }) => {
-  const stamp = Date.now();
-  const tpl = `Yoga ${stamp}`;
-  await page.goto("/calendar");
-  await workLocally(page);
-  await inCore(page, async (core, title: string) => void (await core.putDocument({ type: "event_template", title, defaultStart: "18:00", durationMin: 90, allDay: false, notes: "", tags: [] })), tpl);
-
-  const { dialog } = await openAtNine(page);
-  await dialog.getByRole("group", { name: "Event templates" }).getByRole("button", { name: tpl, exact: true }).click();
-  await expect(dialog.getByLabel("Title")).toHaveValue(tpl);
-  await expect(dialog.getByRole("combobox", { name: "Start" }), "the hour tapped beats the template's usual start").toHaveValue(/^9:00|^09:00/);
-  await expect(dialog.getByText(/· 1h 30m$/)).toBeVisible();
-  expect(await storedEvent(page, tpl), "nothing saved yet").toBeNull();
-  await dialog.getByRole("button", { name: "Add event" }).click();
-  await expect.poll(() => storedEvent(page, tpl)).toEqual({ date: DAY, endDate: null, start: "09:00", end: "10:30" });
-});
-
-test('"Or place here" places a Blocker template at the Form\'s day and start, and closes the dialog', async ({ page }) => {
+test('"Or place here" places a Blocker template at the Form\'s day and start, and closes the dialog; all day, it places nothing', async ({ page }) => {
   const tpl = `Focus ${Date.now()}`;
   await page.goto("/calendar");
   await workLocally(page);
   await inCore(page, async (core, title: string) => void (await core.putDocument({ type: "blocker_template", title, durationMin: 30, color: null, tags: [] })), tpl);
 
   const { dialog } = await openAtNine(page);
+  const place = dialog.getByRole("group", { name: "Or place here" });
+  // All day, it asks for a start time and places nothing.
+  await dialog.getByRole("checkbox", { name: "All day" }).check();
+  await expect(place.getByText("Give it a start time to place something here.")).toBeVisible();
+  await expect(place.getByRole("button", { name: tpl, exact: true })).toBeDisabled();
+  await dialog.getByRole("checkbox", { name: "All day" }).uncheck();
   // The Form's start, not the hour tapped, is where it lands.
   await setTime(dialog.getByRole("combobox", { name: "Start" }), "14:00");
-  await dialog.getByRole("group", { name: "Or place here" }).getByRole("button", { name: tpl, exact: true }).click();
+  await place.getByRole("button", { name: tpl, exact: true }).click();
   await expect(dialog).toBeHidden();
   await expect.poll(() => storedBlocker(page, tpl)).toEqual({ date: DAY, start: "14:00", end: "14:30" });
 });
@@ -199,34 +159,6 @@ test('"Or place here" gives unplaced work a Time block at the Form\'s start, its
   await expect(dialog).toBeHidden();
   // The block on the hours, from the Form's start for the Estimate.
   await expect(column.locator(`[title$=" ${task}"]`)).toHaveAttribute("title", /^11:00\s?(AM)?–11:45\s?(AM)? /);
-});
-
-test('with the Form all day, "Or place here" asks for a start time and places nothing', async ({ page }) => {
-  const tpl = `Deep work ${Date.now()}`;
-  await page.goto("/calendar");
-  await workLocally(page);
-  await inCore(page, async (core, title: string) => void (await core.putDocument({ type: "blocker_template", title, durationMin: 60, color: null, tags: [] })), tpl);
-
-  const { dialog } = await openAtNine(page);
-  const place = dialog.getByRole("group", { name: "Or place here" });
-  await dialog.getByRole("checkbox", { name: "All day" }).check();
-  await expect(place.getByText("Give it a start time to place something here.")).toBeVisible();
-  await expect(place.getByRole("button", { name: tpl, exact: true })).toBeDisabled();
-  await dialog.getByRole("checkbox", { name: "All day" }).uncheck();
-  await expect(place.getByRole("button", { name: tpl, exact: true })).toBeEnabled();
-  expect(await storedBlocker(page, tpl)).toBeNull();
-});
-
-test('"Or place here" shows however the dialog opens: from the palette too', async ({ page }) => {
-  const tpl = `Commute ${Date.now()}`;
-  await page.goto("/app/events");
-  await workLocally(page);
-  await inCore(page, async (core, title: string) => void (await core.putDocument({ type: "blocker_template", title, durationMin: 45, color: null, tags: [] })), tpl);
-  await openPalette(page);
-  await page.getByPlaceholder("Type a command or search…").fill("Add event");
-  await page.getByRole("option", { name: "Add event Calendar", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "New event" });
-  await expect(dialog.getByRole("group", { name: "Or place here" }).getByRole("button", { name: tpl, exact: true })).toBeVisible();
 });
 
 test("on the desk, dragging an Event still moves it rather than sweeping", async ({ page }) => {

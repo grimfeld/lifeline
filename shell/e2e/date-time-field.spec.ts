@@ -5,9 +5,10 @@ import { setTime } from "./support/time-field";
 
 /**
  * A Date and time field (ADR 0087): the day from the kit's calendar, the time
- * typed into the kit's Time field beside it. Picking a day with no time yet fills in the time now, a
- * field capped at now never takes a later time, and changing only the day
- * keeps the time. Driven through a Swear Jar fine's "When it happened".
+ * typed into the kit's Time field beside it. Picking a day with no time yet
+ * fills in the time now, and changing only the day keeps the time. Driven
+ * through a Swear Jar fine's "When it happened". The cap at now is
+ * `date-time-value.test.ts`'s, and the days after it `date-picker.test.tsx`'s.
  */
 
 async function workLocally(page: Page) {
@@ -66,24 +67,4 @@ test("a Fine's 'When it happened': picking a day fills in the time now, and chan
   await dialog.getByRole("button", { name: "Fine me" }).click();
   await expect(dialog).toBeHidden();
   expect(await storedWhen(page, offenceId)).toBe(`${daysAgo(12)}T09:05`);
-});
-
-test("a Fine's 'When it happened': today stays capped at now", async ({ page }) => {
-  const { dialog, offenceId, day, time } = await openFineDialog(page);
-
-  // Tomorrow can't be picked at all.
-  await day.click();
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const cell = page.locator(`[data-slot="calendar"] [role="gridcell"][data-day="${dayOf(tomorrow)}"]:not([data-outside])`);
-  if (await cell.count()) await expect(cell.getByRole("button")).toBeDisabled();
-  await page.keyboard.press("Escape");
-
-  await pickDate(page, day, daysAgo(1));
-  await setTime(time, "23:59");
-  await pickDate(page, day, daysAgo(0));
-  await dialog.getByRole("button", { name: "Fine me" }).click();
-  await expect(dialog).toBeHidden();
-  const now = new Date();
-  expect(await storedWhen(page, offenceId) <= `${dayOf(now)}T${pad(now.getHours())}:${pad(now.getMinutes())}`).toBe(true);
 });
