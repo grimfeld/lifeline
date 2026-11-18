@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { getDocument, patchDocument, removeDocumentsWhere, type DocumentInput } from "@lifeline/core";
-import { attachmentOf, flushSpan, followedSpan, isAttachedTo } from "../domain/attached";
+import { attachmentOf, flushSpan, followedSpan, isAttachedTo, liveAttachmentTo } from "../domain/attached";
 import { blockerSpan } from "../domain/blockers";
 import { normalizeEvent, spanOf } from "../domain/events";
 import { durationOf } from "../domain/templates";
@@ -94,7 +94,7 @@ async function eventExists(eventId: string): Promise<boolean> {
  */
 export async function liveAttachment(b: TimeBlocker): Promise<Attachment | null> {
   const at = attachmentOf(b);
-  return at && (await eventExists(at.eventId)) ? at : null;
+  return liveAttachmentTo(at, at && (await getDocument(at.eventId)));
 }
 
 /** An Event's deletion takes its attached blockers with it (ADR 0045), from every place a Document can be deleted. */
