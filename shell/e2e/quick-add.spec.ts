@@ -65,11 +65,11 @@ async function openDay(page: Page) {
   return column;
 }
 
-/** Tap (phone) or double-click (desk) the empty 9:00 of DAY: the Event dialog. */
-async function openAtNine(page: Page, isMobile: boolean) {
+/** Double-click (desk), or tap (`tap`, a phone), the empty 9:00 of DAY: the Event dialog. */
+async function openAtNine(page: Page, tap = false) {
   const column = await openDay(page);
   const position = { x: 40, y: (9 - FIRST_HOUR) * HOUR_PX + 4 };
-  if (isMobile) await column.tap({ position });
+  if (tap) await column.tap({ position });
   else await column.dblclick({ position });
   const dialog = page.getByRole("dialog", { name: "New event" });
   await expect(dialog).toBeVisible();
@@ -82,7 +82,7 @@ async function hourAt(column: Locator, hours: number) {
   return { x: box.x + 40, y: box.y + (hours - FIRST_HOUR) * HOUR_PX };
 }
 
-test("an empty hour opens the Event dialog at that day and hour; an End earlier than the Start is the next day's", async ({ page, isMobile }) => {
+test("an empty hour opens the Event dialog at that day and hour; an End earlier than the Start is the next day's", { tag: "@also-phone" }, async ({ page, isMobile }) => {
   const title = `Night shift ${Date.now()}`;
   const { dialog } = await openAtNine(page, isMobile);
   await expect(dialog.getByRole("combobox", { name: "Start" })).toHaveValue(/^9:00|^09:00/);
@@ -97,8 +97,7 @@ test("an empty hour opens the Event dialog at that day and hour; an End earlier 
   await expect.poll(() => storedEvent(page, title)).toEqual({ date: DAY, endDate: "2025-11-18", start: "22:00", end: "01:30" });
 });
 
-test("a desk sweep from 10:00 to 11:45 opens the Event dialog with that range", async ({ page, isMobile }) => {
-  test.skip(isMobile, "the phone has no sweep: a tap is the way in");
+test("a desk sweep from 10:00 to 11:45 opens the Event dialog with that range", async ({ page }) => {
   const title = `Workshop ${Date.now()}`;
   const column = await openDay(page);
   const press = await hourAt(column, 10 + 5 / 60);
@@ -121,8 +120,7 @@ test("a desk sweep from 10:00 to 11:45 opens the Event dialog with that range", 
   await expect.poll(() => storedEvent(page, title)).toEqual({ date: DAY, endDate: null, start: "10:00", end: "11:45" });
 });
 
-test("a desk sweep down to midnight ends the Event at 00:00 the next day", async ({ page, isMobile }) => {
-  test.skip(isMobile, "the phone has no sweep: a tap is the way in");
+test("a desk sweep down to midnight ends the Event at 00:00 the next day", async ({ page }) => {
   const title = `Late shift ${Date.now()}`;
   const day = "2025-11-18";
   await page.goto("/calendar");
@@ -154,14 +152,14 @@ test("a desk sweep down to midnight ends the Event at 00:00 the next day", async
   await expect.poll(() => storedEvent(page, title)).toEqual({ date: day, endDate: "2025-11-19", start: "22:00", end: "00:00" });
 });
 
-test("an Event template picked at an hour fills the Form, keeps the hour and saves nothing until Add", async ({ page, isMobile }) => {
+test("an Event template picked at an hour fills the Form, keeps the hour and saves nothing until Add", async ({ page }) => {
   const stamp = Date.now();
   const tpl = `Yoga ${stamp}`;
   await page.goto("/calendar");
   await workLocally(page);
   await inCore(page, async (core, title: string) => void (await core.putDocument({ type: "event_template", title, defaultStart: "18:00", durationMin: 90, allDay: false, notes: "", tags: [] })), tpl);
 
-  const { dialog } = await openAtNine(page, isMobile);
+  const { dialog } = await openAtNine(page);
   await dialog.getByRole("group", { name: "Event templates" }).getByRole("button", { name: tpl, exact: true }).click();
   await expect(dialog.getByLabel("Title")).toHaveValue(tpl);
   await expect(dialog.getByRole("combobox", { name: "Start" }), "the hour tapped beats the template's usual start").toHaveValue(/^9:00|^09:00/);
@@ -171,13 +169,13 @@ test("an Event template picked at an hour fills the Form, keeps the hour and sav
   await expect.poll(() => storedEvent(page, tpl)).toEqual({ date: DAY, endDate: null, start: "09:00", end: "10:30" });
 });
 
-test('"Or place here" places a Blocker template at the Form\'s day and start, and closes the dialog', async ({ page, isMobile }) => {
+test('"Or place here" places a Blocker template at the Form\'s day and start, and closes the dialog', async ({ page }) => {
   const tpl = `Focus ${Date.now()}`;
   await page.goto("/calendar");
   await workLocally(page);
   await inCore(page, async (core, title: string) => void (await core.putDocument({ type: "blocker_template", title, durationMin: 30, color: null, tags: [] })), tpl);
 
-  const { dialog } = await openAtNine(page, isMobile);
+  const { dialog } = await openAtNine(page);
   // The Form's start, not the hour tapped, is where it lands.
   await setTime(dialog.getByRole("combobox", { name: "Start" }), "14:00");
   await dialog.getByRole("group", { name: "Or place here" }).getByRole("button", { name: tpl, exact: true }).click();
@@ -185,7 +183,7 @@ test('"Or place here" places a Blocker template at the Form\'s day and start, an
   await expect.poll(() => storedBlocker(page, tpl)).toEqual({ date: DAY, start: "14:00", end: "14:30" });
 });
 
-test('"Or place here" gives unplaced work a Time block at the Form\'s start, its Estimate long', async ({ page, isMobile }) => {
+test('"Or place here" gives unplaced work a Time block at the Form\'s start, its Estimate long', async ({ page }) => {
   const task = `Write the report ${Date.now()}`;
   await page.goto("/calendar");
   await workLocally(page);
@@ -195,7 +193,7 @@ test('"Or place here" gives unplaced work a Time block at the Form\'s start, its
     task,
   );
 
-  const { column, dialog } = await openAtNine(page, isMobile);
+  const { column, dialog } = await openAtNine(page);
   await setTime(dialog.getByRole("combobox", { name: "Start" }), "11:00");
   await dialog.getByRole("group", { name: "Or place here" }).getByRole("button", { name: `${task} 45m`, exact: true }).click();
   await expect(dialog).toBeHidden();
@@ -203,13 +201,13 @@ test('"Or place here" gives unplaced work a Time block at the Form\'s start, its
   await expect(column.locator(`[title$=" ${task}"]`)).toHaveAttribute("title", /^11:00\s?(AM)?–11:45\s?(AM)? /);
 });
 
-test('with the Form all day, "Or place here" asks for a start time and places nothing', async ({ page, isMobile }) => {
+test('with the Form all day, "Or place here" asks for a start time and places nothing', async ({ page }) => {
   const tpl = `Deep work ${Date.now()}`;
   await page.goto("/calendar");
   await workLocally(page);
   await inCore(page, async (core, title: string) => void (await core.putDocument({ type: "blocker_template", title, durationMin: 60, color: null, tags: [] })), tpl);
 
-  const { dialog } = await openAtNine(page, isMobile);
+  const { dialog } = await openAtNine(page);
   const place = dialog.getByRole("group", { name: "Or place here" });
   await dialog.getByRole("checkbox", { name: "All day" }).check();
   await expect(place.getByText("Give it a start time to place something here.")).toBeVisible();
@@ -231,10 +229,9 @@ test('"Or place here" shows however the dialog opens: from the palette too', asy
   await expect(dialog.getByRole("group", { name: "Or place here" }).getByRole("button", { name: tpl, exact: true })).toBeVisible();
 });
 
-test("on the desk, dragging an Event still moves it rather than sweeping", async ({ page, isMobile }) => {
-  test.skip(isMobile, "a phone drags on press and hold");
+test("on the desk, dragging an Event still moves it rather than sweeping", async ({ page }) => {
   const title = `Movable ${Date.now()}`;
-  const { column, dialog } = await openAtNine(page, isMobile);
+  const { column, dialog } = await openAtNine(page);
   await dialog.getByLabel("Title").fill(title);
   await dialog.getByLabel("Title").press("Enter");
   await expect.poll(() => storedEvent(page, title)).toEqual({ date: DAY, endDate: null, start: "09:00", end: "10:00" });

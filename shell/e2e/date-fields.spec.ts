@@ -99,8 +99,7 @@ test("a Task moved to another day from Move to day… in the Peek it opens from 
   await expect(peek, "the tapped row has moved: the Peek closes").toBeHidden();
 });
 
-test("on the desk, a right-click on a Task in Upcoming still opens its menu", async ({ page, isMobile }) => {
-  test.skip(isMobile, "a phone has no right-click: the Peek carries the actions");
+test("on the desk, a right-click on a Task in Upcoming still opens its menu", async ({ page }) => {
   const title = `Menu me ${Date.now()}`;
   await page.goto("/calendar?view=upcoming");
   await workLocally(page);

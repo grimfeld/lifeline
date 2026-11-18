@@ -126,8 +126,7 @@ async function dragDown(page: Page, box: { x: number; y: number; width: number }
 
 const HOUR_PX = 56;
 
-test("dragging the next-day piece of an overnight Event moves the whole Event, keeping its length", async ({ page, isMobile }) => {
-  test.skip(isMobile, "a mouse drag; a phone drags after a long press, through the same drop");
+test("dragging the next-day piece of an overnight Event moves the whole Event, keeping its length", async ({ page }) => {
   const title = `Red-eye ${Date.now()}`;
   const { tuesday } = await weekWithNightFlight(page, title);
   await tuesday.scrollIntoViewIfNeeded();
@@ -136,8 +135,7 @@ test("dragging the next-day piece of an overnight Event moves the whole Event, k
   await expect.poll(() => storedEvent(page, title)).toEqual({ date: "2025-11-10", endDate: "2025-11-11", start: "23:00", end: "07:00" });
 });
 
-test("only the last piece of an overnight Event resizes, and it moves only the end", async ({ page, isMobile }) => {
-  test.skip(isMobile, "a phone sets an end in the Event's Peek, not by an edge");
+test("only the last piece of an overnight Event resizes, and it moves only the end", async ({ page }) => {
   const title = `Sleeper ${Date.now()}`;
   const { monday, tuesday } = await weekWithNightFlight(page, title);
   await expect(monday.locator(".cursor-ns-resize"), "the first piece carries on: no end of its own to drag").toHaveCount(0);
@@ -253,8 +251,7 @@ async function weekWithOvernightBlocker(page: Page, b: { title: string; endDate?
   return { monday, tuesday };
 }
 
-test("dragging the next-day part of a one-off overnight blocker moves the whole blocker, keeping its evening part", async ({ page, isMobile }) => {
-  test.skip(isMobile, "a mouse drag; a phone drags after a long press, through the same drop");
+test("dragging the next-day part of a one-off overnight blocker moves the whole blocker, keeping its evening part", async ({ page }) => {
   const title = `Night train ${Date.now()}`;
   // Stored the old way, with no end day: an end before the start is the next morning.
   const { monday, tuesday } = await weekWithOvernightBlocker(page, { title });
@@ -266,8 +263,7 @@ test("dragging the next-day part of a one-off overnight blocker moves the whole 
   await expect(tuesday).toBeVisible();
 });
 
-test("only the last part of a one-off overnight blocker resizes, and it moves only the end", async ({ page, isMobile }) => {
-  test.skip(isMobile, "a phone sets an end in the Peek, not by an edge");
+test("only the last part of a one-off overnight blocker resizes, and it moves only the end", async ({ page }) => {
   const title = `Ferry ${Date.now()}`;
   const { monday, tuesday } = await weekWithOvernightBlocker(page, { title, endDate: "2025-11-11" });
   await expect(monday.locator(".cursor-ns-resize"), "the evening part carries on: no end of its own to drag").toHaveCount(0);

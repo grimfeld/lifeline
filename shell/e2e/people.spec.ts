@@ -159,8 +159,7 @@ test("a name selected in a Day becomes a Person under People, and a link to them
   await expect(page).toHaveURL((u) => u.pathname === "/app/journal");
 });
 
-test("the phone's capture sheet offers Add person under People", async ({ page, isMobile }) => {
-  test.skip(!isMobile, "the capture sheet is the phone's");
+test("the phone's capture sheet offers Add person under People", { tag: "@phone" }, async ({ page }) => {
   await page.goto("/app/people");
   await workLocally(page);
   await page.getByRole("button", { name: "Capture" }).click();
@@ -247,7 +246,7 @@ test("the Person page's Call uses the first current number, and a dimmed Email a
   await expect(page.getByRole("link", { name: "Email anne@example.org" })).toHaveAttribute("href", "mailto:anne@example.org");
 });
 
-test("the People home lists Everyone, searched by name and alias and filtered by Relationship and Tag", async ({ page }) => {
+test("the People home lists Everyone, searched by name and alias and filtered by Relationship and Tag", { tag: "@also-phone" }, async ({ page }) => {
   await page.goto("/app/people");
   await workLocally(page);
   // The seeded store already holds a Person or two; the home lists them with the three made here.

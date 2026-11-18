@@ -7,9 +7,7 @@ import { CORE_URL } from "./support/seed";
  * Enter runs a complete headless Command — or opens its dialog.
  */
 test.describe("Palette · inline arguments (#232)", () => {
-  // The palette is opened with Mod+K, on the desk only (ADR 0021).
-  test.skip(({ isMobile }) => isMobile, "the palette is not opened on a phone");
-
+  // Desktop only (no phone tag): the palette is opened with Mod+K, on the desk (ADR 0021).
   async function workLocally(page: Page) {
     const local = page.getByRole("button", { name: "Work locally" });
     await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});

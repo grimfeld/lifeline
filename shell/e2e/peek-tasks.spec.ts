@@ -84,7 +84,7 @@ test("a Task's Estimate is picked, typed and cleared back to none in its Peek", 
   await expect(other).toHaveValue("");
 });
 
-test("a Task is moved by tapping a day in the Move dialog, and Cancel backs out", async ({ page }) => {
+test("a Task is moved by tapping a day in the Move dialog, and Cancel backs out", { tag: "@also-phone" }, async ({ page }) => {
   const stamp = Date.now();
   const title = `Renew the passport ${stamp}`;
   await page.goto("/app/tasks");
@@ -120,7 +120,7 @@ test("a Task is moved by tapping a day in the Move dialog, and Cancel backs out"
   await expect.poll(async () => (await field(page, id)).date).toBe("2026-03-09");
 });
 
-test("an Event peeked from the Vault gets a time there; an end before its start is the next day's, one equal to it refused", async ({ page }) => {
+test("an Event peeked from the Vault gets a time there; an end before its start is the next day's, one equal to it refused", { tag: "@also-phone" }, async ({ page }) => {
   const stamp = Date.now();
   await page.goto("/vault");
   await workLocally(page);
@@ -135,6 +135,10 @@ test("an Event peeked from the Vault gets a time there; an end before its start 
   await dialog.getByRole("checkbox", { name: "All day" }).click();
   const start = dialog.getByRole("combobox", { name: "Start" });
   const end = dialog.getByRole("combobox", { name: "End" });
+  // Unticking All day gives the Event 09:00–10:00; wait for it to be stored, or typing
+  // the start can race the default (seen on the phone, where saving is slower).
+  await expect.poll(async () => { const d = await field(page, id); return { start: d.start, end: d.end }; }).toEqual({ start: "09:00", end: "10:00" });
+  await expect(start).toHaveValue(/^0?9:00/);
   // Moving the start keeps the length: 09:00–10:00 becomes 10:30–11:30.
   await setTime(start, "10:30");
   await expect.poll(async () => { const d = await field(page, id); return { date: d.date, start: d.start, end: d.end }; }).toEqual({ date: "2026-03-02", start: "10:30", end: "11:30" });
@@ -266,9 +270,7 @@ test("an Event's Peek nudges the Start, sets a length and moves to Tomorrow, wri
 
 // --- On a phone the Peek is a bottom sheet, and what was tapped is scrolled above it (ADR 0124) ---
 
-test.describe("on a phone, what was tapped on the hours is scrolled above the Peek's sheet", () => {
-  test.skip(({ isMobile }) => !isMobile, "the bottom sheet is the phone's");
-
+test.describe("on a phone, what was tapped on the hours is scrolled above the Peek's sheet", { tag: "@phone" }, () => {
   /** Events titled `title` on each day from `from` for `days` days, 10:00–11:00. */
   const addEvents = (page: Page, title: string, from: string, days: number) =>
     inCore(
@@ -334,9 +336,7 @@ test.describe("on a phone, what was tapped on the hours is scrolled above the Pe
 
 // --- a work chip's actions (Push, Move to day…, Unplace) reach a phone through its Peek ---
 
-test.describe("on a phone, a Task on the Month is pushed, moved or unplaced from its Peek", () => {
-  test.skip(({ isMobile }) => !isMobile, "the phone has no right-click menu");
-
+test.describe("on a phone, a Task on the Month is pushed, moved or unplaced from its Peek", { tag: "@phone" }, () => {
   test("Move to day… and Unplace in the Peek's Time block section", async ({ page }) => {
     const title = `Month chip ${Date.now()}`;
     await page.goto("/calendar?view=month&d=2026-11-09");
@@ -434,7 +434,7 @@ test("a Time blocker moved in its Peek, then left by a link and come back to, sh
 
 // --- Complete, and focus after Remove block, in the Time block section (F2, F10) ---
 
-test("a recurring Task's chip on the phone's Week is completed from its Peek: that occurrence is done, the next is not", async ({ page }) => {
+test("a recurring Task's chip on the phone's Week is completed from its Peek: that occurrence is done, the next is not", { tag: "@also-phone" }, async ({ page }) => {
   const title = `Water plants ${Date.now()}`;
   await page.goto("/calendar?view=week&d=2026-11-09");
   await workLocally(page);

@@ -234,8 +234,6 @@ for (const addAlias of [false, true]) {
     await page.goto(`/vault/d/${marie.id}`);
     await workLocally(page);
     await expect(page.getByRole("textbox", { name: "Title" })).toHaveValue("Marie Curie");
-    // On a phone the links panel is folded away until asked for.
-    if (page.viewportSize()!.width < 768) await page.getByRole("button", { name: "Toggle links panel" }).click();
     // The Day links here now, so the panel is drawn once its Backlinks are.
     await expect(page.getByText("Backlinks · 1")).toBeVisible();
     if (addAlias) await expect(page.getByText("Unlinked mentions · 1")).toBeVisible();

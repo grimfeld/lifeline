@@ -139,7 +139,8 @@ A screen is not done until it survives the longest content a person could type (
 0065). `shell/e2e/screens.spec.ts` opens every screen at phone (360px) and desktop
 (1280px) width over a store seeded with very long titles, fields, folders, tags and
 unbroken words, and fails when text spills out of its box, is cut off without an ellipsis,
-or makes a box scroll sideways that was not meant to. How to run it, and the rules for writing a spec (what a wait targets, what to wait for
+or makes a box scroll sideways that was not meant to. It runs nightly, not at delivery
+(ADR 0129), so run the rows of the screens you touch before pushing. How to run it, and the rules for writing a spec (what a wait targets, what to wait for
 before a read, what the seed holds): `shell/e2e/README.md`.
 
 - **A new screen gets a row in `SCREENS`** (App screen, Module page, Core page, Calendar
