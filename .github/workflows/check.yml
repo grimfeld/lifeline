@@ -104,8 +104,10 @@ jobs:
             exit 0
           fi
           base=$(git merge-base "$BASE" HEAD)
+          # NIGHTLY_SPECS in scripts/e2e-env.mjs, one per line, matched whole.
+          node --input-type=module -e 'import { NIGHTLY_SPECS } from "./scripts/e2e-env.mjs"; console.log(NIGHTLY_SPECS.join("\n"))' > "$RUNNER_TEMP/nightly"
           files=$(git diff --name-only --diff-filter=AMR "$base" HEAD -- 'shell/e2e/*.spec.ts' \
-            | sed 's#^shell/e2e/##' | grep -vE '^(screens|a11y-names|demo)\.spec\.ts$' | tr '\n' ' ' || true)
+            | sed 's#^shell/e2e/##' | grep -vxFf "$RUNNER_TEMP/nightly" | tr '\n' ' ' || true)
           echo "$files"
           if [ -z "${files// }" ]; then
             echo "No gate spec changed; nothing to run."

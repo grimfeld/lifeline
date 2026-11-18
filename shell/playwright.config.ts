@@ -1,5 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
-import { free, preinstalledChromium } from "../scripts/e2e-env.mjs";
+import { NIGHTLY_SPECS, UI_CHECK_SPECS, free, preinstalledChromium } from "../scripts/e2e-env.mjs";
 
 /**
  * End-to-end tests (see e2e/README.md). The delivery gate (`mobile`, `desktop`) runs
@@ -59,17 +59,19 @@ const projects = selectedProjects();
 /** The Demo builds take half a minute and two ports: only for a run that has Demo cases. */
 const needsDemo = projects.length === 0 || projects.some((p) => p.test("demo") || p.test("demo-setup"));
 
-/**
- * The UI checks (ADR 0129): how screens look and read, not whether a flow works. They
- * run nightly, at both widths, in their own projects; never in the delivery gate.
- */
-const UI_CHECKS = /(screens|a11y-names)\.spec\.ts/;
+/** One of these spec files, by name. */
+const specs = (names: string[]) => new RegExp(`(^|/)(${names.map((n) => n.replace(/\./g, "\\.")).join("|")})$`);
+/** The UI checks (ADR 0129): how screens look and read. Nightly, at both widths, in their own projects. */
+const UI_CHECKS = specs(UI_CHECK_SPECS);
 /** Specs the gate projects never run: the UI checks and the Demo (its own `demo` project). */
-const NIGHTLY_ONLY = /(screens|a11y-names|demo)\.spec\.ts/;
-/** A case tagged for the phone: `@phone` (phone width only) or `@also-phone` (both widths). */
-const PHONE_TAGS = /@phone\b|@also-phone\b/;
-/** A case for the phone only, which the desktop project leaves out. */
+const NIGHTLY_ONLY = specs(NIGHTLY_SPECS);
+/**
+ * A case for the phone only, which the desktop project leaves out. `@phone\b` does not
+ * match `@also-phone`: there the `@` is followed by `also`.
+ */
 const PHONE_ONLY = /@phone\b/;
+/** A case tagged for the phone: `@phone` (phone width only) or `@also-phone` (both widths). */
+const PHONE_TAGS = /@(also-)?phone\b/;
 const PHONE = { ...devices["Pixel 5"], viewport: { width: 360, height: 780 }, storageState: "e2e/.auth/seeded.json", locale: "en-IE" };
 const DESKTOP = { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 }, storageState: "e2e/.auth/seeded.json", locale: "en-IE" };
 

@@ -67,6 +67,8 @@ jobs:
   report:
     needs: e2e
     if: always() && needs.e2e.result == 'failure'
+    # One report at a time, so two red runs can't both find no issue and open two.
+    concurrency: nightly-e2e-report
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
