@@ -18,6 +18,14 @@ const add = async (args: Record<string, unknown>) => {
   const out = (await runTool("calendar_add_event", { title: "Dinner", date: "2026-11-20", ...args })) as { id: string; message: string };
   return { ...out, event: await getDocument(out.id) };
 };
+/**
+ * Whether an answer gives `value`. A number counts only whole, not inside a longer
+ * one: an answer's `updatedAt` ("…:32.384Z") holds "2.38" by chance about once in a
+ * thousand stamps, which is not the Event's place.
+ */
+const gives = (answer: string, value: string): boolean =>
+  /^-?\d+(\.\d+)?$/.test(value) ? new RegExp(`(?<![\\d.])${value.replace(".", "\\.")}`).test(answer) : answer.includes(value);
+
 const agendaOn = async (day: string) => ((await runTool("agenda", { start: day, end: day })) as { days: Record<string, { title: string; at?: unknown }[]> }).days[day] ?? [];
 
 describe("calendar_add_event's at", () => {
@@ -109,7 +117,7 @@ describe("the agent wall: an Event At a Person (ADR 0114, ADR 0128)", () => {
   it("names the Person by id and title, and nothing of where they live, in every tool's answer", async () => {
     for (const { name, args } of EVENT_TOOLS()) {
       const answer = JSON.stringify(await runTool(name, args));
-      for (const value of WALLED) expect(answer, `${name} leaked “${value}”`).not.toContain(value);
+      for (const value of WALLED) expect(gives(answer, value), `${name} leaked “${value}”`).toBe(false);
     }
     const day = await agendaOn("2026-11-24");
     expect(day.find((i) => i.title === "Tea at Mum's")?.at).toEqual({ id: anne, title: "Anne Dupont" });
@@ -122,7 +130,7 @@ describe("the agent wall: an Event At a Person (ADR 0114, ADR 0128)", () => {
     const where = [...pins.flatMap((p) => [p.key, String(p.lat), String(p.lon)]), "48.87", "2.38", "locatableVia"];
     for (const { name, args } of EVENT_TOOLS()) {
       const answer = JSON.stringify(await runTool(name, args));
-      for (const value of where) expect(answer, `${name} located the Event: “${value}”`).not.toContain(value);
+      for (const value of where) expect(gives(answer, value), `${name} located the Event: “${value}”`).toBe(false);
     }
   });
 
