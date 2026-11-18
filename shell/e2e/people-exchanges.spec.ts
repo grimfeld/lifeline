@@ -141,3 +141,44 @@ test("an Exchange opened from the Timeline is edited in its Peek, retitled, and 
   await page.getByRole("button", { name: "Undo" }).click();
   await expect.poll(() => exchangesWith(page, id)).toEqual([expect.objectContaining({ title: `Video call · ${name}`, body: "She got the job." })]);
 });
+
+test("a Person's page shows Last time: the newest Exchange or Event with text, clamped with More, and nothing when there is none", async ({ page }) => {
+  const name = `Anne ${Date.now()}`;
+  await page.goto("/app/people");
+  await workLocally(page);
+  const id = await makePerson(page, name);
+  await page.goto(`/app/people/person/${id}`);
+  await workLocally(page);
+  await expect(page.getByRole("region", { name: "Last time" })).toHaveCount(0);
+
+  const long = Array.from({ length: 30 }, (_, i) => `Line ${i + 1} of what she said.`).join("\n");
+  await inCore(
+    page,
+    async (core, a: { type: string; id: string; long: string }) => {
+      const day = (n: number) => core.addDays(core.todayStr(), n);
+      await core.createDocument({ type: a.type, title: "", body: "Older news.", fields: { kind: "message", date: day(-9), with: [a.id] } });
+      // Newer, but nothing said: it is not Last time.
+      await core.createDocument({ type: a.type, title: "", body: "", fields: { kind: "call", date: day(-1), with: [a.id] } });
+      await core.createDocument({ type: a.type, title: "", body: a.long, fields: { kind: "video", date: day(-3), with: [a.id] } });
+    },
+    { type: EXCHANGE, id, long },
+  );
+
+  const block = page.getByRole("region", { name: "Last time" });
+  await expect(block).toContainText("Video call");
+  await expect(block).toContainText("3 days ago");
+  await expect(block).toContainText("Line 1 of what she said.");
+  await expect(block).not.toContainText("Older news.");
+  const text = block.getByText("Line 1 of what she said.");
+  const clamped = (await text.boundingBox())!.height;
+  await block.getByRole("button", { name: "More" }).click();
+  await expect.poll(async () => (await text.boundingBox())!.height).toBeGreaterThan(clamped * 4);
+  await block.getByRole("button", { name: "Less" }).click();
+  await expect(block.getByRole("button", { name: "More" })).toBeVisible();
+
+  // An Event's Notes count too, once it is newer.
+  await inCore(page, async (core, a: { id: string }) => void (await core.createDocument({ type: "event", title: "Coffee", fields: { date: core.addDays(core.todayStr(), -2), with: [a.id], notes: "She moved to Lyon." } })), { id });
+  await expect(block).toContainText("Event · Coffee");
+  await expect(block).toContainText("She moved to Lyon.");
+  await expect(block.getByRole("button", { name: "More" })).toHaveCount(0);
+});
