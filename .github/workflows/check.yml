@@ -194,6 +194,23 @@ jobs:
           path: shell/playwright-report
           retention-days: 14
 
+  # One stable name for the e2e result, required by the ruleset on master (ship.yml,
+  # docs/agents/shipping.md): the shards' names change with their count, and auto-merge
+  # waits only for required checks, so a red integration run must fail here.
+  e2e:
+    if: always() && github.event_name == 'pull_request'
+    needs: [e2e-plan, e2e-changed]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Every planned shard passed
+        env:
+          PLAN: ${{ needs.e2e-plan.result }}
+          SHARDS: ${{ needs.e2e-changed.result }}
+        run: |
+          echo "e2e-plan: $PLAN, e2e-changed: $SHARDS"
+          [ "$PLAN" = success ] && { [ "$SHARDS" = success ] || [ "$SHARDS" = skipped ]; }
+
   # What this push changed, so each app deploys only when its code moved.
   changes:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
