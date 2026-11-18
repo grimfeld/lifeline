@@ -7,8 +7,7 @@ import {
   canRescheduleTimed,
   closePeek,
   describeEnd,
-  formatHuman,
-  formatTime,
+  describeTimedWhen,
   moveTimedItem,
   removeTimedItem,
   rescheduleTimedItem,
@@ -20,13 +19,6 @@ import {
 import { Trash2 } from "lucide-react";
 import { timedVisit } from "./peekVisit";
 import { contractWhen, timedControls, timedAllDay, timedEndingAt, timedNudged, timedOnDay, timedStartingAt, type WhenTime } from "./timedTiming";
-
-/** "Tue, Nov 10 · 10:00 – 11:00", "… · all day", or ending another day. */
-function describeWhen(w: WhenTime): string {
-  if (!w.start) return `${formatHuman(w.date)} · all day`;
-  if (!w.end) return `${formatHuman(w.date)} · ${formatTime(w.start)}`;
-  return `${formatHuman(w.date)} · ${formatTime(w.start)} – ${w.endDate !== w.date ? `${formatHuman(w.endDate)} ` : ""}${formatTime(w.end)}`;
-}
 
 /**
  * The **timing section** of a Peek opened from the hours on a Timed item its
@@ -104,7 +96,7 @@ export function TimedTiming({ tapped }: { tapped: HoursTapped & { kind: "timed" 
         </>
       ) : (
         <>
-          <p className="text-sm">{describeWhen(when)}</p>
+          <p className="text-sm">{describeTimedWhen(when)}</p>
           <p className="text-muted-foreground text-xs">{item.fixed ? "A weekly blocker is a rule — change it on the Events screen's Blockers tab." : "Its App keeps this time: it can't be moved from here."}</p>
         </>
       )}

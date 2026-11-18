@@ -81,12 +81,12 @@ day, if later), up to two weeks out. Push again and that block moves to the next
 after it. With no Estimate, it asks "How long will … take?" first and remembers the answer.
 Nothing free: nothing changes. Undoable.
 
-Where: the Push icon on a chip or block on the Schedule, **Push** in an item's menu on Month and
+Where: the Push icon on a chip or block on the Schedule, **Push** in an item's right-click menu on Month and
 Upcoming, and on Tasks (their menu, form and Peek). Offered on work with an Estimate — Tasks today.
 
 ## Work on Month and Upcoming
 
-Tap a work item for its menu:
+Tap a work item to open its Peek (Enter does too); right-click it (or press the menu key) for its menu:
 
 - **Complete**, **Push**, **Move to day…**.
 - **Unplace** — back to the Unplaced pool (Tasks).
