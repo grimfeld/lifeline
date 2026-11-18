@@ -548,6 +548,10 @@ _Avoid_: family (kin, which Ties say), group, home (an Address)
 The People I have not seen in a while: a ranking of Seen (Not seen in 90 days, a fixed window; Not mentioned as the alternative) over the People who have a Relationship, minus any I have chosen to leave out. Someone I have never seen at all is drifting too, ahead of everyone seen. Where the People Module asks "who have I lost touch with?". Derived, like every Report; never a reminder.
 _Avoid_: neglected, overdue, stale, reminder
 
+### Exchange
+A call, video call, message or letter with one or more People, on a day — "Called Grandma" — owned by the Contacts App: its **kind**, its day (today or before, never a time and never a day to come), the People it was with (a Household picked there adds its current members, as an Event's With does) and an optional body for what was said, the place to keep what someone told me so I have it next time. Counts as **Talked** for each of its People, never as Seen. Not an Event (it stands on no time Surface, only one line in the Daylog), not Linkable (its title is derived: "Call · Grandma"). Wikilinks in its body are Backlinks only: being told about someone is not talking to them.
+_Avoid_: call (one kind), conversation, interaction, contact (the Person), touch
+
 ### People field
 A built-in Links field to People that another App's type carries, so a Person is linked from where things happen and not only from bodies: an Event's **With** (who was there — what Seen counts), a Task's **For**, a Transaction's **For** (a gift, a shared bill), a work's **Recommended by** (beside its Reason, which stays free text). Offered, with name completion, in the owning App's own dialog and in its Peek; a source of Backlinks like any Link. The owning App keeps the field; Contacts only owns the Person it points to. The user may add Person-linked Fields of their own to any other type.
 _Avoid_: attendees, participants, mention (a wikilink's), tag
