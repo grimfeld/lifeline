@@ -721,6 +721,26 @@ async function taskPeekFromBlock(page: Page) {
 }
 
 /**
+ * A Task's chip on the Month, clicked: the Task's Peek with its Time block
+ * section carrying the chip's actions (Complete, Push, Move to day…, Unplace) —
+ * a phone's way to them — and the longest title a person could give it.
+ */
+async function taskPeekFromMonthChip(page: Page) {
+  await workLocally(page);
+  const title: string = await page.evaluate(
+    async ({ coreUrl, day, title }) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      await core.putDocument({ type: "task", title, status: "active", date: day, completedOn: null, recurrence: null, notes: "", tags: [], estimate: 90 });
+      return title;
+    },
+    { coreUrl: CORE_URL, day: PEEK_DAY, title: longText("A task") },
+  );
+  await page.locator("[data-focus-key]").filter({ hasText: title }).first().click();
+  const peek = page.getByRole("dialog", { name: title, exact: true });
+  await expect(peek.getByRole("region", { name: "Time block" }).getByRole("button", { name: "Move to day…" })).toBeVisible();
+}
+
+/**
  * A one-off Time blocker's band on the Week, clicked: its Peek (#538) with the
  * band's timing above, the longest title a person could give it.
  */
@@ -882,6 +902,7 @@ const SCREENS: ScreenCase[] = [
   { name: "Calendar · Week · Peek of a Time blocker from its band", path: `/calendar?view=week&d=${PEEK_DAY}`, afterOpen: blockerPeekFromBand },
   { name: "Calendar · Week · a subscription's read-only card", path: `/calendar?view=week&d=${PEEK_DAY}`, afterOpen: icalCardFromSchedule },
   { name: "Calendar · Month", path: "/calendar?view=month" },
+  { name: "Calendar · Month · Peek of a Task from its chip", path: `/calendar?view=month&d=${PEEK_DAY}`, afterOpen: taskPeekFromMonthChip },
   { name: "Map", path: "/map" },
   { name: "Graph", path: "/graph" },
   { name: "Bases", path: "/base", afterOpen: workLocally },
