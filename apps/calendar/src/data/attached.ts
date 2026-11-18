@@ -1,10 +1,10 @@
 import { useMemo } from "react";
-import { getDocument, patchDocument, removeDocument, type DocumentInput, type DocumentPatch } from "@lifeline/core";
+import { getDocument, patchDocument, removeDocumentsWhere, type DocumentInput, type DocumentPatch } from "@lifeline/core";
 import { attachmentOf, DETACHED, flushSpan, followedSpan, isAttachedTo, liveAttachmentTo, sameSpan } from "../domain/attached";
 import { blockerSpan } from "../domain/blockers";
 import { normalizeEvent, spanOf } from "../domain/events";
 import { durationOf } from "../domain/templates";
-import { BLOCKER_TEMPLATE_TYPE, EVENT_TYPE, type Attachment, type BlockerSide, type BlockerTemplate, type Event, type TimeBlocker } from "../domain/types";
+import { BLOCKER_TEMPLATE_TYPE, EVENT_TYPE, TIME_BLOCKER_TYPE, type Attachment, type BlockerSide, type BlockerTemplate, type Event, type TimeBlocker } from "../domain/types";
 import { addTimeBlocker, allTimeBlockers, timeBlockerRow, useTimeBlockers, type TimeBlockerInput } from "./blockers";
 
 /** A Before…/After… pick: which Blocker template to attach, on which side of the Event. */
@@ -101,7 +101,9 @@ export async function liveAttachment(b: TimeBlocker): Promise<Attachment | null>
 
 /** An Event's deletion takes its attached blockers with it (ADR 0045), from every place a Document can be deleted. */
 export async function removeAttachedBlockers(eventId: string): Promise<void> {
-  for (const b of await attachedBlockersOf(eventId)) await removeDocument(b.id);
+  // Tombstones directly, as Core asks of a cascade, so it cannot re-enter removeDocument.
+  const ids = new Set((await attachedBlockersOf(eventId)).map((b) => b.id));
+  await removeDocumentsWhere(TIME_BLOCKER_TYPE, (d) => ids.has(d.id));
 }
 
 /**
