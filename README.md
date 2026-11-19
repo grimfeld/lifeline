@@ -7,7 +7,7 @@ more all live in **one Document store**, and **26 Apps** each own a few Document
 runs in the browser and as a desktop app, and has an **MCP server** so an AI agent can read your agenda and
 act on it with the same operations the UI uses.
 
-**Try the Demo: <https://lifeline-demo.vercel.app>.** You don't sign in. It opens on a made-up life whose
+**Try the Demo: <https://lifeline-demo-sigma.vercel.app>.** You don't sign in. It opens on a made-up life whose
 dates follow today, and everything you do stays in your own browser.
 
 ## Architecture at a glance
