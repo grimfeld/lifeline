@@ -48,7 +48,7 @@ export async function addTie(input: { from: string; to: string; label: string; t
  * Person is to them, `ownLabel` what they are to the other. Works from either end.
  * `kind` is read from `personId` to the other Person; absent clears it.
  * `kindRead` marks a kind only read from the old words (never stored): it is kept
- * while one new word still names it (`draftKind`), so free words leave a Tie kindless.
+ * only while the new words still form its pair (`draftKind`), so other words leave a Tie kindless.
  */
 export async function updateTie(id: string, personId: string, words: { label: string; ownLabel: string; kind?: TieKind | undefined; kindRead?: boolean | undefined }): Promise<void> {
   const tie = await getDocument<Tie>(id);
