@@ -1,6 +1,6 @@
-import { EXCHANGE_TYPE, PERSON_TYPE, createDocument, documentsOf, documentsTable, getDocument, putDocument, removeDocument, todayStr, useDocuments, type Document } from "@lifeline/core";
+import { EXCHANGE_TYPE, PERSON_TYPE, createDocument, documentsOfUngated, documentsTable, getDocument, putDocument, removeDocument, todayStr, useDocuments, workspaceScope, type Document } from "@lifeline/core";
 import { EXCHANGES_FOLDER, type Exchange } from "../domain/types";
-import { exchangeKindOf, exchangeProblem, exchangeTitle, type ExchangeKind } from "../domain/exchanges";
+import { exchangeKindOf, exchangeProblem, exchangeTitleOf, type ExchangeKind } from "../domain/exchanges";
 
 /** What adds an Exchange: its People, and its kind (a call), day (today) and body (none) unless said. */
 export interface ExchangeInput {
@@ -17,17 +17,23 @@ export interface ExchangePatch {
   with?: readonly string[];
 }
 
+const EXCHANGE_TYPE_LIST = [EXCHANGE_TYPE];
+
 /** The ids of an Exchange's With, whatever a Base wrote. */
 export const withOf = (x: Document): string[] => (Array.isArray(x.with) ? x.with.filter((id): id is string => typeof id === "string") : []);
 
-/** The People's names, in With's order: read as stored, so a locked Private folder never drops one from a title; a deleted Person has none. */
-async function namesOf(ids: readonly string[]): Promise<string[]> {
+/**
+ * The People, in With's order: read as stored, so a title is the same whether
+ * Private is locked or not (`exchangeTitleOf` names none of the Private folder,
+ * nor any of another Workspace); a deleted Person is none.
+ */
+async function peopleOf(ids: readonly string[]): Promise<Document[]> {
   const rows = await documentsTable().bulkGet([...ids]);
-  return rows.flatMap((r) => (r && !r.deleted && r.title ? [r.title] : []));
+  return rows.filter((r): r is Document => !!r && !r.deleted && r.type === PERSON_TYPE && !!r.title);
 }
 
 /** The title an Exchange has as it stands: its kind and its People's names. */
-const titleFor = async (x: Document) => exchangeTitle(x.kind, await namesOf(withOf(x)));
+const titleFor = async (x: Document) => exchangeTitleOf(x.kind, await peopleOf(withOf(x)), x.workspace ?? "");
 
 /** The People named, each once, in order; refused unless every one is a Person here. */
 async function people(ids: readonly string[]): Promise<Document[]> {
@@ -47,7 +53,7 @@ export async function addExchange(input: ExchangeInput): Promise<Exchange> {
   if (problem) throw new Error(problem);
   const found = await people(input.with);
   const kind = exchangeKindOf(input.kind);
-  const title = exchangeTitle(kind, found.map((p) => p.title));
+  const title = exchangeTitleOf(kind, found, await workspaceScope());
   return (await createDocument({ type: EXCHANGE_TYPE, title, folder: EXCHANGES_FOLDER, body: input.body ?? "", fields: { kind, date, with: found.map((p) => p.id) } })) as Exchange;
 }
 
@@ -69,10 +75,11 @@ export async function editExchange(id: string, patch: ExchangePatch): Promise<vo
  * a rename reaches every Exchange they are in. Writes only what changed.
  */
 export async function keepExchangesTitled(saved: Document): Promise<void> {
-  const rows = saved.type === EXCHANGE_TYPE ? [saved] : (await documentsOf(EXCHANGE_TYPE)).filter((x) => withOf(x).includes(saved.id));
+  // Past both gates: an Exchange in another Workspace (or Private, locked) would keep a stale name.
+  const rows = saved.type === EXCHANGE_TYPE ? [saved] : (await documentsOfUngated(EXCHANGE_TYPE_LIST)).filter((x) => withOf(x).includes(saved.id));
   for (const x of rows) {
     const title = await titleFor(x);
-    if (title !== x.title) await putDocument({ ...x, title });
+    if (title !== x.title) await putDocument({ ...x, title, workspace: x.workspace ?? "" });
   }
 }
 
@@ -83,10 +90,10 @@ export async function keepExchangesTitled(saved: Document): Promise<void> {
  * too, but keep the title it had.
  */
 export async function dropFromExchanges(personId: string): Promise<void> {
-  for (const x of await documentsOf(EXCHANGE_TYPE)) {
+  for (const x of await documentsOfUngated(EXCHANGE_TYPE_LIST)) {
     const ids = withOf(x);
     if (!ids.includes(personId)) continue;
-    const row = { ...x, with: ids.filter((id) => id !== personId) };
+    const row = { ...x, with: ids.filter((id) => id !== personId), workspace: x.workspace ?? "" };
     await putDocument({ ...row, title: await titleFor(row) });
   }
 }

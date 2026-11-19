@@ -1,4 +1,4 @@
-import { addDays, isDateStr, type DateStr } from "@lifeline/core";
+import { addDays, inPrivateFolder, inScope, isDateStr, type DateStr, type Document } from "@lifeline/core";
 
 /**
  * The Exchange (CONTEXT.md, ADR 0131): a call, video call, message or letter
@@ -25,6 +25,19 @@ const labelOf = (kind: unknown) => EXCHANGE_KINDS.find((k) => k.value === exchan
 /** "Call · Grandma", "Message · Marc, Léa"; "Call · nobody" once its People are all gone. */
 export function exchangeTitle(kind: unknown, names: readonly string[]): string {
   return `${labelOf(kind)} · ${names.length ? names.join(", ") : "nobody"}`;
+}
+
+/**
+ * The title as stored, from its People as they stand: only those of its own
+ * Workspace (ADR 0048), and none named from the Private folder (ADR 0038):
+ * the title is read where they are hidden (a locked device, an agent), so
+ * they count as "someone", or "2 people", after the names.
+ */
+export function exchangeTitleOf(kind: unknown, people: readonly Pick<Document, "title" | "folder" | "workspace">[], workspace: string): string {
+  const here = people.filter((p) => inScope(p, workspace));
+  const hidden = here.filter((p) => inPrivateFolder(p.folder)).length;
+  const names = here.filter((p) => !inPrivateFolder(p.folder)).map((p) => p.title);
+  return exchangeTitle(kind, hidden ? [...names, hidden === 1 ? "someone" : `${hidden} people`] : names);
 }
 
 /** The refusal of a day to come: the dialog's and the agent's alike. */
