@@ -49,6 +49,8 @@ export function MobileNav() {
   const navigate = useNavigate();
   const location = useLocation();
   const nav = useRef<HTMLDivElement>(null);
+  // The sheet closed to open a Command's dialog: focus stays there, not back on the Capture button.
+  const handedOff = useRef(false);
   const isMobile = usePhone();
   // iOS never shrinks the layout viewport for the keyboard, so the frame — and
   // this nav at the foot of it — runs on underneath the keys. The nav reserves
@@ -97,6 +99,7 @@ export function MobileNav() {
       return;
     }
     const c = entry.command;
+    handedOff.current = !!c.dialog;
     setSheetOpen(false);
     if (c.dialog) setActiveDialog(c);
     else void c.run?.({ navigate });
@@ -177,7 +180,16 @@ export function MobileNav() {
 
       {/* "✛" capture sheet: pins, then groups; a fold opens its members in place. Hold a cell to pin it. */}
       <Sheet open={captureOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="bottom" aria-describedby={undefined} className="max-h-[85dvh]">
+        <SheetContent
+          side="bottom"
+          aria-describedby={undefined}
+          className="max-h-[85dvh]"
+          // Its exit ends after the dialog has opened: a focus sent back then would leave the dialog's field (its list shut).
+          onCloseAutoFocus={(e) => {
+            if (handedOff.current) e.preventDefault();
+            handedOff.current = false;
+          }}
+        >
           {openFold ? (
             <>
               <SheetTitle className="flex items-center gap-1">

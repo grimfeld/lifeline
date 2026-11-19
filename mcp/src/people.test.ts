@@ -16,6 +16,7 @@ vi.mock("@lifeline/core", async (importOriginal) => {
     ...actual,
     ...core,
     allWorkspaces: async () => [],
+    workspaceScope: async () => "",
     setCurrentWorkspace: () => undefined,
     documentTypeSync: (id: string) => types.get(id),
     allDocumentTypes: () => [...types.values()],
@@ -129,6 +130,81 @@ describe("people_occasion_add", () => {
   it("refuses a day that is none, or a once Occasion with no year", async () => {
     await expect(runTool("people_occasion_add", { person: "Anna", label: "Birthday", day: "13-40" })).rejects.toThrow(/real day/);
     await expect(runTool("people_occasion_add", { person: "Anna", label: "Wedding", day: "05-01", yearly: false })).rejects.toThrow(/needs its year/);
+  });
+});
+
+describe("people_exchange_add (ADR 0131)", () => {
+  beforeEach(() => {
+    core.createDocument.mockImplementation(async (input: { type: string; title: string; body?: string; fields: Record<string, unknown> }) => ({ ...person("x1", input.title), type: input.type, body: input.body, ...input.fields }));
+  });
+
+  it("records a kind, a day, its People by name and what was said", async () => {
+    const out = await runTool("people_exchange_add", { with: ["anne dupont", "Anna"], kind: "video", date: "2026-11-01", body: "The hip surgery went well." });
+    expect(core.createDocument).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "contacts_exchange", title: "Video call · Anne Dupont, Anna", body: "The hip surgery went well.", fields: { kind: "video", date: "2026-11-01", with: ["p1", "p2"] } }),
+    );
+    expect(out).toMatchObject({ id: "x1", message: "Logged Video call · Anne Dupont, Anna on 2026-11-01" });
+  });
+
+  it("is a call today unless told otherwise", async () => {
+    await runTool("people_exchange_add", { with: ["Anna"] });
+    expect(core.createDocument).toHaveBeenCalledWith(expect.objectContaining({ title: "Call · Anna", fields: { kind: "call", date: "2026-11-08", with: ["p2"] } }));
+  });
+
+  it("refuses a day to come, writing nothing", async () => {
+    await expect(runTool("people_exchange_add", { with: ["Anna"], date: "2026-11-09" })).rejects.toThrow("An exchange is something that happened. Plan a call as a Task or an Event.");
+    expect(core.createDocument).not.toHaveBeenCalled();
+  });
+
+  it("refuses an exchange with nobody", async () => {
+    await expect(runTool("people_exchange_add", { with: [] })).rejects.toThrow(/With/);
+    expect(core.createDocument).not.toHaveBeenCalled();
+  });
+
+  it("refuses an unknown or ambiguous name, listing the candidates", async () => {
+    await expect(runTool("people_exchange_add", { with: ["Bob"] })).rejects.toThrow("No Person called “Bob”");
+    await expect(runTool("people_exchange_add", { with: ["Mum"] })).rejects.toThrow("“Mum” is more than one Person: Anne Dupont (id p1), Anna (id p2)");
+    expect(core.createDocument).not.toHaveBeenCalled();
+  });
+
+  it("refuses a kind that is none of the four", async () => {
+    await expect(runTool("people_exchange_add", { with: ["Anna"], kind: "telegram" })).rejects.toThrow("Kind: expected one of call, video, message, letter");
+    expect(core.createDocument).not.toHaveBeenCalled();
+  });
+});
+
+describe("Exchanges are open to agents (ADR 0131)", () => {
+  const exchangeTypeDef = contactsApp.types.find((t) => t.id === "contacts_exchange")!;
+  beforeEach(() => {
+    types.set("contacts_exchange", exchangeTypeDef);
+    docs.set("x1", { id: "x1", type: "contacts_exchange", title: "Call · Anne Dupont", kind: "call", date: "2026-11-01", with: ["p1"], body: "Lucie starts university in Lyon.", folder: "People/Exchanges", tags: [], createdAt: "2026-11-01", updatedAt: "2026-11-01", deleted: 0 } as unknown as Document);
+  });
+
+  it("are found by what was said, with their kind and day", async () => {
+    const out = (await runTool("search_documents", { query: "Lyon" })) as { documents: Record<string, unknown>[] };
+    expect(out.documents).toEqual([expect.objectContaining({ id: "x1", title: "Call · Anne Dupont" })]);
+    expect(JSON.stringify(out.documents[0])).toContain("2026-11-01");
+  });
+
+  it("are read whole by get_document, body included", async () => {
+    const out = (await runTool("get_document", { id: "x1" })) as { body: string; fields: Record<string, unknown> };
+    expect(out).toMatchObject({ body: "Lucie starts university in Lyon.", fields: { kind: "call", date: "2026-11-01", with: ["p1"] } });
+  });
+  it("never name a Person in the Private folder, in the title they are found or read by (ADR 0038)", async () => {
+    // Logged where Private was open (this stand-in store has no gate): the title the App stores, kept as it is.
+    core.createDocument.mockImplementation(async (input: { type: string; title: string; body?: string; fields: Record<string, unknown> }) => {
+      const x = { ...person("x2", input.title, {}, "People/Exchanges"), type: input.type, body: input.body ?? "", ...input.fields } as unknown as Document;
+      docs.set("x2", x);
+      return x;
+    });
+    await runTool("people_exchange_add", { with: ["Anne Dupont", "Secret"], date: "2026-11-02", body: "Dinner on Friday." });
+    expect(docs.get("x2")?.title).toBe("Call · Anne Dupont, someone");
+    const found = (await runTool("search_documents", { query: "Secret" })) as { documents: Record<string, unknown>[] };
+    expect(found.documents.map((d) => d.id)).not.toContain("x2");
+    expect(JSON.stringify(found)).not.toContain("Secret");
+    const byBody = (await runTool("search_documents", { query: "Friday" })) as { documents: Record<string, unknown>[] };
+    expect(byBody.documents).toEqual([expect.objectContaining({ id: "x2", title: "Call · Anne Dupont, someone" })]);
+    expect(JSON.stringify(await runTool("get_document", { id: "x2" }))).not.toContain("Secret");
   });
 });
 

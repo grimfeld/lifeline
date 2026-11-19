@@ -1,8 +1,11 @@
-import { PERSON_HINT, PERSON_TYPE, peopleNamed, type CommandDef } from "@lifeline/core";
-import { CalendarHeart, UserPlus, Users } from "lucide-react";
+import { PERSON_HINT, PERSON_TYPE, peopleArg, peopleIn, peopleNamed, type CommandDef } from "@lifeline/core";
+import { CalendarHeart, PhoneCall, UserPlus, Users } from "lucide-react";
 import { AddPersonDialog } from "./components/AddPersonDialog";
+import { LogExchangeDialog } from "./components/LogExchangeDialog";
 import { addOccasion, addPerson } from "./data/repo";
 import { PEOPLE_HREF } from "./constants";
+import { addExchange } from "./data/exchanges";
+import { EXCHANGE_KINDS } from "./domain/exchanges";
 
 /**
  * The Contacts App's Commands. "people.add" is also the agents' `people_add`
@@ -45,6 +48,26 @@ export const contactsCommands: CommandDef[] = [
       const personId = String(a.person);
       const occasion = await addOccasion(personId, { label: String(a.label ?? ""), day: String(a.day ?? ""), yearly: a.yearly !== false });
       return { message: `Added ${occasion.label} (${occasion.day}${occasion.yearly ? ", yearly" : ", once"})${await peopleNamed("to", [personId])}`, id: personId };
+    },
+  },
+  {
+    // A record, not a thing: it never collides. A day to come is refused here, so the dialog and an agent are refused alike (ADR 0131).
+    id: "people.exchange-add",
+    title: "Log an exchange…",
+    keywords: ["exchange", "call", "called", "phoned", "video", "message", "texted", "letter", "talked", "spoke", "person", "people"],
+    icon: PhoneCall,
+    dialog: LogExchangeDialog,
+    capture: true,
+    args: [
+      { ...peopleArg("with", "With", "Who it was with, at least one"), required: true },
+      { key: "kind", label: "Kind", kind: "select", options: EXCHANGE_KINDS.map((k) => ({ value: k.value, label: k.label })), hint: "call (the default), video, message or letter." },
+      { key: "date", label: "Day", kind: "date", hint: "The day it happened; defaults to today. Never a day to come: plan a call as a Task or an Event." },
+      { key: "body", label: "What was said", kind: "longtext", hint: "Optional: what they told you, to have it next time. [[Links]] to others make Backlinks only." },
+    ],
+    returnsDocument: true,
+    async invoke(a) {
+      const x = await addExchange({ with: peopleIn(a, "with"), kind: a.kind as string | undefined, date: a.date as string | undefined, body: a.body as string | undefined });
+      return { message: `Logged ${x.title} on ${x.date}`, id: x.id };
     },
   },
   { id: "people.open", title: "Go to People", keywords: ["people", "contacts", "persons"], icon: Users, run: ({ navigate }) => navigate(PEOPLE_HREF) },
