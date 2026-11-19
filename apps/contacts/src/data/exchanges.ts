@@ -87,15 +87,28 @@ export async function keepExchangesTitled(saved: Document): Promise<void> {
  * A Person deleted leaves every Exchange they were in (the Person's `onDelete`):
  * the Exchange stays, titled from who is left, "· nobody" once no one is
  * (its body is still the user's). Core's `unlinkOnDelete` would drop the id
- * too, but keep the title it had.
+ * too, but keep the title it had. A Person moved to another Workspace leaves
+ * those of every other one (their `onMove`, ADR 0118): `keepIn` is where they went.
  */
-export async function dropFromExchanges(personId: string): Promise<void> {
+export async function dropFromExchanges(personId: string, keepIn?: string): Promise<void> {
   for (const x of await documentsOfUngated(EXCHANGE_TYPE_LIST)) {
     const ids = withOf(x);
-    if (!ids.includes(personId)) continue;
+    if (!ids.includes(personId) || (keepIn !== undefined && (x.workspace ?? "") === keepIn)) continue;
     const row = { ...x, with: ids.filter((id) => id !== personId), workspace: x.workspace ?? "" };
     await putDocument({ ...row, title: await titleFor(row) });
   }
+}
+
+/** An Exchange moved to another Workspace (its `onMove`, ADR 0118) keeps only the People there, titled from them. */
+export async function keepWithInside(exchangeId: string, workspace: string): Promise<void> {
+  // Read past the Workspace gate: the Exchange has just left the current one, or never was in it.
+  const x = await documentsTable().get(exchangeId);
+  if (!x || x.deleted || x.type !== EXCHANGE_TYPE) return;
+  const ids = withOf(x);
+  const there = new Set((await peopleOf(ids)).filter((p) => (p.workspace ?? "") === workspace).map((p) => p.id));
+  const row = { ...x, with: ids.filter((id) => there.has(id)), workspace };
+  const title = await titleFor(row);
+  if (row.with.length !== ids.length || title !== x.title) await putDocument({ ...row, title });
 }
 
 /** Delete an Exchange, handing it back for Undo (`restoreExchange`). */

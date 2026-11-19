@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
-import { EXCHANGE_TYPE, PERSON_TYPE, allDocuments, allDocumentTypes, buildLinkIndex, db, documentsTable, getDocument, initApps, patchDocument, removeDocument, todayStr, type Document } from "@lifeline/core";
+import { EXCHANGE_TYPE, PERSON_TYPE, allDocuments, allDocumentTypes, buildLinkIndex, db, documentsTable, getDocument, initApps, moveDocumentsToWorkspace, patchDocument, removeDocument, todayStr, type Document } from "@lifeline/core";
 import { exchangeTypeDef, householdTypeDef, personTypeDef, tieTypeDef } from "../types";
 import { addPerson } from "./repo";
 import { addExchange, editExchange } from "./exchanges";
@@ -109,5 +109,29 @@ describe("an Exchange's title names no one the views hide (ADR 0038, 0048)", () 
     expect(await read("x2")).toMatchObject({ title: "Call · Léa Martin", workspace: "ws2" });
     await removeDocument("lea");
     expect(await read("x2")).toMatchObject({ title: "Call · nobody", with: [], workspace: "ws2" });
+  });
+});
+
+describe("an Exchange across a Workspace move (ADR 0048, 0118)", () => {
+  it("loses a Person moved to another Workspace, from its With and its title", async () => {
+    const anne = await addPerson({ name: "Anne" });
+    const marc = await addPerson({ name: "Marc" });
+    const x = await addExchange({ with: [anne.id, marc.id] });
+    await moveDocumentsToWorkspace([anne.id], "ws2");
+    expect(await read(x.id)).toMatchObject({ with: [marc.id], title: "Call · Marc", workspace: "" });
+  });
+
+  it("moved alone, keeps no one of the Workspace it left", async () => {
+    const anne = await addPerson({ name: "Anne" });
+    const x = await addExchange({ with: [anne.id], kind: "letter" });
+    await moveDocumentsToWorkspace([x.id], "ws2");
+    expect(await read(x.id)).toMatchObject({ with: [], title: "Letter · nobody", workspace: "ws2" });
+  });
+
+  it("keeps a Person who moves with it", async () => {
+    const anne = await addPerson({ name: "Anne" });
+    const x = await addExchange({ with: [anne.id] });
+    await moveDocumentsToWorkspace([anne.id, x.id], "ws2");
+    expect(await read(x.id)).toMatchObject({ with: [anne.id], title: "Call · Anne", workspace: "ws2" });
   });
 });
