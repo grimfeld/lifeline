@@ -82,7 +82,7 @@ describe("What a row says", () => {
     expect(rowNews(upcomingOccasions([P("Anne", { occasions: [wed] })], today, 7), []).upcoming.has("Anne")).toBe(false);
   });
   it("says how long the drifting have drifted, and nothing for the never seen", () => {
-    const news = rowNews([], [{ person: anne, last: "2026-05-01", daysSince: 191 }, { person: marc, last: null, daysSince: null }]);
+    const news = rowNews([], [{ person: anne, last: "2026-05-01", how: "seen", daysSince: 191 }, { person: marc, last: null, how: null, daysSince: null }]);
     expect([...news.drifting]).toEqual([["Anne Dupont", 191], ["Marc Petit", null]]);
     expect(news.drifting.has("Zed")).toBe(false);
   });

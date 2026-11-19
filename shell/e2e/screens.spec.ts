@@ -494,6 +494,51 @@ function peekWithPerson(type: string, key: string) {
 }
 
 /**
+ * An Exchange (ADR 0131) with many long-named People and the longest body a
+ * person could type, so its derived title runs long; with `peek`, its Peek
+ * opened (With's chips wrapping, the body below), else the Log an exchange
+ * dialog opened from a Person's page with them all in With and the body typed.
+ */
+function longExchange(peek: boolean) {
+  return async (page: Page) => {
+    await workLocally(page);
+    const body = Array.from({ length: 40 }, (_, i) => `${longText(`Line ${i + 1} of what was said`)}.`).join("\n\n");
+    const { exchangeId, names } = await inCore(
+      page,
+      async (core, a: { names: string[]; body: string }) => {
+        const ids: string[] = [];
+        for (const title of a.names) ids.push((await core.createDocument({ type: "contacts_person", title })).id as string);
+        const x = await core.createDocument({ type: "contacts_exchange", title: "", body: a.body, fields: { kind: "video", date: core.todayStr(), with: ids } });
+        return { exchangeId: x.id as string, names: a.names };
+      },
+      { names: Array.from({ length: 8 }, (_, i) => longText(`Exchange person ${i + 1}`)), body },
+    );
+    if (peek) {
+      await inCore(page, async (core, id: string) => void core.openPeek(id), exchangeId);
+      await expect(page.getByRole("dialog").getByRole("button", { name: `Remove ${names[7]}`, exact: true })).toBeVisible();
+      return;
+    }
+    await page.getByRole("button", { name: "Log exchange" }).click();
+    const dialog = page.getByRole("dialog", { name: "Log an exchange" });
+    await dialog.getByLabel("What was said").fill(body);
+    await expect(dialog.getByRole("button", { name: "Save", exact: true })).toBeEnabled();
+  };
+}
+
+/**
+ * Last time (ADR 0131) on a Person's page: the longest text a person could type
+ * in an Exchange's body (long lines, an unbroken word) with them, clamped to four
+ * lines above the Timeline; the page's own Person is the seeded one.
+ */
+async function longLastTime(page: Page) {
+  await workLocally(page);
+  const id = new URL(page.url()).pathname.split("/").pop()!;
+  const body = [`${longText("What she said")}.`, ...Array.from({ length: 40 }, (_, i) => `${longText(`Line ${i + 1} of what she said`)}.`)].join("\n");
+  await inCore(page, async (core, a: { id: string; body: string }) => void (await core.createDocument({ type: "contacts_exchange", title: "", body: a.body, fields: { kind: "letter", date: core.todayStr(), with: [a.id] } })), { id, body });
+  await expect(page.getByRole("region", { name: "Last time" })).toBeVisible();
+}
+
+/**
  * An attached blocker's Peek (#497): "Before <Event>" over an Event with the
  * longest title a person could type, and its Detach beside it.
  */
@@ -602,6 +647,40 @@ async function openHere(page: Page) {
 async function longWorld(page: Page) {
   await seedLongPlace(page);
   await expect(page.getByRole("button", { name: /^Places 1$/ })).toBeVisible();
+}
+
+/**
+ * A Person page with the Add a tie dialog open and a long-named Person picked
+ * (ADR 0130): the preset chips under the question wrap, never scroll.
+ */
+async function tieDialogWithLongPerson(page: Page) {
+  await workLocally(page);
+  await inCore(page, async (core, a: { long: string; word: string }) => void (await core.createDocument({ type: "contacts_person", title: `${a.long} ${a.word}` })), { long: longText("Another person"), word: LONG_WORD });
+  await page.getByRole("region", { name: "Ties" }).getByRole("button", { name: "Add tie" }).click();
+  const dialog = page.getByRole("dialog", { name: "Add a tie" });
+  await dialog.getByRole("combobox").fill("Another person");
+  await page.getByRole("option", { name: /^Another person/ }).click();
+  await expect(dialog.getByRole("button", { name: "cousin", exact: true })).toBeVisible();
+}
+
+/**
+ * A Person page whose Ties card has a suggestion pending (ADR 0130): a long-named
+ * parent of this Person and of a long-named other, so the other is suggested as a
+ * sibling and the Suggested row holds two long names.
+ */
+async function tiesWithLongSuggestion(page: Page) {
+  await workLocally(page);
+  const personId = new URL(page.url()).pathname.split("/").pop()!;
+  await inCore(
+    page,
+    async (core, a: { personId: string; long: string; word: string }) => {
+      const parent = await core.createDocument({ type: "contacts_person", title: `${a.long} parent ${a.word}` });
+      const other = await core.createDocument({ type: "contacts_person", title: `${a.long} sibling ${a.word}` });
+      for (const child of [a.personId, other.id]) await core.putDocument({ type: "contacts_tie", title: "", a: parent.id, b: child, labelA: "mother", labelB: "daughter", kind: "parent" } as never);
+    },
+    { personId, long: longText("Suggested person"), word: LONG_WORD },
+  );
+  await expect(page.getByRole("region", { name: "Ties" }).getByRole("group", { name: "Suggested" })).toBeVisible();
 }
 
 /**
@@ -1265,6 +1344,24 @@ const SCREENS: ScreenCase[] = [
   { name: "Exhibition", path: "/app/museum/e/:id", type: "exhibition" },
   { name: "People", path: "/app/people", afterOpen: longRelationship },
   {
+    // A Drifting row (ADR 0131) with the longest name and Relationship: its "call · 120 days ago" stays on screen.
+    name: "People · Drifting",
+    path: "/app/people",
+    afterOpen: async (page) => {
+      await workLocally(page);
+      await inCore(
+        page,
+        async (core, a: { long: string }) => {
+          const day = new Date(Date.now() - 120 * 864e5).toISOString().slice(0, 10);
+          const id = (await core.createDocument({ type: "contacts_person", title: `Drifting ${a.long}`, fields: { relationship: a.long } })).id as string;
+          await core.createDocument({ type: "contacts_exchange", title: "", fields: { kind: "video", date: day, with: [id] } });
+        },
+        { long: LONG_WORD },
+      );
+      await expect(page.getByRole("region", { name: "Drifting" }).getByText("video call · 120 days ago")).toBeVisible();
+    },
+  },
+  {
     // Add a person with the longest names a person could type: the two name inputs stack on a phone.
     name: "People · Add person",
     path: "/app/people",
@@ -1316,11 +1413,17 @@ const SCREENS: ScreenCase[] = [
     },
   },
   { name: "Places · Add place, Here's places", path: "/app/places", afterOpen: openHere },
+  { name: "Person · Add tie with a Person picked", path: "/app/people/person/:id", type: "contacts_person", afterOpen: tieDialogWithLongPerson },
+  { name: "Person · Ties with a suggestion pending", path: "/app/people/person/:id", type: "contacts_person", afterOpen: tiesWithLongSuggestion },
   { name: "Person · Households", path: "/app/people/person/:id", type: "contacts_person", afterOpen: async (page) => { await longHouseholds(page); await expect(page.getByRole("link", { name: /^Another household/ })).toBeVisible(); } },
   { name: "Households", path: "/app/people/households", afterOpen: async (page) => { await longHouseholds(page); await expect(page.getByRole("link", { name: /^Another household/ })).toBeVisible(); } },
   { name: "Household", path: "/app/people/household/:id", type: "contacts_household", afterOpen: async (page) => { await workLocally(page); await expect(page.getByText("No members yet.")).toBeVisible(); } },
   { name: "Household · former members", path: "/app/people/household/:id", type: "contacts_household", afterOpen: async (page) => { await longHouseholds(page); await formerMember(page); } },
   { name: "Household · members", path: "/app/people/household/:id", type: "contacts_household", afterOpen: async (page) => { await longHouseholds(page); await expect(page.getByTestId("member").first()).toBeVisible(); } },
+  // An Exchange (ADR 0131): its Peek with many People and the longest body, and the Log an exchange dialog from a Person's page.
+  { name: "Exchange · Peek", path: "/app/people", afterOpen: longExchange(true) },
+  { name: "Person · Log an exchange", path: "/app/people/person/:id", type: "contacts_person", afterOpen: longExchange(false) },
+  { name: "Person · Last time", path: "/app/people/person/:id", type: "contacts_person", afterOpen: longLastTime },
   { name: "Thoughts", path: "/app/thoughts" },
   { name: "Thought", path: "/app/thoughts/:id", type: "thought" },
   { name: "Notes · Sources", path: "/app/notes" },

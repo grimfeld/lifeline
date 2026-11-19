@@ -1,4 +1,5 @@
-import { PERSON_TYPE, type Document } from "@lifeline/core";
+import { EXCHANGE_TYPE, PERSON_TYPE, type Document } from "@lifeline/core";
+import type { ExchangeKind } from "./exchanges";
 
 /**
  * The Person (CONTEXT.md, ADR 0113): someone I know, or knew. The Contacts
@@ -15,6 +16,8 @@ import { PERSON_TYPE, type Document } from "@lifeline/core";
  * - `addresses`: `Address[]` (below).
  * - `contactDetails`: `ContactDetail[]` (below).
  * - `excludedFromDrifting`: boolean (#413).
+ * - `dismissedTies`: `{ otherId, kind }[]` — Suggested Ties dismissed for good,
+ *   on both People of the pair (ADR 0130).
  *
  * Keeping Addresses and Contact details as two keys on the Person is what
  * lets the agent wall (ADR 0114) strip them from every answer in one place.
@@ -96,6 +99,8 @@ export interface Person extends Document {
   contactDetails?: ContactDetail[];
   /** Left out of Drifting by choice (#420). Absent means in. */
   excludedFromDrifting?: boolean;
+  /** Suggested Ties dismissed for good (ADR 0130), `{ otherId, kind }[]`: App-owned, guarded, hidden. */
+  dismissedTies?: { otherId: string; kind: TieKind }[];
 }
 
 /**
@@ -124,7 +129,12 @@ export interface Tie extends Document {
   b: string;
   labelA: string;
   labelB: string;
+  /** What the Tie means, read from `a` to `b` (ADR 0130); absent for free words. The words stay what is shown. */
+  kind?: TieKind;
 }
+
+/** A Tie's meaning, read from end `a` to end `b`: `parent` is "a is b's parent". */
+export type TieKind = "parent" | "child" | "sibling" | "partner" | "grandparent" | "grandchild" | "auntUncle" | "nieceNephew" | "cousin";
 
 /** The type of a Household (ADR 0117): App-prefixed, as Person's is, so a user's own `household` type stays theirs. */
 export const HOUSEHOLD = "contacts_household";
@@ -155,5 +165,25 @@ export interface Household extends Document {
   type: typeof HOUSEHOLD;
   aliases: string[];
   members: Membership[];
+  body?: string;
+}
+
+/** The Exchange's type (ADR 0131): named in Core (`EXCHANGE_TYPE`), so the Talked family reads it without importing Contacts. */
+export const EXCHANGE = EXCHANGE_TYPE;
+
+/** Where a new Exchange lands (a home, never a rule). */
+export const EXCHANGES_FOLDER = "People/Exchanges";
+
+/**
+ * An **Exchange** (CONTEXT.md, ADR 0131): a call, video call, message or letter
+ * with `with` (Person ids; none once all of them were deleted), on `date`
+ * (today or before), with an optional body for what was said. Its title is
+ * derived from its kind and its People's names, and stored.
+ */
+export interface Exchange extends Document {
+  type: typeof EXCHANGE_TYPE;
+  kind: ExchangeKind;
+  date: string;
+  with: string[];
   body?: string;
 }

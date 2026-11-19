@@ -1,6 +1,7 @@
 // Helpers for shell/playwright.config.ts, kept apart so node --test can reach them.
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, linkSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
+import { tmpdir, totalmem } from "node:os";
 import { join } from "node:path";
 
 /** Where cloud containers ship their Chromium (and cannot download another). */
@@ -56,4 +57,139 @@ export function preinstalledChromium(dir = PW_BROWSERS, platform = process.platf
     }
   }
   return undefined;
+}
+
+/**
+ * How many e2e runs may share this machine at once (#596): `E2E_SLOTS` when set, `0` for no
+ * limit; otherwise one per 5 GB of memory, at least one. Each run starts its own Vite server
+ * (about 1.1 GB) and a Chromium per worker, and six at once on 15 GB ran out of memory.
+ */
+export function slotCount(env = process.env, memory = totalmem()) {
+  const set = env.E2E_SLOTS?.trim();
+  if (set) {
+    const n = Number(set);
+    if (!Number.isInteger(n) || n < 0) throw new Error(`E2E_SLOTS must be a whole number, 0 for no limit: got "${set}"`);
+    return n;
+  }
+  return Math.max(1, Math.floor(memory / 5e9));
+}
+
+/** Whether process `pid` still runs (EPERM: it does, as another user's). */
+function alive(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (e) {
+    return e.code === "EPERM";
+  }
+}
+
+const slotFile = (dir, i) => join(dir, `slot-${i}.json`);
+const readSlot = (file) => {
+  try {
+    const held = JSON.parse(readFileSync(file, "utf8"));
+    return Number.isInteger(held?.pid) && held.pid > 0 && typeof held.worktree === "string" ? held : undefined;
+  } catch {
+    return undefined;
+  }
+};
+/** A run's worktree as the waiting line shows it: printable characters only. */
+const printable = (text) => text.replace(/[\u0000-\u001f\u007f-\u009f]/g, "?");
+
+/**
+ * Clears slot file `file` when the run in it is gone, or it isn't a lock at all (another
+ * program's file, or one a crash left unreadable). Done under `<file>.reclaim`, a directory
+ * only one run can create, so two runs that find the same dead lock can't both clear it and
+ * then each take the slot; the lock is read again under it, in case a live run took the slot
+ * since. A `.reclaim` older than a minute was left by a run killed mid-clear, and goes.
+ */
+function clearIfDead(file, isAlive) {
+  const mutex = `${file}.reclaim`;
+  try {
+    if (Date.now() - statSync(mutex).mtimeMs > 60_000) rmSync(mutex, { recursive: true, force: true });
+  } catch {
+    // No mutex: the usual case.
+  }
+  try {
+    mkdirSync(mutex);
+  } catch {
+    return; // Another run is clearing it.
+  }
+  try {
+    const inode = statSync(file, { throwIfNoEntry: false })?.ino;
+    const held = readSlot(file);
+    // Only the lock just read: never one a live run has linked in since.
+    if (inode !== undefined && (!held || !isAlive(held.pid)) && statSync(file, { throwIfNoEntry: false })?.ino === inode) rmSync(file, { force: true });
+  } finally {
+    rmSync(mutex, { recursive: true, force: true });
+  }
+}
+
+/**
+ * Takes the first free one of `count` slots in `dir`: a lock file holding the run's pid and
+ * worktree. It is written whole under a name of this run's own, then linked in as the slot,
+ * which fails when the slot is taken: no run ever sees a half-written lock. A lock whose
+ * process is gone is free (`clearIfDead`). Returns `{ slot, release }`, or `{ holders }`
+ * when every slot is taken.
+ */
+export function tryTakeSlot({ dir, count, pid = process.pid, worktree, isAlive = alive }) {
+  mkdirSync(dir, { recursive: true });
+  const mine = join(dir, `run-${pid}.json`);
+  writeFileSync(mine, JSON.stringify({ pid, worktree }));
+  const holders = [];
+  try {
+    for (let i = 0; i < count; i++) {
+      const file = slotFile(dir, i);
+      if (existsSync(file)) clearIfDead(file, isAlive);
+      try {
+        linkSync(mine, file);
+        return {
+          slot: i,
+          release: () => {
+            if (readSlot(file)?.pid === pid) rmSync(file, { force: true });
+          },
+        };
+      } catch (e) {
+        if (e.code !== "EEXIST") throw e;
+        holders.push(readSlot(file) ?? { pid: 0, worktree: `${file} (unreadable; cleared on the next try)` });
+      }
+    }
+    return { holders };
+  } finally {
+    rmSync(mine, { force: true });
+  }
+}
+
+/**
+ * Takes a slot, waiting while every one is taken: it says which runs hold them once, and
+ * again only when that changes. Resolves to the slot, or undefined when `count` is 0. The
+ * slot goes back when this process exits; a run killed outright leaves a lock its next
+ * taker finds dead.
+ */
+export async function takeSlot({
+  count,
+  dir = join(tmpdir(), `lifeline-e2e-slots-${process.getuid?.() ?? "user"}`),
+  worktree,
+  pid = process.pid,
+  isAlive = alive,
+  log = (line) => console.log(line),
+  sleep = (ms) => new Promise((r) => setTimeout(r, ms)),
+  every = 3000,
+}) {
+  if (count === 0) return undefined;
+  let said = "";
+  for (;;) {
+    const got = tryTakeSlot({ dir, count, pid, worktree, isAlive });
+    if ("slot" in got) {
+      process.once("exit", got.release);
+      if (said) log(`e2e: slot ${got.slot + 1} of ${count} is free; starting`);
+      return got.slot;
+    }
+    const line = got.holders.map((h) => `${printable(h.worktree)} (pid ${h.pid})`).sort().join(", ");
+    if (line !== said) {
+      log(`e2e: all ${count} slots are taken, by ${line}; waiting for one (E2E_SLOTS sets the count, shell/e2e/README.md)`);
+      said = line;
+    }
+    await sleep(every);
+  }
 }

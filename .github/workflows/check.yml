@@ -12,6 +12,10 @@ on:
         type: choice
         options: [both, pb, mcp]
         default: both
+      gate:
+        description: Run the whole e2e gate on this branch, as an integration PR does (no deploy unless on master)
+        type: boolean
+        default: false
 permissions:
   contents: read
 # A new push to a PR supersedes its running check; master runs are never cancelled
@@ -71,18 +75,19 @@ jobs:
   # An integration PR (pnpm integrate, ADR 0096) runs the whole gate once: it is the
   # gate before master, and the only run that sees the batch's PRs together. Either way
   # only the gate projects (ADR 0129): the UI checks (screens, a11y-names) and the Demo
-  # run nightly (e2e.yml), and a gate run never builds the Demo.
+  # run nightly (e2e.yml), and a gate run never builds the Demo. A manual run with `gate`
+  # runs the whole gate on its branch, to time the runners before a change to them lands.
   e2e-plan:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || inputs.gate
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
       run: ${{ steps.plan.outputs.run }}
-      files: ${{ steps.plan.outputs.files }}
       projects: ${{ steps.plan.outputs.projects }}
       repeat: ${{ steps.plan.outputs.repeat }}
       retries: ${{ steps.plan.outputs.retries }}
-      shards: ${{ steps.plan.outputs.shards }}
+      matrix: ${{ steps.plan.outputs.matrix }}
+      playwright: ${{ steps.plan.outputs.playwright }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -94,11 +99,11 @@ jobs:
       - id: specs
         env:
           BASE: origin/${{ github.base_ref }}
-          INTEGRATION: ${{ startsWith(github.head_ref, 'integration/') }}
+          INTEGRATION: ${{ startsWith(github.head_ref, 'integration/') || inputs.gate }}
         run: |
           echo "projects=--project=desktop --project=mobile" >> "$GITHUB_OUTPUT"
           if [ "$INTEGRATION" = true ]; then
-            echo "Integration PR: the whole gate."
+            echo "Integration PR (or a manual gate run): the whole gate."
             echo "files=" >> "$GITHUB_OUTPUT"
             echo "full=true" >> "$GITHUB_OUTPUT"
             exit 0
@@ -126,8 +131,10 @@ jobs:
         run: pnpm install --frozen-lockfile
       # Each changed case three times, no retries: a case that needs one is the flake this
       # job is here to catch. Past 150 cases once, on four runners; below that one runner,
-      # since each pays about three minutes of setup. The whole gate (integration PR) runs
-      # once on four runners, with the config's retry.
+      # since each pays a minute or two of setup. The whole gate (integration PR) runs
+      # once on four runners, with the config's retry. Four runners split the spec files by
+      # running time (shell/e2e/durations.json, scripts/e2e-shards.mjs), not Playwright's
+      # --shard, which splits by count and leaves the slow files together on one runner.
       - id: plan
         if: steps.specs.outputs.none != 'true'
         working-directory: shell
@@ -137,29 +144,39 @@ jobs:
           FULL: ${{ steps.specs.outputs.full }}
         run: |
           cases=$(pnpm exec playwright test --list $FILES $PROJECTS | sed -n 's/^Total: \([0-9]*\) test.*/\1/p')
-          if [ "$FULL" = true ]; then repeat=1; retries=; shards='[1,2,3,4]'
-          elif [ "$cases" -gt 150 ]; then repeat=1; retries=--retries=0; shards='[1,2,3,4]'
-          else repeat=3; retries=--retries=0; shards='[1]'
+          if [ "$FULL" = true ]; then repeat=1; retries=; runners=4
+          elif [ "$cases" -gt 150 ]; then repeat=1; retries=--retries=0; runners=4
+          else repeat=3; retries=--retries=0; runners=1
           fi
-          echo "$cases cases, each run $repeat time(s), on shards $shards"
+          # Even on one runner: the plan names each file so that it matches no other.
+          pnpm exec playwright test --list --reporter=json $FILES $PROJECTS > "$RUNNER_TEMP/list.json"
+          matrix=$(node ../scripts/e2e-shards.mjs plan "$runners" "$RUNNER_TEMP/list.json" e2e/durations.json)
+          echo "$cases cases, each run $repeat time(s), on $runners runner(s): $matrix"
           {
             echo "run=true"
-            echo "files=$FILES"
             echo "projects=$PROJECTS"
             echo "repeat=$repeat"
             echo "retries=$retries"
-            echo "shards=$shards"
+            echo "matrix=$matrix"
+            # The runners' image, which holds this Playwright's Chromium and the libraries it needs.
+            echo "playwright=$(node -p "require('./package.json').devDependencies['@playwright/test'].replace(/^[\\^~]/, '')")"
           } >> "$GITHUB_OUTPUT"
 
   e2e-changed:
     needs: e2e-plan
     if: needs.e2e-plan.outputs.run == 'true'
+    name: e2e-changed (${{ matrix.shard }})
     runs-on: ubuntu-latest
+    # Playwright's own image: its Chromium and system libraries come with it, where
+    # `playwright install --with-deps` spent anywhere from 15 s to 6 min in apt, and that
+    # spread alone kept the runners from finishing together.
+    container:
+      image: mcr.microsoft.com/playwright:v${{ needs.e2e-plan.outputs.playwright }}-noble
+      options: --ipc=host
     timeout-minutes: 60
     strategy:
       fail-fast: false
-      matrix:
-        shard: ${{ fromJson(needs.e2e-plan.outputs.shards) }}
+      matrix: ${{ fromJson(needs.e2e-plan.outputs.matrix) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
@@ -168,37 +185,34 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # Chromium keyed on the Playwright version, so a run downloads it only after a bump.
-      - id: playwright
-        run: echo "version=$(node -p "require('./shell/package.json').devDependencies['@playwright/test']")" >> "$GITHUB_OUTPUT"
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
-      # Still run on a cache hit: --with-deps installs the system libraries.
-      - run: pnpm --filter @lifeline/shell exec playwright install --with-deps chromium
-      # Each shard runs the setup project (seed) its cases depend on.
+      # Each runner runs the setup project (seed) its cases depend on.
       - working-directory: shell
-        run: pnpm exec playwright test $FILES $PROJECTS --repeat-each=$REPEAT $RETRIES --shard=$SHARD/$TOTAL
+        run: pnpm exec playwright test $FILES $PROJECTS --repeat-each=$REPEAT $RETRIES
         env:
-          FILES: ${{ needs.e2e-plan.outputs.files }}
+          FILES: ${{ matrix.files }}
           PROJECTS: ${{ needs.e2e-plan.outputs.projects }}
           REPEAT: ${{ needs.e2e-plan.outputs.repeat }}
           RETRIES: ${{ needs.e2e-plan.outputs.retries }}
-          SHARD: ${{ matrix.shard }}
-          TOTAL: ${{ strategy.job-total }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
           name: playwright-report-changed-${{ matrix.shard }}
           path: shell/playwright-report
           retention-days: 14
+      # Each case's time, to refresh shell/e2e/durations.json from (shell/e2e/README.md).
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: e2e-results-${{ matrix.shard }}
+          path: shell/e2e-results.json
+          retention-days: 14
+          if-no-files-found: ignore
 
   # One stable name for the e2e result, required by the ruleset on master (ship.yml,
   # docs/agents/shipping.md): the shards' names change with their count, and auto-merge
   # waits only for required checks, so a red integration run must fail here.
   e2e:
-    if: always() && github.event_name == 'pull_request'
+    if: always() && (github.event_name == 'pull_request' || inputs.gate)
     needs: [e2e-plan, e2e-changed]
     runs-on: ubuntu-latest
     timeout-minutes: 5

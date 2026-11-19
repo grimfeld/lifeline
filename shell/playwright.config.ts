@@ -1,5 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
-import { NIGHTLY_SPECS, UI_CHECK_SPECS, free, preinstalledChromium } from "../scripts/e2e-env.mjs";
+import { fileURLToPath } from "node:url";
+import { NIGHTLY_SPECS, UI_CHECK_SPECS, free, preinstalledChromium, slotCount, takeSlot } from "../scripts/e2e-env.mjs";
 
 /**
  * End-to-end tests (see e2e/README.md). The delivery gate (`mobile`, `desktop`) runs
@@ -12,6 +13,16 @@ async function freeBase() {
     if ((await free(base)) && (await free(base + 1)) && (await free(base + 2))) return base;
   }
   throw new Error("playwright.config: no three free ports from 1421 on; set E2E_PORT");
+}
+
+// A slot before any server starts (#596): runs in several worktrees share the machine's
+// memory, so past one run per 5 GB the next one waits (E2E_SLOTS sets the count, 0 none).
+// Taken once, here in the main process; the workers load this file again with E2E_SLOT
+// already set. CI runs one run per runner, and a listing starts no server: neither waits.
+if (!process.env.E2E_SLOT && !process.env.CI && !process.argv.includes("--list")) {
+  const worktree = fileURLToPath(new URL("..", import.meta.url)).replace(/[\\/]$/, "");
+  const slot = await takeSlot({ count: slotCount(), worktree });
+  process.env.E2E_SLOT = slot === undefined ? "none" : String(slot);
 }
 
 // Its own vite servers, never ones found on the port: in another worktree those

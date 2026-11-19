@@ -13,7 +13,7 @@ const figure = (f: DocumentFigures) => ({ last: f.last, daysAgo: f.sinceLast, th
 /**
  * A Person as an agent reads it beyond its Fields (`describe`, ADR 0098): their
  * Occasions (an App-owned part, so no Field shows it), their Ties, read from
- * their side, and their Last seen and Last mentioned (ADR 0112), as their page
+ * their side, and their Last seen, Last talked and Last mentioned (ADR 0112, ADR 0131), as their page
  * shows them. Ties to People in the Private folder are
  * left out, and nothing there is counted. The agent wall (ADR 0114) is the
  * server's: nothing here reads Addresses or Contact details.
@@ -29,6 +29,7 @@ export async function describePerson(person: Document): Promise<Record<string, u
     ties,
     reports: {
       lastSeen: figure(documentFigures(index, person.id, today, sourceOf("seen", today))),
+      lastTalked: figure(documentFigures(index, person.id, today, sourceOf("talked", today))),
       lastMentioned: figure(documentFigures(index, person.id, today, sourceOf("mentioned", today))),
     },
   };

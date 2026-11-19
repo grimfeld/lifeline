@@ -545,16 +545,24 @@ The People who live together — Paul, Mary, Tom and Lily, "the Smiths" — as a
 _Avoid_: family (kin, which Ties say), group, home (an Address)
 
 ### Drifting
-The People I have not seen in a while: a ranking of Seen (Not seen in 90 days, a fixed window; Not mentioned as the alternative) over the People who have a Relationship, minus any I have chosen to leave out. Someone I have never seen at all is drifting too, ahead of everyone seen. Where the People Module asks "who have I lost touch with?". Derived, like every Report; never a reminder.
+The People I have not been in touch with in a while: a ranking by when I was last **in touch** — the later of my last Seen and last Talked, read as dates and never added as counts (Not in touch in 90 days, a fixed window; Not mentioned as the alternative) — over the People who have a Relationship, minus any I have chosen to leave out. Someone I have never been in touch with at all is drifting too, ahead of everyone else. Where the People Module asks "who have I lost touch with?". Derived, like every Report; never a reminder.
 _Avoid_: neglected, overdue, stale, reminder
+
+### Exchange
+A call, video call, message or letter with one or more People, on a day — "Called Grandma" — owned by the Contacts App: its **kind**, its day (today or before, never a time and never a day to come), the People it was with (a Household picked there adds its current members, as an Event's With does) and an optional body for what was said, the place to keep what someone told me so I have it next time. Counts as **Talked** for each of its People, never as Seen. Not an Event (it stands on no time Surface, only one line in the Daylog), not Linkable (its title is derived: "Call · Grandma"). Wikilinks in its body are Backlinks only: being told about someone is not talking to them.
+_Avoid_: call (one kind), conversation, interaction, contact (the Person), touch
 
 ### People field
 A built-in Links field to People that another App's type carries, so a Person is linked from where things happen and not only from bodies: an Event's **With** (who was there — what Seen counts), a Task's **For**, a Transaction's **For** (a gift, a shared bill), a work's **Recommended by** (beside its Reason, which stays free text). Offered, with name completion, in the owning App's own dialog and in its Peek; a source of Backlinks like any Link. The owning App keeps the field; Contacts only owns the Person it points to. The user may add Person-linked Fields of their own to any other type.
 _Avoid_: attendees, participants, mention (a wikilink's), tag
 
 ### Tie
-How two People stand to each other — Anne and Léa, *mother* / *daughter*; Anne and Marc, *partner* / *partner* — entered once, from either Person's page, with a label for each end, and shown on both pages read from that Person's side ("daughter: Léa" on Anne's, "mother: Anne" on Léa's). Labels are the user's own words, never a fixed family vocabulary. Never involves me: I am no Person. Not a wikilink (that says one Document mentions another, not how they are related), not a Link field (one-way).
+How two People stand to each other — Anne and Léa, *mother* / *daughter*; Anne and Marc, *partner* / *partner* — entered once, from either Person's page, with a label for each end, and shown on both pages read from that Person's side ("daughter: Léa" on Anne's, "mother: Anne" on Léa's). Labels are the user's own words; a Tie may also carry a **kind** (parent ↔ child, sibling, partner, grandparent ↔ grandchild, aunt/uncle ↔ niece/nephew, cousin), optional and beside the words: the kind is the meaning, the words are what is shown. The Tie dialog's preset chips fill both words and the kind in one tap; a Tie of free words ("godmother") has none, and a Tie whose words are a matching preset pair reads as that kind without being rewritten (ADR 0130). Never involves me: I am no Person. Not a wikilink (that says one Document mentions another, not how they are related), not a Link field (one-way).
 _Avoid_: relation, relationship (mine to a Person), link, connection
+
+### Suggested Tie
+A Tie that follows from a Person's kinded Ties — Tom and Lily both Paul's children, so "Tom is Lily's brother"; Paul's wife Alice, so "Alice is Lily's mother" — offered on each of the two People's Ties cards, one step at a time, by fixed rules (ADR 0130). Derived, never stored; added only on request, never silently, like an Unlinked mention, and then a Tie like any other. Dismissible, for good, for that pair and kind (held on both People); never offered for a pair already tied in any way, or from free-word Ties.
+_Avoid_: inferred tie, automatic tie, deduction
 
 ### Relationship
 What a Person is to me — *my aunt*, *colleague*, *childhood friend* — a label of my own on that Person. Not a Tie: a Tie is between two People, and I am not one.
@@ -592,7 +600,7 @@ _Avoid_: unlinked reference, suggestion, candidate, "unlinked here" (old label f
 Core Contract: a Document type whose Documents are wikilink targets by title and alias, and receive backlinks. A type may also supply **derived names** (a Person's Given name resolves `[[Anne]]` without being copied into aliases) and **members** a link reaches (a Household's People) — ADR 0117. Declarable by data (a user-defined type just says so).
 
 ### Report
-A read-only figure or table derived from the Documents of one type and the links to them — who was mentioned most this month, when a Place was last visited, how often a person comes up over time. Two families never added together: **Mentioned** counts Days that link to a Document, **Seen** counts Events that link to it, each once per day (**Visited**, for a Place; an Event's At counts toward a Place, never toward a Person's Seen). A link to a Household counts for each member on that date (Household reach, ADR 0117). Each type chooses its own Reports. Derived, never logged, never stored. Shown on a Journal period, on one Document, on the type's own page, and placeable as a Card. Not a Stat (a Stat is a series the user logs).
+A read-only figure or table derived from the Documents of one type and the links to them — who was mentioned most this month, when a Place was last visited, how often a person comes up over time. Three families never added together: **Mentioned** counts Days that link to a Document, **Seen** counts Events that link to it (**Visited**, for a Place; an Event's At counts toward a Place, never toward a Person's Seen), **Talked** counts Exchanges whose People include it, each once per day. A link to a Household counts for each member on that date (Household reach, ADR 0117). Each type chooses its own Reports. Derived, never logged, never stored. Shown on a Journal period, on one Document, on the type's own page, and placeable as a Card. Not a Stat (a Stat is a series the user logs).
 _Avoid_: stat, statistic, insight, summary, analytics
 
 ### Role

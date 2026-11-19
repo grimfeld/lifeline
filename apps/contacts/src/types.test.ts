@@ -34,7 +34,13 @@ describe("a Person as a link target (ADR 0113)", () => {
 });
 
 describe("a Household's Reports (ADR 0117)", () => {
-  it("are Last seen and Last mentioned, as a Person's: what links to it, by name", () => {
-    expect(reportsOf(householdTypeDef).map((r) => r.kind)).toEqual(["lastSeen", "last"]);
+  it("are Last seen, Last talked and Last mentioned, as a Person's: what links to it, by name", () => {
+    expect(reportsOf(householdTypeDef).map((r) => r.kind)).toEqual(["lastSeen", "lastTalked", "last"]);
+  });
+});
+
+describe("a Person's Reports (ADR 0131)", () => {
+  it("start with Last seen, Last talked and Last mentioned, then Top seen for a Journal period", () => {
+    expect(reportsOf(personTypeDef).map((r) => r.kind)).toEqual(["lastSeen", "lastTalked", "last", "topSeen"]);
   });
 });

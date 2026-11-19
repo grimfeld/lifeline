@@ -20,7 +20,7 @@ Workspace, A to Z under a letter each (a name that starts with no letter goes un
   **Upcoming** Card on any Screen, as a list, with its own number of days ahead.
 - **Badges** on each row in Everyone: what they are to you, their next Occasion when it is in the
   next 30 days ("Birthday in 9 days · turns 61"), **drifting** with how many days when they are in
-  Drifting (below), counted the way Drifting is switched (Not seen or Not mentioned), and their Tags.
+  Drifting (below), counted the way Drifting is switched (Not in touch or Not mentioned), and their Tags.
 - **Search** matches a name or any alias, ignoring case and accents.
 - **Tidy given names…** — a notice above Upcoming, shown only while some Person has their given name
   typed as an alias: their name starts with one of their own aliases ("Anne Dupont", alias "Anne") and they
@@ -35,10 +35,15 @@ Workspace, A to Z under a letter each (a name that starts with no letter goes un
 ### Drifting
 
 **Drifting** sits above Everyone and answers "who have I lost touch with?". It lists the People
-who have a **Relationship** and whom you have **not seen in 90 days** (a fixed window, with no setting): first anyone you have
-never seen ("Never seen"), then the longest unseen, each with how many days it has been. Switch
-it to **Not mentioned** to count the Days that link to them instead of the Events. Anyone
-without a Relationship is not listed. It is only a list: Lifeline never reminds you.
+who have a **Relationship** and whom you have **not been in touch with in 90 days** (a fixed window, with no
+setting). In touch means seen (an Event with them) or talked (an **Exchange** with them, see below),
+whichever was later: someone you call every week but rarely see is not drifting. First comes anyone
+you have never been in touch with ("Never in touch"), then the longest out of touch, each saying how
+you last were and when: "call · 120 days ago", "seen · 140 days ago". Seen wins a day you both saw
+and called them. The switch reads **Not in touch** (the default) or **Not mentioned**, which counts
+the Days that link to them instead ("mentioned · 150 days ago", "Never mentioned"). Anyone without a
+Relationship is not listed, and logging an Exchange doesn't add them. It is only a list: Lifeline
+never reminds you.
 
 **Leave out** on a row, or **Excluded from Drifting** on a Person's page (under **Edit**) and in their Peek,
 takes them out of Drifting, for someone you don't mean to see again. Untick it on their page to
@@ -53,7 +58,8 @@ aliases, then **Households:** with each Household they belong to as a link, and 
 (see Households, below). Under them, three buttons: **Call**, **Email** and **Profile** reach them by their first
 current phone number, email and handle; a former one is skipped. One they have none of is dimmed, and adds one of
 its kind: a dimmed **Email** opens the dialog on Email. Their next
-Occasion within the year sits beside them.
+Occasion within the year sits beside them, then **Log exchange**, which opens **Log an exchange…**
+with them already in **With** (see **Exchanges**, below).
 
 Below, two columns (one after the other on a phone):
 
@@ -69,13 +75,24 @@ Below, two columns (one after the other on a phone):
 - **About them** — the body: what you know of them, written with `[[links]]` and `#tags` like
   any page.
 - **Reports** — **Last seen** (the last day of an Event that links to them, through its **With**
-  or a `[[link]]` in its notes) and **Last
-  mentioned** (the last Day that links to them), side by side and never added together. Seen
+  or a `[[link]]` in its notes), **Last talked** (the last day of an Exchange with them in its
+  **With**) and **Last mentioned** (the last Day that links to them), side by side and never
+  added together. Seen
   counts an Event once per day it is on, every day of a trip, and nothing in the future; Tasks
   and Occasions never count. **Top seen** (who was on the most days of Events) shows on each
   [Journal](journal.md) period, as **People · Top seen**. A type can also choose **Seen count**, a
   **Seen heatmap** and **Not seen lately** in its editor, and each can be placed as a Report Card.
-- **Timeline** — everything that links to them, by month, newest first: Events with them, Tasks
+  Talked has the same five: **Last talked**, **Talked count**, **Top talked**, **Not talked
+  lately** and a **Talked heatmap**. It counts an Exchange's day once however many there were,
+  nothing to come, and only through its **With**: a `[[link]]` in what was said doesn't count.
+- **Last time** — the newest thing they told you, above the Timeline: the most recent Exchange or Event
+  with them (through its **With**, a Household of theirs included) that has something written: an
+  Exchange's **What was said**, an Event's **Notes**. It shows what it was ("Call", "Video call",
+  "Event · Lunch"), its day and how long ago ("3 days ago"), then the text, cut to four lines with **More**
+  (and **Less**) when it is longer. The newest day wins; on one day, the last one changed. A day still to
+  come never counts, and nothing written means no block at all. It is read from your Exchanges and Events,
+  never copied into their body: what you want to keep, write in **About them**.
+- **Timeline** — everything that links to them, by month, newest first: Events and Exchanges with them, Tasks
   and Transactions for them, books they recommended, and the Days and notes that name them, each
   once, saying what it is and how it links ("via With", "mentioned", or "via the Smiths" for a link
   to a Household of theirs). A **Today** line splits it:
@@ -87,8 +104,8 @@ Below, two columns (one after the other on a phone):
   seen them: its **With**, or a `[[link]]` to them in its notes ("Dinner with [[Marc]]"). An Event
   **At** their home (its At set to them) is listed, but never counts as having seen them.
 
-Deleting a Person takes them out of every People field that held them (an Event's **With**, a
-Task's **For**…); the Events, Tasks and the rest stay. A `[[link]]` to them in a body becomes an
+Deleting a Person takes them out of every People field that held them (an Event's or an Exchange's **With**, a
+Task's **For**…); the Events, Exchanges, Tasks and the rest stay. A `[[link]]` to them in a body becomes an
 unresolved link, as for any deleted page.
 
 ### Contact details
@@ -148,9 +165,46 @@ find the other Person by name, and give a word for each end ("mother" and "daugh
 stored once and shows on both pages, each read from its own side, with the other Person as a
 link. The dialog asks both ways round, by name: "Léa is Anne's…" and "Anne is Léa's…". The words
 are yours: "godmother", "ex" and "best friend's brother" all fit. Change or remove it under **Edit**
-on either page (with Undo) and both change. A Tie is never to you, only between two People.
+on either page (with Undo) and both change.
+
+Once you have picked the other Person, a row of **preset chips** sits under the first question:
+daughter, son, child, sister, brother, sibling, mother, father, parent, wife, husband, partner,
+the grandparent and grandchild words, niece, nephew, aunt, uncle and cousin. Tap one and both
+words fill in: tap "daughter" on Anne's page and Anne's word becomes "mother" (or "father", or
+"parent"). Lifeline picks it from what you have already written about Anne: if every preset word
+in her own Ties is female, "mother"; if all are male, "father"; with mixed words, or none yet,
+"parent". Nobody is asked their gender. The chip you tapped shows as pressed.
+
+A chip also sets the Tie's **kind**, what the words mean (parent and child, sibling, partner and
+so on). The words stay yours to change: "mum" in place of "mother" keeps the kind. Tap the
+pressed chip again to clear the kind and keep the words. A Tie with only free words has no kind
+and works as it always did. A Tie you made before chips existed whose words are a matching pair
+("mother" and "daughter", in any case) counts as that kind, with nothing rewritten. It keeps
+that kind only while its words still form that pair: change one to "mum" and the kind is gone;
+to keep it with your own words, tap the chip first. Claude reads
+Ties as words only.
+
+A Tie is never to you, only between two People.
 Deleting a Person removes their Ties; the other Person's page is untouched. A Tie is not a link
 in a body, so it adds no Backlink and counts for no Report.
+
+**Suggested ties.** From Ties that have a kind, each Person's Ties card **suggests** the Ties that follow, under a
+**Suggested** heading: with Paul the father of Tom and of Lily, Lily's card offers "Tom is Lily's
+brother" and Tom's "Lily is Tom's sister" (the words follow what you wrote: Tom is a "son", Lily a
+"daughter"). Lifeline suggests, one step at a time:
+
+- children of the same parent as siblings;
+- a parent's parent as a grandparent;
+- a parent's brother or sister as an aunt or uncle, and their children as cousins;
+- a brother's or sister's parent as a parent;
+- a parent's partner as a parent ("Alice is Lily's mother", with Alice Paul's wife).
+
+Nothing is added on its own. **Add** makes it a real Tie, shown on both pages like any other, and
+any Ties that follow from it are suggested in turn. **Dismiss** hides it on both pages for good,
+whatever Ties change later; **Undo** on the message brings it back, and there is no other list of
+dismissed ones. With two or more suggestions, **Add all** adds them at once. Two People already
+tied in any way, even by free words, are never suggested, and neither is anyone outside this
+Workspace. Free-word Ties suggest nothing, and nor does Claude: suggestions live on the card only.
 
 Removing anything from a Person's page (an Occasion, an Address, a Contact detail or a Tie)
 happens at once, with **Undo** on the message that follows: it puts back just that one, even
@@ -168,7 +222,7 @@ mother in another town is his Tie, not a member, and Mary keeps her own name and
   **Add household** takes a name and opens its page.
 - **A Household's page** — its name, underlined with dashes (click it to rename it; every
   `[[link]]` to it follows), its **Members**, its **Aliases** and **About it**, its body, then its
-  own **Reports** (**Last seen** and **Last mentioned**) and **Timeline**: what links to the
+  own **Reports** (**Last seen**, **Last talked** and **Last mentioned**) and **Timeline**: what links to the
   Household itself, by name, each opening in a Peek. **Add member** finds a Person by name or
   alias; the cross beside a member takes them out, with Undo.
   Each member's name opens their page. The calendar button beside a member sets **Since** and
@@ -191,7 +245,8 @@ mother in another town is his Tie, not a member, and Mary keeps her own name and
   where you can change its aliases, members and Tags; **Open** goes to its page.
 - **A link to a Household counts for its members.** "Dinner at `[[the Smiths]]`" in a Day or an
   Event stands on each member's **Timeline** ("via the Smiths") and counts toward their **Last
-  seen** and **Last mentioned**, so toward **Drifting** too, as if you had named each of them. A
+  seen** and **Last mentioned**, so toward **Drifting** too, as if you had named each of them.
+  A Household in an Exchange's With counts toward each member's **Last talked** the same way. A
   Day or Event that names someone and their Household is one entry, as the direct link.
 - **A link counts for whoever lived there on its date.** The Day's date, or an Event's days, decide
   which members it reaches (Since and Until included), so a past dinner keeps counting for someone
@@ -201,6 +256,40 @@ mother in another town is his Tie, not a member, and Mary keeps her own name and
   Household changes no Person.
 - The home stays each member's **Address**: a Household has none, and no Occasion or Contact
   detail.
+
+### Exchanges
+
+An **Exchange** is a call, video call, message or letter with one or more People, on a day: "I
+called Grandma". Log it with **Log an exchange…** (the Capture sheet, the palette, or **Log
+exchange** on a Person's page, which starts with them in With):
+
+- **With** — the People it was with, found by name or alias; typing a Household's name offers it,
+  and picking it adds its members of today, each removable, as in an Event's With. At least one:
+  **Save** waits for someone.
+- **Kind** — **Call** (the default), **Video call**, **Message** or **Letter**.
+- **Day** — today unless you pick another. Never a day to come: "An exchange is something that
+  happened. Plan a call as a Task or an Event." No time of day, no length, no who-called-whom.
+- **What was said** — optional, as long as you like: what they told you ("the hip surgery went
+  well, Lucie starts university in Lyon"), so you have it next time.
+
+Its title is made for you from the kind and the People: "Call · Grandma", "Message · Marc, Léa".
+People in the Private folder are never named in a title, even while it is open: one shows as
+"someone", several as "N people", after the names ("Call · Marc, someone").
+It is not a page you can `[[link]]` to. Renaming a Person renames their Exchanges; deleting one
+takes them out of With, and an Exchange left with nobody stays, as "Call · nobody", body and all.
+Moving a Person to another Workspace takes them out of the Exchanges they leave behind; an
+Exchange moved on its own keeps only the People of its new Workspace.
+
+- **Where it shows** — on the **Timeline** of each of its People ("via With"), and as one line in
+  its day's **Daylog**: "Called Grandma", "Video call with Grandma", "Messaged Grandma", "Letter ·
+  Grandma", several People joined ("Called Grandma, Grandpa"). It never stands on the Calendar,
+  the Schedule, the Agenda or Today: it is not an Event.
+- **What it counts toward** — each of its People's **Last talked** (see Reports, above), so it keeps
+  them off **Drifting**: a call 10 days ago means they are not drifting, however long since you saw them.
+- **Links in what was said** — `[[Lucie]]` in its body puts the Exchange on Lucie's Timeline as
+  "mentioned". Being told about someone is not talking to them: it counts toward no Report of hers.
+- **Its Peek** — click it on a Timeline (or in a Base of Exchanges) to change its With, Kind, Day
+  and what was said, or **Delete exchange** (with Undo).
 
 ### Linking to a Person
 
@@ -236,12 +325,16 @@ mother in another town is his Tie, not a member, and Mary keeps her own name and
 - **Add occasion…** — a birthday, anniversary or other Occasion for a Person found by name,
   alias or id; it has no screen, and is how Claude adds Occasions (`people_occasion_add`). Where: Claude
   only.
+- **Log an exchange…** — a call, video call, message or letter with People, on a day (today unless
+  you say), with what was said; see **Exchanges**, above. Where: the Capture sheet, the palette (Ctrl+K), a
+  Person's page (**Log exchange**), and Claude (`people_exchange_add`).
 - **Go to People** — the People home. Where: the palette.
 
 ## Capture
 
 **+** on the phone (or Ctrl+K at the desk) offers **Add person…** under People: just a name (or the two names), so
-you can add someone you just met before you forget it.
+you can add someone you just met before you forget it. **Log an exchange…** sits beside it, for the call
+you just hung up from.
 
 ## Ask Claude
 
@@ -255,10 +348,16 @@ you can add someone you just met before you forget it.
 - "Whose birthday is coming up?" — `people_upcoming` is the Upcoming Report for the next days,
   with the age each Birthday reaches; `agenda` lists Occasions too, as `occasion` entries apart
   from Deadlines, with the same age.
-- "When did I last see Anne?" — `get_document` on a Person adds their Last seen and Last
-  mentioned, from what Claude is allowed to read.
+- "When did I last see Anne?" — `get_document` on a Person adds their Last seen, Last talked and
+  Last mentioned, from what Claude is allowed to read.
 - "Who is Léa to Anne?" — `get_document` on a Person also lists their Ties, read from their side
   ("daughter: Léa"), leaving out anyone in the Private folder.
+- "I called Grandma, she said the hip surgery went well" — `people_exchange_add`, with the People
+  (by name, alias, Given name or id, at least one), the kind (`call`, `video`, `message` or
+  `letter`; a call unless said), the day (today unless said, never a day to come) and what was said.
+  An unknown or ambiguous name is refused with the candidates, as for an Occasion.
+- "What did Grandma tell me last time?" — `search_documents` finds Exchanges by what was said, with
+  their kind and day; `get_document` reads one whole, body included.
 - "What have I written about Anne?" — `search_documents`, `get_document`.
 - "Who lives at the Smiths'?" — `get_document` on a Household gives its name, aliases and its
   members by name, with the days each lived there when set (a past Until marks a former member), leaving
@@ -268,7 +367,7 @@ you can add someone you just met before you forget it.
 ### What Claude sees of a Person
 
 Claude reads a Person's name, Given and Family name, aliases, Relationship, Tags, Occasions, Ties, body, and any Field you
-added to Person yourself, and it can change those; it can add an Occasion.
+added to Person yourself, and it can change those; it can add an Occasion. It reads and logs Exchanges, what was said included.
 
 Claude never sees a Person's **Addresses** or **Contact details**, current or former, from any
 tool: searching for words of an address or a phone number finds nobody, and a Person's Pins on the

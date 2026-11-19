@@ -128,7 +128,7 @@ export type TitleRule = "name" | "date" | "derived";
  * rows of Core's `document_types` collection. Both land in one registry.
  */
 /** The Report kinds a type may choose (ADR 0076): ranking kinds rank a type's Documents, the others describe one Document. */
-export type ReportKind = "top" | "quiet" | "last" | "count" | "heatmap" | "topSeen" | "quietSeen" | "lastSeen" | "seenCount" | "seenHeatmap";
+export type ReportKind = "top" | "quiet" | "last" | "count" | "heatmap" | "topSeen" | "quietSeen" | "lastSeen" | "seenCount" | "seenHeatmap" | "topTalked" | "quietTalked" | "lastTalked" | "talkedCount" | "talkedHeatmap";
 /** A type's own words for the Seen family (ADR 0128): `{ verb: "visited", one: "visit", many: "visits" }`. */
 export interface SeenAs {
   verb: string;

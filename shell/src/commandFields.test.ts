@@ -44,6 +44,7 @@ const ADDS: Record<string, { command: string; as?: Record<string, string | strin
   sculpture: { command: "museum.add", as: { artistId: "artist" } },
   architecture: { command: "museum.add", as: { artistId: "artist" } },
   contacts_person: { command: "people.add" },
+  contacts_exchange: { command: "people.exchange-add" },
   atlas_place: { command: "places.add" },
   thought: { command: "thoughts.capture" },
   ledger_transaction: { command: "ledger.add", as: { accountId: "account", categoryId: "category" } },

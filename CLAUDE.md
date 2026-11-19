@@ -40,8 +40,8 @@ unit tests next to the code (ADR 0129). The commands are in `shell/e2e/README.md
   width only, or `@also-phone` for both: `test("…", { tag: "@phone" }, …)`. Never pick a
   width with `test.skip(isMobile)` or a viewport check (`scripts/e2e-widths.test.mjs`).
 - **At delivery:** a PR runs the gate specs it changes three times each (once on four runners
-  past 150 cases); every integration PR runs the whole gate, sharded four ways
-  (`.github/workflows/check.yml`). Both run the `desktop` and `mobile` projects only.
+  past 150 cases); every integration PR runs the whole gate; four runners split the
+  spec files by running time (`.github/workflows/check.yml`, `shell/e2e/durations.json`). Both run the `desktop` and `mobile` projects only.
 - **Nightly:** the UI checks (`screens.spec.ts`, `a11y-names.spec.ts`) and the Demo
   (`demo.spec.ts`) run only on master each night, with the gate (`.github/workflows/e2e.yml`).
   A PR changing them runs nothing for them in CI, so run the rows you touched before pushing.
@@ -85,7 +85,8 @@ name can match another agent's run.
 
 Agents working in parallel run only their own change's e2e specs, with
 `pnpm test:e2e:quiet` (dot reporter: a dot per case, then the failures); the whole gate runs once, before the integration
-branch merges. A subagent reports in ten lines at most: branch, commit, what failed, and
+branch merges. Runs share the machine through slots, one per 5 GB: a run that finds them all taken waits and says
+whose they are (`E2E_SLOTS` overrides; `shell/e2e/README.md`). A subagent reports in ten lines at most: branch, commit, what failed, and
 each decision it took.
 
 An orchestrator sets each subagent's `model`: `haiku` for lookups and for resolving a merge that conflicts (merge a clean branch yourself, inline), `sonnet` for
