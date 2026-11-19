@@ -24,6 +24,7 @@ The three families are still never added together as counts. **Drifting** alone 
 ## Consequences
 
 - An Exchange is not Linkable: its title is derived ("Call · Grandma") and `[[…]]` never targets one.
+- Its stored title never names a Person in the Private folder, even while it is open (ADR 0038): agents and a locked device read it. One shows as "someone", several as "N people", after the names.
 - An Exchange stays off the Calendar, the Schedule and Today; it reports one line to the Daylog ("Called Grandma").
 - A Person's page shows a **Last time** block: the newest Exchange or Event that reaches them and carries text.
 - An agent reads and writes Exchanges, bodies included; ADR 0114 still walls only Addresses and Contact details.

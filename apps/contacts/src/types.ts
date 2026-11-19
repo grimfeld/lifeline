@@ -1,7 +1,7 @@
 import { EXCHANGE_TYPE, PERSON_TYPE, getDocument, type DocumentTypeDef } from "@lifeline/core";
 import { AGENT_WALLED_KEYS, EXCHANGES_FOLDER, HOUSEHOLD, HOUSEHOLDS_FOLDER, PEOPLE_FOLDER, TIE, type Person } from "./domain/types";
 import { EXCHANGE_KINDS, exchangeTitle } from "./domain/exchanges";
-import { dropFromExchanges, keepExchangesTitled, withOf } from "./data/exchanges";
+import { dropFromExchanges, keepExchangesTitled, keepWithInside, withOf } from "./data/exchanges";
 import { describeHousehold, describePerson } from "./describe";
 import { removeTiesOf, tieIdsOf } from "./data/ties";
 import { householdHref, personHref } from "./constants";
@@ -44,7 +44,11 @@ export const personTypeDef: DocumentTypeDef = {
   },
   followers: (doc) => tieIdsOf(doc.id),
   // Out of the Households they leave behind: members belong to the Household's Workspace (ADR 0117).
-  onMove: (doc, workspace) => dropMembershipsOf(doc.id, workspace),
+  // And out of the Exchanges they leave behind, each titled from who is left (ADR 0131).
+  onMove: async (doc, workspace) => {
+    await dropMembershipsOf(doc.id, workspace);
+    await dropFromExchanges(doc.id, workspace);
+  },
   // Gone from every People field too (an Event's With, a Task's For…): the other Apps never import Contacts.
   unlinkOnDelete: true,
   // An agent reads their Ties and Reports (#404 story 92), and never their Addresses or Contact details (ADR 0114).
@@ -146,6 +150,8 @@ export const exchangeTypeDef: DocumentTypeDef = {
   builtIn: true,
   indexes: ["date"],
   afterSaveOf: { of: [PERSON_TYPE, EXCHANGE_TYPE], run: keepExchangesTitled },
+  // Moved, it keeps only the People of its new Workspace, and names only them (ADR 0118).
+  onMove: (doc, workspace) => keepWithInside(doc.id, workspace),
   // An agent's search says what kind and when, without a get_document per hit.
   searchFields: ["kind", "date"],
   fields: [
