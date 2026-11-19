@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { formatHuman } from "../dates";
 import { buildLinkIndex } from "./links";
-import { DEFAULT_REPORTS, agoText, periodReportsOf, reportLabel, seenSummary, documentFigures, lastText, reportWords, mentionDays, notMentionedSince, rankingRows, seenDays, sourceOf, reportsIn, reportsOf, topMentioned } from "./reports";
+import { DEFAULT_REPORTS, REPORT_KINDS, agoText, periodReportsOf, reportLabel, seenSummary, documentFigures, lastText, reportWords, mentionDays, notMentionedSince, rankingRows, seenDays, sourceOf, talkedDays, lastTalkedExchange, reportsIn, reportsOf, topMentioned } from "./reports";
 import type { Document, DocumentTypeDef } from "./types";
 import { PERSON_TYPE } from "../people";
+import { EXCHANGE_TYPE } from "./sourceDays";
 import { PLACE_TYPE } from "../places";
 
 const T = (id: string, extra: Partial<DocumentTypeDef> = {}): DocumentTypeDef => ({
@@ -208,6 +209,103 @@ describe("Seen (ADR 0112)", () => {
   });
   it("offers a Person Last seen and Last mentioned by default", () => {
     expect(reportsOf(T("person", { reports: [{ kind: "lastSeen" }, { kind: "last" }] })).map((r) => r.kind)).toEqual(["lastSeen", "last"]);
+  });
+});
+
+describe("Talked (ADR 0131)", () => {
+  type M = { personId: string; since?: string; until?: string };
+  const spans = (d: Document) => ((d.members ?? []) as M[]).map(({ personId, ...days }) => ({ id: personId, ...days }));
+  const talkTypes = [
+    T("person"),
+    T("household", { linkable: { members: spans } }),
+    T("daily", { titleRule: "date", linkable: { mentions: false } }),
+    T("event", { body: "none", fields: [{ key: "with", label: "With", kind: "links", linkType: ["person", "household"] }] }),
+    T(EXCHANGE_TYPE, { titleRule: "derived", linkable: false, fields: [{ key: "date", label: "Day", kind: "date" }, { key: "with", label: "With", kind: "links", linkType: ["person", "household"] }] }),
+  ];
+  const x = (id: string, date: string, withIds: string[], body = "") => ({ ...doc(id, EXCHANGE_TYPE, `Call · ${id}`, body), kind: "call", date, with: withIds }) as unknown as Document;
+  const today = "2026-10-18";
+  const talkDocs = [
+    doc("gran", "person", "Gran"),
+    doc("lucie", "person", "Lucie"),
+    doc("paul", "person", "Paul"),
+    doc("tom", "person", "Tom"),
+    // Tom moved out at the end of June.
+    { ...doc("smiths", "household", "the Smiths"), members: [{ personId: "paul" }, { personId: "tom", until: "2026-06-30" }] } as unknown as Document,
+    x("x1", "2026-10-01", ["gran"], "She told me about [[Lucie]]"),
+    x("x2", "2026-10-01", ["gran"]),
+    x("x3", "2026-10-11", ["gran"]),
+    x("x4", "2026-10-25", ["gran"]),
+    x("x5", "2026-06-15", ["smiths"]),
+    x("x6", "2026-08-15", ["smiths"], "and [[the Smiths]] again"),
+    { ...doc("e1", "event", "Lunch"), body: undefined, date: "2026-10-12", endDate: null, with: ["gran"] } as unknown as Document,
+    doc("d1", "daily", "2026-10-13", "[[Gran]]"),
+  ];
+  const tidx = buildLinkIndex(talkDocs, talkTypes);
+
+  it("counts an Exchange's day once however many there are, and nothing in the future", () => {
+    expect(talkedDays(tidx, "gran", today)).toEqual(["2026-10-01", "2026-10-11"]);
+    expect(talkedDays(tidx, "gran", "2026-10-30")).toEqual(["2026-10-01", "2026-10-11", "2026-10-25"]);
+  });
+  it("counts through With only: a wikilink in the body is a Backlink, not talking to them", () => {
+    expect(tidx.backlinksTo("lucie").map((b) => b.sourceId)).toEqual(["x1"]);
+    expect(talkedDays(tidx, "lucie", today)).toEqual([]);
+  });
+  it("keeps Talked apart from Seen and Mentioned", () => {
+    expect(seenDays(tidx, "gran", today)).toEqual(["2026-10-12"]);
+    expect(mentionDays(tidx, "gran")).toEqual(["2026-10-13"]);
+  });
+  it("counts a Household in With for whoever was a member that day (ADR 0117)", () => {
+    expect(talkedDays(tidx, "paul", today)).toEqual(["2026-06-15", "2026-08-15"]);
+    expect(talkedDays(tidx, "tom", today)).toEqual(["2026-06-15"]);
+    expect(talkedDays(tidx, "smiths", today)).toEqual(["2026-06-15", "2026-08-15"]);
+  });
+  it("feeds the kinds and figures through its source", () => {
+    expect(documentFigures(tidx, "gran", today, sourceOf("talked", today))).toMatchObject({ last: "2026-10-11", allTime: 2 });
+    expect(reportWords("talked")).toEqual({ count: "Talked", heatmap: "days talked", linker: "Exchange" });
+  });
+  it("mirrors Seen's kinds one for one in the catalogue, so the Reports editor offers them", () => {
+    const talked = REPORT_KINDS.filter((k) => k.source === "talked").map((k) => [k.kind, k.label, k.shape]);
+    expect(talked).toEqual([
+      ["topTalked", "Top talked", "top"],
+      ["quietTalked", "Not talked lately", "quiet"],
+      ["lastTalked", "Last talked", "last"],
+      ["talkedCount", "Talked count", "count"],
+      ["talkedHeatmap", "Talked heatmap", "heatmap"],
+    ]);
+  });
+  it("finds the newest Exchange that counts, none to come, none through a body link or a Household they had left", () => {
+    expect(lastTalkedExchange(tidx, "gran", today)).toMatchObject({ exchange: { id: "x3" }, day: "2026-10-11" });
+    expect(lastTalkedExchange(tidx, "gran", "2026-10-30")?.exchange.id).toBe("x4");
+    expect(lastTalkedExchange(tidx, "lucie", today)).toBeUndefined();
+    expect(lastTalkedExchange(tidx, "tom", today)?.exchange.id).toBe("x5");
+    expect(lastTalkedExchange(tidx, "paul", today)?.exchange.id).toBe("x6");
+  });
+  it("counts a Household in With for a member even when the notes also name them", () => {
+    const named = buildLinkIndex([...talkDocs, x("x7", "2026-09-01", ["smiths"], "[[Paul]] was there")], talkTypes);
+    expect(named.backlinksTo("paul").map((b) => b.sourceId)).toEqual(["x7"]);
+    expect(talkedDays(named, "paul", today)).toEqual(["2026-06-15", "2026-08-15", "2026-09-01"]);
+    expect(lastTalkedExchange(named, "paul", today)).toMatchObject({ exchange: { id: "x7" }, day: "2026-09-01" });
+  });
+  it("gives a Household named only in the notes no Talked day, for it or its members", () => {
+    const told = buildLinkIndex([...talkDocs, x("x8", "2026-09-05", ["gran"], "News of [[the Smiths]]")], talkTypes);
+    expect(told.reaches("paul").some((r) => r.sourceId === "x8")).toBe(true);
+    expect(talkedDays(told, "paul", today)).toEqual(["2026-06-15", "2026-08-15"]);
+    expect(talkedDays(told, "smiths", today)).toEqual(["2026-06-15", "2026-08-15"]);
+    expect(lastTalkedExchange(told, "paul", today)).toMatchObject({ exchange: { id: "x6" } });
+  });
+  it("names the Exchange logged last when several fall on the last day", () => {
+    const at = (d: Document, createdAt: string, kind: string) => ({ ...d, createdAt, kind }) as unknown as Document;
+    const sameDay = [
+      doc("gran", "person", "Gran"),
+      at(x("late", "2026-10-11", ["gran"]), "2026-10-11T20:00:00Z", "message"),
+      at(x("early", "2026-10-11", ["gran"]), "2026-10-11T09:00:00Z", "call"),
+    ];
+    const last = lastTalkedExchange(buildLinkIndex(sameDay, talkTypes), "gran", today);
+    expect(last).toMatchObject({ exchange: { id: "late", kind: "message" }, day: "2026-10-11" });
+  });
+  it("ranks Top talked and Not talked in N days", () => {
+    expect(rankingRows(tidx, "person", { kind: "topTalked" }, {}, today).map((r) => [r.docId, r.count])).toEqual([["gran", 2], ["paul", 2], ["tom", 1]]);
+    expect(rankingRows(tidx, "person", { kind: "quietTalked", days: 30 }, {}, today).map((r) => r.docId)).toEqual(["tom", "paul"]);
   });
 });
 

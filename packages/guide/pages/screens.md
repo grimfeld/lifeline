@@ -79,7 +79,9 @@ These work everywhere, on any type:
 - **Report** — a Report on a type or one Document: who comes up on the most Days, when it was
   last mentioned, a year as a heatmap. Over this month, this year or all time. **Mentioned**
   counts the Days that link to it; **Seen** (Top seen, Not seen lately, Last seen, Seen count,
-  Seen heatmap) counts the days of the Events that link to it, up to today. The two are never added.
+  Seen heatmap) counts the days of the Events that link to it, up to today; **Talked** (Top talked,
+  Not talked lately, Last talked, Talked count, Talked heatmap) counts the days of the Exchanges with
+  it in their With, up to today. The three are never added.
   A Place calls its Seen **Visited**: Top visited, Last visited, Visits, Visited heatmap.
   A link to a Household counts for whoever lived there on the link's date (see People).
 

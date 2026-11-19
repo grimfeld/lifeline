@@ -31,8 +31,8 @@ export const personTypeDef: DocumentTypeDef = {
   href: (d) => personHref(d.id),
   // A Pin for each current Address with coordinates, through the App's code and no geo Field (#418).
   locatablePins: addressPinsOf,
-  // Seen and Mentioned side by side, never added together (ADR 0112); Top seen rolls up on a Journal period (ADR 0128).
-  reports: [{ kind: "lastSeen" }, { kind: "last" }, { kind: "topSeen", n: 5 }],
+  // Seen, Talked and Mentioned side by side, never added together (ADR 0112, ADR 0131); Top seen rolls up on a Journal period (ADR 0128).
+  reports: [{ kind: "lastSeen" }, { kind: "lastTalked" }, { kind: "last" }, { kind: "topSeen", n: 5 }],
   order: 30,
   builtIn: true,
   // Their Ties go with them, and move with them between Workspaces (#412); their place in any Household goes too (ADR 0117).
@@ -116,8 +116,8 @@ export const householdTypeDef: DocumentTypeDef = {
   // A link to it counts for whoever was a member on the source's day (ADR 0117): Core's `reaches`.
   linkable: { subtitle: () => "Household", members: (doc) => memberSpansOf(doc.members) },
   href: (d) => householdHref(d.id),
-  // Its own page's Reports, as a Person's (ADR 0112): what links to it by name, never through its members.
-  reports: [{ kind: "lastSeen" }, { kind: "last" }],
+  // Its own page's Reports, as a Person's (ADR 0112, ADR 0131): what links to it by name, never through its members.
+  reports: [{ kind: "lastSeen" }, { kind: "lastTalked" }, { kind: "last" }],
   order: 31,
   builtIn: true,
   // An agent reads its name, aliases and the names of its members (ADR 0117), as it reads a Person.

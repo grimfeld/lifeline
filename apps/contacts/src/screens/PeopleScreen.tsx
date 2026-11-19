@@ -12,7 +12,7 @@ import { tidyCandidates } from "../domain/givenNames";
 import { activeFilter, byLetter, everyone, lastSeenLabel, relationshipsOf, rowNews, tagsOf, type RowNews } from "../domain/everyone";
 import { type Person } from "../domain/types";
 import { personHref } from "../constants";
-import { driftingFrom, lastDays, type DriftSource } from "../domain/drifting";
+import { driftingFrom, lastDays, lastTouches, type DriftSource } from "../domain/drifting";
 import { NextOccasionBadge, TagBadges } from "../components/Badges";
 import { usePeople } from "../data/repo";
 import { upcomingOccasions } from "../domain/occasions";
@@ -85,13 +85,13 @@ export function PeopleScreen() {
   const shown = useMemo(() => everyone(people, { query, relationship, tag }), [people, query, relationship, tag]);
   const index = useLinkIndex();
   const today = todayStr();
-  // Drifting by Seen or by Mentioned: the Drifting section's switch, and the row badges follow it.
-  const [driftSource, setDriftSource] = useState<DriftSource>("seen");
+  // Drifting by In touch or by Mentioned (ADR 0131): the Drifting section's switch, and the row badges follow it.
+  const [driftSource, setDriftSource] = useState<DriftSource>("inTouch");
   // Seen walks every Event that links to a Person: once per change to the index, never per keystroke in the search.
-  // Drifting reuses it; Mentioned is walked only while the switch is on it.
+  // Drifting's In touch reuses it beside the Exchanges; each source is walked only while the switch is on it.
   const lastSeen = useMemo(() => lastDays(index, people, { source: "seen", today }), [index, people, today]);
-  const lastMentioned = useMemo(() => (driftSource === "mentioned" ? lastDays(index, people, { source: "mentioned", today }) : null), [driftSource, index, people, today]);
-  const drifters = useMemo(() => driftingFrom(people, lastMentioned ?? lastSeen, today), [people, lastMentioned, lastSeen, today]);
+  const lastTouch = useMemo(() => lastTouches(index, people, { source: driftSource, today, seen: lastSeen }), [driftSource, index, people, today, lastSeen]);
+  const drifters = useMemo(() => driftingFrom(people, lastTouch, today), [people, lastTouch, today]);
   // Upcoming once, for the strip and the rows' badges both.
   const upcoming = useMemo(() => upcomingOccasions(people, today, UPCOMING_DAYS), [people, today]);
   const news = useMemo<RowNews>(() => rowNews(upcoming, drifters), [upcoming, drifters]);
@@ -124,7 +124,7 @@ export function PeopleScreen() {
       {/* UPCOMING (#416): the Occasions in the next days. Goes here, above Drifting. */}
       <UpcomingStrip items={upcoming} days={UPCOMING_DAYS} />
 
-      {/* DRIFTING (#420): who I have not seen for a while. Goes here, between Upcoming and Everyone. */}
+      {/* DRIFTING (#420, ADR 0131): who I have not been in touch with for a while. Goes here, between Upcoming and Everyone. */}
       {people.length > 0 && <DriftingSection rows={drifters} source={driftSource} onSourceChange={setDriftSource} />}
 
       <Section title="Everyone">

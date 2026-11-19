@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildLinkIndex, type Document, type DocumentTypeDef } from "@lifeline/core";
-import { householdTypeDef, personTypeDef } from "../types";
-import { driftingFrom, groupByRelationship, lastDays, type DriftSource } from "./drifting";
+import { exchangeTypeDef, householdTypeDef, personTypeDef } from "../types";
+import { driftLine, driftingFrom, groupByRelationship, lastDays, lastTouches, type DriftSource } from "./drifting";
 import type { Person } from "./types";
 
 const base = { folder: "", tags: [], createdAt: "2026-01-01", updatedAt: "", deleted: 0 as const };
@@ -14,7 +14,10 @@ const types: DocumentTypeDef[] = [
   personTypeDef,
   { id: "event", label: "Events", titleRule: "name", body: "none", fields: [{ key: "notes", label: "Notes", kind: "longtext" }], linkingText: ["notes"], builtIn: true },
   { id: "daily", label: "Days", titleRule: "date", body: "optional", fields: [], builtIn: true, linkable: { mentions: false } },
+  exchangeTypeDef,
 ];
+// An Exchange (ADR 0131): its People in With, what was said in the body.
+const talk = (id: string, date: string, withIds: string[], kind = "call", body = ""): Document => ({ ...base, id, type: "contacts_exchange", title: id, body, kind, date, with: withIds }) as unknown as Document;
 
 const today = "2026-11-08";
 const anne = P("Anne");
@@ -36,11 +39,11 @@ const docs: Document[] = [
 ];
 const idx = buildLinkIndex(docs, types);
 /** Drifting as the People home works it out: each Person's last day, then who drifts. */
-const drifting = (index: typeof idx, ps: readonly Person[], { source = "seen", today }: { source?: DriftSource; today: string }) => driftingFrom(ps, lastDays(index, ps, { source, today }), today);
+const drifting = (index: typeof idx, ps: readonly Person[], { source = "inTouch", today }: { source?: DriftSource; today: string }) => driftingFrom(ps, lastTouches(index, ps, { source, today }), today);
 const names = (rows: ReturnType<typeof driftingFrom>) => rows.map((r) => r.person.title);
 
 describe("Drifting", () => {
-  it("ranks Not seen in 90 days by default, longest unseen first", () => {
+  it("ranks Not in touch in 90 days by default, longest out of touch first", () => {
     expect(names(drifting(idx, people, { today }))).toEqual(["Anne", "Bob"]);
     expect(drifting(idx, people, { today })[0]).toMatchObject({ last: "2026-05-01", daysSince: 191 });
   });
@@ -77,8 +80,8 @@ describe("Drifting", () => {
 
 describe("Drifting from the last days already worked out", () => {
   it("drifts by the last days it is handed, whatever walked them", () => {
-    const last = new Map([["Anne", "2026-11-01"], ["Bob", "2026-01-01"]]);
-    expect(driftingFrom([anne, bob, cy], last, today).map((r) => [r.person.title, r.daysSince])).toEqual([["Cy", null], ["Bob", 311]]);
+    const last = new Map([["Anne", { day: "2026-11-01", how: "seen" as const }], ["Bob", { day: "2026-01-01", how: "call" as const }]]);
+    expect(driftingFrom([anne, bob, cy], last, today).map((r) => [r.person.title, r.daysSince, r.how])).toEqual([["Cy", null, null], ["Bob", 311, "call"]]);
   });
   it("gives each Person their last day, undefined when never", () => {
     const last = lastDays(idx, people, { source: "seen", today });
@@ -108,7 +111,57 @@ describe("Drifting through a Household (ADR 0117)", () => {
     const smiths = { ...base, id: "smiths", type: "contacts_household", title: "the Smiths", body: "", aliases: [], members: [{ personId: "Paul" }, { personId: "Mary" }] } as unknown as Document;
     const at = buildLinkIndex([...(pair as unknown as Document[]), smiths, ev("x", "2026-11-01", "Dinner at [[the Smiths]]"), day("2026-10-01", "[[the Smiths]]")], [...types, householdTypeDef]);
     expect(drifting(at, pair, { today })).toEqual([]);
+    expect(drifting(at, pair, { today, source: "mentioned" })).toEqual([]);
     expect(lastDays(at, pair, { source: "seen", today }).get("Mary")).toBe("2026-11-01");
     expect(lastDays(at, pair, { source: "mentioned", today }).get("Paul")).toBe("2026-10-01");
+  });
+});
+
+describe("Drifting by when I was last in touch (ADR 0131)", () => {
+  const gran = P("Gran");
+  const ida = P("Ida");
+  const jo = P("Jo");
+  const kit = P("Kit");
+  const lu = P("Lu");
+  const folks = [gran, ida, jo, kit, lu];
+  const at = buildLinkIndex(
+    [
+      ...(folks as unknown as Document[]),
+      // Gran: seen in the spring, called since.
+      ev("g1", "2026-04-01", "[[Gran]]"),
+      talk("t1", "2026-11-01", ["Gran"]),
+      // Ida: a call 120 days ago, seen 140 days ago.
+      talk("t2", "2026-07-11", ["Ida"]),
+      ev("i1", "2026-06-21", "[[Ida]]"),
+      // Jo: seen 140 days ago, a letter 200 days ago.
+      ev("j1", "2026-06-21", "[[Jo]]"),
+      talk("t3", "2026-04-22", ["Jo"], "letter"),
+      // Kit: only told about, in someone else's message.
+      talk("t4", "2026-11-02", ["Lu"], "message", "News of [[Kit]]"),
+    ],
+    types,
+  );
+
+  it("keeps someone whose only contact in 90 days is an Exchange off Drifting", () => {
+    expect(names(drifting(at, folks, { today }))).not.toContain("Gran");
+    expect(names(drifting(at, folks, { today }))).not.toContain("Lu");
+  });
+  it("reads in touch as the later of last seen and last talked, and says which", () => {
+    const rows = drifting(at, folks, { today });
+    expect(rows.map((r) => [r.person.title, r.how, r.daysSince])).toEqual([["Kit", null, null], ["Jo", "seen", 140], ["Ida", "call", 120]]);
+    expect(rows.map((r) => driftLine(r, "inTouch"))).toEqual(["Never in touch", "seen · 140 days ago", "call · 120 days ago"]);
+  });
+  it("counts an Exchange's body link as no contact: someone only talked about is never in touch", () => {
+    expect(lastTouches(at, [kit], { source: "inTouch", today }).get("Kit")).toBeUndefined();
+  });
+  it("names the Exchange's kind, and says seen on a day both happened", () => {
+    const both = buildLinkIndex([...(folks as unknown as Document[]), ev("b1", "2026-05-01", "[[Gran]]"), talk("b2", "2026-05-01", ["Gran"], "video")], types);
+    expect(lastTouches(both, [gran], { source: "inTouch", today }).get("Gran")).toEqual({ day: "2026-05-01", how: "seen" });
+    const video = buildLinkIndex([...(folks as unknown as Document[]), talk("v1", "2026-05-01", ["Gran"], "video")], types);
+    expect(driftLine(drifting(video, [gran], { today })[0]!, "inTouch")).toBe("video call · 191 days ago");
+  });
+  it("says mentioned, or never mentioned, when switched to Not mentioned", () => {
+    const rows = drifting(idx, people, { today, source: "mentioned" });
+    expect(rows.map((r) => driftLine(r, "mentioned"))).toEqual(["Never mentioned", "mentioned · 252 days ago", "mentioned · 252 days ago"]);
   });
 });

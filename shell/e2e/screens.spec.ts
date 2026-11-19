@@ -1344,6 +1344,24 @@ const SCREENS: ScreenCase[] = [
   { name: "Exhibition", path: "/app/museum/e/:id", type: "exhibition" },
   { name: "People", path: "/app/people", afterOpen: longRelationship },
   {
+    // A Drifting row (ADR 0131) with the longest name and Relationship: its "call · 120 days ago" stays on screen.
+    name: "People · Drifting",
+    path: "/app/people",
+    afterOpen: async (page) => {
+      await workLocally(page);
+      await inCore(
+        page,
+        async (core, a: { long: string }) => {
+          const day = new Date(Date.now() - 120 * 864e5).toISOString().slice(0, 10);
+          const id = (await core.createDocument({ type: "contacts_person", title: `Drifting ${a.long}`, fields: { relationship: a.long } })).id as string;
+          await core.createDocument({ type: "contacts_exchange", title: "", fields: { kind: "video", date: day, with: [id] } });
+        },
+        { long: LONG_WORD },
+      );
+      await expect(page.getByRole("region", { name: "Drifting" }).getByText("video call · 120 days ago")).toBeVisible();
+    },
+  },
+  {
     // Add a person with the longest names a person could type: the two name inputs stack on a phone.
     name: "People · Add person",
     path: "/app/people",

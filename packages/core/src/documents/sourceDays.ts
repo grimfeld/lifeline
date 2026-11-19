@@ -49,15 +49,18 @@ export function eventSpan(src: Document | undefined): { from: DateStr; to: DateS
   return { from, to: src.end === "00:00" ? addDays(end, -1) : end };
 }
 
+/** An Exchange's day (ADR 0131): its `date`; nothing for any other Document or an undated Exchange. */
+export const exchangeDay = (src: Document | undefined): DateStr | undefined => (src?.type === EXCHANGE_TYPE ? dateIn(src.date) : undefined);
+
 /**
- * A linking Document's own days (ADR 0117): a Day's date, every day of an
- * Event (up to `MAX_SPAN`); undefined for a Document with no date of its own.
+ * A linking Document's own days (ADR 0117): a Day's date, an Exchange's day,
+ * every day of an Event (up to `MAX_SPAN`); undefined for a Document with no
+ * date of its own.
  */
 export function sourceDays(src: Document | undefined): DateStr[] | undefined {
-  if (src?.type === DAY_TYPE) {
-    const day = dayOf(src);
-    return day ? [day] : undefined;
-  }
+  const day = dayOf(src) ?? exchangeDay(src);
+  if (day) return [day];
+  if (src?.type === DAY_TYPE || src?.type === EXCHANGE_TYPE) return undefined;
   const span = eventSpan(src);
   if (!span) return undefined;
   const days: DateStr[] = [];
