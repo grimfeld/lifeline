@@ -160,14 +160,34 @@ export function seenDays(index: LinkIndex, docId: string, today: DateStr): DateS
 /** The Exchange's With field (ADR 0131): its People, the one link Talked counts. */
 const EXCHANGE_WITH_FIELD = "with";
 
-const withIds = (src: Document | undefined): unknown[] => (Array.isArray(src?.[EXCHANGE_WITH_FIELD]) ? (src[EXCHANGE_WITH_FIELD] as unknown[]) : []);
+const withIds = (src: Document): string[] => (Array.isArray(src[EXCHANGE_WITH_FIELD]) ? (src[EXCHANGE_WITH_FIELD] as unknown[]).filter((id): id is string => typeof id === "string") : []);
+
+/** One Exchange that counts as Talked for a Document, and its day. */
+export interface TalkedReach {
+  exchange: Document;
+  day: DateStr;
+}
 
 /**
- * Whether a reach is an Exchange talking to its target (ADR 0131): through its
- * With, directly or through a Household in it. A wikilink in its body is a
- * Backlink and nothing more: being told about Lucie is not talking to her.
+ * The Exchanges that count as Talked for one Document (ADR 0131), none after
+ * `today`, each once: decided from the Exchange itself. It counts when its
+ * With names the Document, or names a Household the Document was a member of
+ * on the Exchange's day (ADR 0117). A wikilink in its body is a Backlink and
+ * nothing more: being told about Lucie, or the Smiths, is not talking to them.
+ * The one walk `talkedDays` and `lastTalkedExchange` share.
  */
-const talkedThrough = (b: Reach, src: Document | undefined): boolean => (b.via ? withIds(src).includes(b.via) : b.field === EXCHANGE_WITH_FIELD);
+function* talkedReaches(index: LinkIndex, docId: string, today: DateStr): Generator<TalkedReach> {
+  const done = new Set<string>();
+  for (const b of index.reaches(docId)) {
+    if (done.has(b.sourceId)) continue;
+    done.add(b.sourceId);
+    const exchange = index.byId.get(b.sourceId);
+    const day = exchangeDay(exchange);
+    if (!exchange || !day || day > today) continue;
+    const ids = withIds(exchange);
+    if (ids.includes(docId) || ids.some((h) => index.membersOn(h, day).includes(docId))) yield { exchange, day };
+  }
+}
 
 /**
  * The distinct days (oldest first, none after `today`) of the Exchanges whose
@@ -176,27 +196,23 @@ const talkedThrough = (b: Reach, src: Document | undefined): boolean => (b.via ?
  * they were a member.
  */
 export function talkedDays(index: LinkIndex, docId: string, today: DateStr): DateStr[] {
-  return countedDays(index, docId, today, (b, src) => {
-    const day = exchangeDay(src);
-    return day && talkedThrough(b, src) ? { from: day, to: day } : undefined;
-  });
+  const days = new Set<DateStr>();
+  for (const { day } of talkedReaches(index, docId, today)) days.add(day);
+  return [...days].sort();
 }
 
 /**
  * The newest Exchange that counts as Talked for one Document (ADR 0131), none
- * after `today`: on the last talked day, the one logged last. What says how
- * someone was last in touch ("call · 120 days ago"); nothing when never.
+ * after `today`, with its day: on the last talked day, the one logged last.
+ * What says how someone was last in touch ("call · 120 days ago"); nothing
+ * when never.
  */
-export function lastTalkedExchange(index: LinkIndex, docId: string, today: DateStr): Document | undefined {
-  let best: { doc: Document; day: DateStr } | undefined;
-  for (const b of index.reaches(docId)) {
-    const src = index.byId.get(b.sourceId);
-    const day = exchangeDay(src);
-    if (!src || !day || day > today || !talkedThrough(b, src)) continue;
-    if (b.via && !b.days?.includes(day)) continue;
-    if (!best || day > best.day || (day === best.day && src.createdAt > best.doc.createdAt)) best = { doc: src, day };
+export function lastTalkedExchange(index: LinkIndex, docId: string, today: DateStr): TalkedReach | undefined {
+  let best: TalkedReach | undefined;
+  for (const r of talkedReaches(index, docId, today)) {
+    if (!best || r.day > best.day || (r.day === best.day && r.exchange.createdAt > best.exchange.createdAt)) best = r;
   }
-  return best?.doc;
+  return best;
 }
 
 /**

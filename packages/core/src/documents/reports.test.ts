@@ -274,11 +274,34 @@ describe("Talked (ADR 0131)", () => {
     ]);
   });
   it("finds the newest Exchange that counts, none to come, none through a body link or a Household they had left", () => {
-    expect(lastTalkedExchange(tidx, "gran", today)?.id).toBe("x3");
-    expect(lastTalkedExchange(tidx, "gran", "2026-10-30")?.id).toBe("x4");
+    expect(lastTalkedExchange(tidx, "gran", today)).toMatchObject({ exchange: { id: "x3" }, day: "2026-10-11" });
+    expect(lastTalkedExchange(tidx, "gran", "2026-10-30")?.exchange.id).toBe("x4");
     expect(lastTalkedExchange(tidx, "lucie", today)).toBeUndefined();
-    expect(lastTalkedExchange(tidx, "tom", today)?.id).toBe("x5");
-    expect(lastTalkedExchange(tidx, "paul", today)?.id).toBe("x6");
+    expect(lastTalkedExchange(tidx, "tom", today)?.exchange.id).toBe("x5");
+    expect(lastTalkedExchange(tidx, "paul", today)?.exchange.id).toBe("x6");
+  });
+  it("counts a Household in With for a member even when the notes also name them", () => {
+    const named = buildLinkIndex([...talkDocs, x("x7", "2026-09-01", ["smiths"], "[[Paul]] was there")], talkTypes);
+    expect(named.backlinksTo("paul").map((b) => b.sourceId)).toEqual(["x7"]);
+    expect(talkedDays(named, "paul", today)).toEqual(["2026-06-15", "2026-08-15", "2026-09-01"]);
+    expect(lastTalkedExchange(named, "paul", today)).toMatchObject({ exchange: { id: "x7" }, day: "2026-09-01" });
+  });
+  it("gives a Household named only in the notes no Talked day, for it or its members", () => {
+    const told = buildLinkIndex([...talkDocs, x("x8", "2026-09-05", ["gran"], "News of [[the Smiths]]")], talkTypes);
+    expect(told.reaches("paul").some((r) => r.sourceId === "x8")).toBe(true);
+    expect(talkedDays(told, "paul", today)).toEqual(["2026-06-15", "2026-08-15"]);
+    expect(talkedDays(told, "smiths", today)).toEqual(["2026-06-15", "2026-08-15"]);
+    expect(lastTalkedExchange(told, "paul", today)).toMatchObject({ exchange: { id: "x6" } });
+  });
+  it("names the Exchange logged last when several fall on the last day", () => {
+    const at = (d: Document, createdAt: string, kind: string) => ({ ...d, createdAt, kind }) as unknown as Document;
+    const sameDay = [
+      doc("gran", "person", "Gran"),
+      at(x("late", "2026-10-11", ["gran"]), "2026-10-11T20:00:00Z", "message"),
+      at(x("early", "2026-10-11", ["gran"]), "2026-10-11T09:00:00Z", "call"),
+    ];
+    const last = lastTalkedExchange(buildLinkIndex(sameDay, talkTypes), "gran", today);
+    expect(last).toMatchObject({ exchange: { id: "late", kind: "message" }, day: "2026-10-11" });
   });
   it("ranks Top talked and Not talked in N days", () => {
     expect(rankingRows(tidx, "person", { kind: "topTalked" }, {}, today).map((r) => [r.docId, r.count])).toEqual([["gran", 2], ["paul", 2], ["tom", 1]]);

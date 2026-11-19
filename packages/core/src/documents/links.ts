@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { extractLinks, isImageEmbed, normalizeName, type WikiLink } from "../markdown";
 import { docPath, normalizeFolder } from "../folders";
-import { aliasesOf, displayTitle, isLinkKind, singularOf, spanCovers, type Document, type DocumentTypeDef, type MemberSpan } from "./types";
+import { aliasesOf, displayTitle, isLinkKind, membersOnDay, singularOf, spanCovers, type Document, type DocumentTypeDef, type MemberSpan } from "./types";
 import { useAllDocuments } from "./store";
 import { fieldsOfDocument } from "./roles";
 import { usePrivateLockedRefs, type PrivateLockedRefs } from "../private";
@@ -74,6 +74,8 @@ export interface LinkIndex {
    * through the first such Document, on every day any of them counts.
    */
   reaches(docId: string): Reach[];
+  /** Who a Document stood for on a day (ADR 0117): the members its `linkable.members` spans cover, none for a type with no members. */
+  membersOn(docId: string, day: DateStr): string[];
   /** Normalised unresolved names → ids of the Documents mentioning them. */
   unresolved: Map<string, string[]>;
   /** Tag → ids of the Documents carrying it. */
@@ -364,6 +366,11 @@ function assemble(docs: Document[], t: Targets, contributions: Map<string, Contr
       if (!through) return direct;
       const named = new Set(direct.map((b) => b.sourceId));
       return [...direct, ...through.filter((r) => !named.has(r.sourceId))];
+    },
+    membersOn(id, day) {
+      const doc = byId.get(id);
+      const members = doc && membersHook(defs.get(doc.type));
+      return members ? membersOnDay(members(doc), day).filter((m) => m !== id) : [];
     },
     unresolved,
     tags,

@@ -62,8 +62,7 @@ export function lastTouches(
     people.map((p) => {
       const lastSeen = seenDay.get(p.id);
       const talked = lastTalkedExchange(index, p.id, today);
-      const talkedDay = talked?.date as DateStr | undefined;
-      if (talked && talkedDay && (!lastSeen || talkedDay > lastSeen)) return [p.id, { day: talkedDay, how: exchangeKindOf(talked.kind) }];
+      if (talked && (!lastSeen || talked.day > lastSeen)) return [p.id, { day: talked.day, how: exchangeKindOf(talked.exchange.kind) }];
       return [p.id, touch(lastSeen, "seen")];
     }),
   );
