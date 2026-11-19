@@ -23,6 +23,7 @@ import { NextOccasionBadge, TagBadges } from "../components/Badges";
 import { TiesSection } from "./TiesSection";
 import { ReportsSection } from "./ReportsSection";
 import { TimelineSection } from "./TimelineSection";
+import { LastTimeSection } from "./LastTimeSection";
 import { LogExchangeDialog } from "../components/LogExchangeDialog";
 
 const back = (
@@ -173,6 +174,7 @@ export function PersonScreen() {
               </div>
             </Section>
             <ReportsSection doc={person} />
+            <LastTimeSection doc={person} />
             <TimelineSection doc={person} />
           </div>
         </div>

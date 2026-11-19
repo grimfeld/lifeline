@@ -526,6 +526,19 @@ function longExchange(peek: boolean) {
 }
 
 /**
+ * Last time (ADR 0131) on a Person's page: the longest text a person could type
+ * in an Exchange's body (long lines, an unbroken word) with them, clamped to four
+ * lines above the Timeline; the page's own Person is the seeded one.
+ */
+async function longLastTime(page: Page) {
+  await workLocally(page);
+  const id = new URL(page.url()).pathname.split("/").pop()!;
+  const body = [`${longText("What she said")}.`, ...Array.from({ length: 40 }, (_, i) => `${longText(`Line ${i + 1} of what she said`)}.`)].join("\n");
+  await inCore(page, async (core, a: { id: string; body: string }) => void (await core.createDocument({ type: "contacts_exchange", title: "", body: a.body, fields: { kind: "letter", date: core.todayStr(), with: [a.id] } })), { id, body });
+  await expect(page.getByRole("region", { name: "Last time" })).toBeVisible();
+}
+
+/**
  * An attached blocker's Peek (#497): "Before <Event>" over an Event with the
  * longest title a person could type, and its Detach beside it.
  */
@@ -1392,6 +1405,7 @@ const SCREENS: ScreenCase[] = [
   // An Exchange (ADR 0131): its Peek with many People and the longest body, and the Log an exchange dialog from a Person's page.
   { name: "Exchange · Peek", path: "/app/people", afterOpen: longExchange(true) },
   { name: "Person · Log an exchange", path: "/app/people/person/:id", type: "contacts_person", afterOpen: longExchange(false) },
+  { name: "Person · Last time", path: "/app/people/person/:id", type: "contacts_person", afterOpen: longLastTime },
   { name: "Thoughts", path: "/app/thoughts" },
   { name: "Thought", path: "/app/thoughts/:id", type: "thought" },
   { name: "Notes · Sources", path: "/app/notes" },

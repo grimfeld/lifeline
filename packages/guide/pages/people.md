@@ -76,6 +76,13 @@ Below, two columns (one after the other on a phone):
   and Occasions never count. **Top seen** (who was on the most days of Events) shows on each
   [Journal](journal.md) period, as **People · Top seen**. A type can also choose **Seen count**, a
   **Seen heatmap** and **Not seen lately** in its editor, and each can be placed as a Report Card.
+- **Last time** — the newest thing they told you, above the Timeline: the most recent Exchange or Event
+  with them (through its **With**, a Household of theirs included) that has something written: an
+  Exchange's **What was said**, an Event's **Notes**. It shows what it was ("Call", "Video call",
+  "Event · Lunch"), its day and how long ago ("3 days ago"), then the text, cut to four lines with **More**
+  (and **Less**) when it is longer. The newest day wins; on one day, the last one changed. A day still to
+  come never counts, and nothing written means no block at all. It is read from your Exchanges and Events,
+  never copied into their body: what you want to keep, write in **About them**.
 - **Timeline** — everything that links to them, by month, newest first: Events and Exchanges with them, Tasks
   and Transactions for them, books they recommended, and the Days and notes that name them, each
   once, saying what it is and how it links ("via With", "mentioned", or "via the Smiths" for a link
