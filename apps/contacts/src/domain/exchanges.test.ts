@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { exchangeProblem, exchangeTitle } from "./exchanges";
+import { exchangeProblem, exchangeTitle, exchangeTitleOf } from "./exchanges";
 
 describe("an Exchange's derived title (ADR 0131)", () => {
   it("is its kind, then the names of its People", () => {
@@ -15,6 +15,17 @@ describe("an Exchange's derived title (ADR 0131)", () => {
 
   it("reads an unknown kind as a call", () => {
     expect(exchangeTitle("telegram", ["Marc"])).toBe("Call · Marc");
+  });
+
+  const p = (title: string, folder = "People", workspace = "") => ({ title, folder, workspace });
+  it("says someone for a Person in the Private folder, and how many past one, after the names", () => {
+    expect(exchangeTitleOf("call", [p("Secret", "Private/People")], "")).toBe("Call · someone");
+    expect(exchangeTitleOf("call", [p("Secret", "Private"), p("Marc")], "")).toBe("Call · Marc, someone");
+    expect(exchangeTitleOf("letter", [p("A", "Private"), p("Marc"), p("B", "Private/People")], "")).toBe("Letter · Marc, 2 people");
+  });
+  it("leaves out a Person of another Workspace", () => {
+    expect(exchangeTitleOf("call", [p("Marc", "People", "ws2"), p("Léa", "People", "ws2"), p("Far")], "ws2")).toBe("Call · Marc, Léa");
+    expect(exchangeTitleOf("call", [p("Far", "People", "ws2")], "")).toBe("Call · nobody");
   });
 });
 

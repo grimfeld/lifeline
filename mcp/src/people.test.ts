@@ -16,6 +16,7 @@ vi.mock("@lifeline/core", async (importOriginal) => {
     ...actual,
     ...core,
     allWorkspaces: async () => [],
+    workspaceScope: async () => "",
     setCurrentWorkspace: () => undefined,
     documentTypeSync: (id: string) => types.get(id),
     allDocumentTypes: () => [...types.values()],
@@ -188,6 +189,22 @@ describe("Exchanges are open to agents (ADR 0131)", () => {
   it("are read whole by get_document, body included", async () => {
     const out = (await runTool("get_document", { id: "x1" })) as { body: string; fields: Record<string, unknown> };
     expect(out).toMatchObject({ body: "Lucie starts university in Lyon.", fields: { kind: "call", date: "2026-11-01", with: ["p1"] } });
+  });
+  it("never name a Person in the Private folder, in the title they are found or read by (ADR 0038)", async () => {
+    // Logged where Private was open (this stand-in store has no gate): the title the App stores, kept as it is.
+    core.createDocument.mockImplementation(async (input: { type: string; title: string; body?: string; fields: Record<string, unknown> }) => {
+      const x = { ...person("x2", input.title, {}, "People/Exchanges"), type: input.type, body: input.body ?? "", ...input.fields } as unknown as Document;
+      docs.set("x2", x);
+      return x;
+    });
+    await runTool("people_exchange_add", { with: ["Anne Dupont", "Secret"], date: "2026-11-02", body: "Dinner on Friday." });
+    expect(docs.get("x2")?.title).toBe("Call · Anne Dupont, someone");
+    const found = (await runTool("search_documents", { query: "Secret" })) as { documents: Record<string, unknown>[] };
+    expect(found.documents.map((d) => d.id)).not.toContain("x2");
+    expect(JSON.stringify(found)).not.toContain("Secret");
+    const byBody = (await runTool("search_documents", { query: "Friday" })) as { documents: Record<string, unknown>[] };
+    expect(byBody.documents).toEqual([expect.objectContaining({ id: "x2", title: "Call · Anne Dupont, someone" })]);
+    expect(JSON.stringify(await runTool("get_document", { id: "x2" }))).not.toContain("Secret");
   });
 });
 

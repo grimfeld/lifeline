@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
-import { EXCHANGE_TYPE, allDocuments, allDocumentTypes, buildLinkIndex, documentsTable, getDocument, initApps, patchDocument, removeDocument, todayStr } from "@lifeline/core";
+import { EXCHANGE_TYPE, PERSON_TYPE, allDocuments, allDocumentTypes, buildLinkIndex, db, documentsTable, getDocument, initApps, patchDocument, removeDocument, todayStr, type Document } from "@lifeline/core";
 import { exchangeTypeDef, householdTypeDef, personTypeDef, tieTypeDef } from "../types";
 import { addPerson } from "./repo";
 import { addExchange, editExchange } from "./exchanges";
@@ -10,6 +10,7 @@ initApps([{ id: "contacts", title: "Contacts", module: "people", types: [personT
 
 beforeEach(async () => {
   await documentsTable().clear();
+  await db()._meta.clear();
 });
 
 const read = async (id: string) => (await documentsTable().get(id)) as Exchange;
@@ -69,5 +70,44 @@ describe("an Exchange (ADR 0131)", () => {
     expect(await read(x.id)).toMatchObject({ with: [lea.id], title: "Call · Léa", deleted: 0 });
     await removeDocument(lea.id);
     expect(await read(x.id)).toMatchObject({ with: [], title: "Call · nobody", body: "Lunch plans", deleted: 0 });
+  });
+});
+
+describe("an Exchange's title names no one the views hide (ADR 0038, 0048)", () => {
+  const row = (id: string, fields: Record<string, unknown>) =>
+    ({ id, title: "", folder: "People", tags: [], createdAt: "2026-11-01", updatedAt: "2026-11-01", deleted: 0, workspace: "", ...fields }) as unknown as Document;
+  const seed = (...rows: Document[]) => documentsTable().bulkPut(rows);
+  // Pulled once, no password set: the Private folder is open, as on the device that logs the call.
+  const openPrivate = () => db()._meta.put({ key: "cursor:documents", value: "1" });
+
+  it("calls a Person in the Private folder someone, however it is logged or edited", async () => {
+    await openPrivate();
+    const marc = await addPerson({ name: "Marc" });
+    await seed(row("secret", { type: PERSON_TYPE, title: "Secret", folder: "Private/People" }), row("hidden", { type: PERSON_TYPE, title: "Hidden", folder: "Private" }));
+    const x = await addExchange({ with: [marc.id, "secret"] });
+    expect((await read(x.id)).title).toBe("Call · Marc, someone");
+    await editExchange(x.id, { with: ["secret"] });
+    expect((await read(x.id)).title).toBe("Call · someone");
+    await editExchange(x.id, { with: ["secret", marc.id, "hidden"] });
+    expect((await read(x.id)).title).toBe("Call · Marc, 2 people");
+    await patchDocument("secret", { title: "Secret Again" });
+    expect(JSON.stringify(await read(x.id))).not.toContain("Secret");
+  });
+
+  it("names only the People of its own Workspace", async () => {
+    const marc = await addPerson({ name: "Marc" });
+    await seed(row("far", { type: PERSON_TYPE, title: "Faraway", workspace: "ws2" }));
+    const x = await addExchange({ with: [marc.id] });
+    await documentsTable().update(x.id, { with: [marc.id, "far"] });
+    await editExchange(x.id, { kind: "letter" });
+    expect((await read(x.id)).title).toBe("Letter · Marc");
+  });
+
+  it("follows a rename or a delete in another Workspace too", async () => {
+    await seed(row("lea", { type: PERSON_TYPE, title: "Léa", workspace: "ws2" }), row("x2", { type: EXCHANGE_TYPE, title: "Call · Léa", kind: "call", date: "2026-11-01", with: ["lea"], folder: "People/Exchanges", workspace: "ws2" }));
+    await patchDocument("lea", { title: "Léa Martin" });
+    expect(await read("x2")).toMatchObject({ title: "Call · Léa Martin", workspace: "ws2" });
+    await removeDocument("lea");
+    expect(await read("x2")).toMatchObject({ title: "Call · nobody", with: [], workspace: "ws2" });
   });
 });
