@@ -1,6 +1,6 @@
 import { PERSON_TYPE, documentsOf, getDocument, putDocument, removeDocument, removeDocumentsWhere, useDocuments } from "@lifeline/core";
 import { TIE, type Tie, type TieKind } from "../domain/types";
-import { invertKind, kindOfWords, type TieRow } from "../domain/ties";
+import { draftKind, invertKind, type TieRow } from "../domain/ties";
 
 /** A Tie as stored, with its keys filled in for a row that lacks them. */
 const normalizeTie = (t: Tie): Tie => ({ ...t, a: t.a ?? "", b: t.b ?? "", labelA: t.labelA ?? "", labelB: t.labelB ?? "" });
@@ -48,7 +48,7 @@ export async function addTie(input: { from: string; to: string; label: string; t
  * Person is to them, `ownLabel` what they are to the other. Works from either end.
  * `kind` is read from `personId` to the other Person; absent clears it.
  * `kindRead` marks a kind only read from the old words (never stored): it is kept
- * only while the new words still read as it, so free words leave a Tie kindless.
+ * while one new word still names it (`draftKind`), so free words leave a Tie kindless.
  */
 export async function updateTie(id: string, personId: string, words: { label: string; ownLabel: string; kind?: TieKind | undefined; kindRead?: boolean | undefined }): Promise<void> {
   const tie = await getDocument<Tie>(id);
@@ -58,7 +58,7 @@ export async function updateTie(id: string, personId: string, words: { label: st
   if (!label || !ownLabel) throw new Error("A Tie needs a word for each end");
   const fromA = tie.a === personId;
   const { kind: _old, ...rest } = tie;
-  const own = words.kindRead && words.kind !== kindOfWords(ownLabel, label) ? undefined : words.kind;
+  const own = draftKind({ label, ownLabel, kind: words.kind, ...(words.kindRead ? { kindRead: true as const } : {}) });
   const kind = own && (fromA ? own : invertKind(own));
   await putDocument<Tie>({ ...rest, labelA: fromA ? ownLabel : label, labelB: fromA ? label : ownLabel, ...(kind ? { kind } : {}) });
 }

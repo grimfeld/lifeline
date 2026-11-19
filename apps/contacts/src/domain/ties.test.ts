@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Person, Tie } from "./types";
-import { PRESETS, genderOf, presetPressed, selectPreset, kindOfWords, presetWords, otherNameOf, tieCandidates, tieDraft, tieQuestions, tiesSeenFrom } from "./ties";
+import { PRESETS, draftKind, genderOf, presetPressed, selectPreset, kindOfWords, presetWords, otherNameOf, tieCandidates, tieDraft, tieQuestions, tiesSeenFrom } from "./ties";
 
 const person = (id: string, title: string) => ({ id, title }) as Person;
 const anne = person("p1", "Anne");
@@ -85,6 +85,23 @@ describe("Tie kinds read from words (#608)", () => {
     const d = tieDraft(row);
     expect(d).toMatchObject({ kind: "parent", kindRead: true });
     expect(selectPreset(d, PRESETS.find((p) => p.word === "son")!, "female")).not.toHaveProperty("kindRead");
+  });
+  it("keeps a read kind while one word still names it, from either end, and drops it when neither does", () => {
+    const base = { otherId: "p2", kind: "parent" as const, kindRead: true as const };
+    expect(draftKind({ ...base, label: "daughter", ownLabel: "mum" })).toBe("parent");
+    expect(draftKind({ ...base, label: "girl", ownLabel: "mother" })).toBe("parent");
+    expect(draftKind({ ...base, label: "goddaughter", ownLabel: "godmother" })).toBeUndefined();
+    // From the other end the same Tie reads child: own word is "daughter", other word "mother".
+    const fromB = { kind: "child" as const, kindRead: true as const };
+    expect(draftKind({ ...fromB, label: "mother", ownLabel: "mummy" })).toBe("child");
+    expect(draftKind({ ...fromB, label: "godmother", ownLabel: "goddaughter" })).toBeUndefined();
+    // A stored kind always stays.
+    expect(draftKind({ kind: "parent", label: "x", ownLabel: "y" })).toBe("parent");
+  });
+  it("shows the chip pressed exactly when the kind is saved", () => {
+    const d = tieDraft({ id: "t1", otherId: "p2", otherName: "Léa", label: "daughter", ownLabel: "mum", kind: "parent", kindRead: true });
+    expect(presetPressed(d, PRESETS.find((p) => p.word === "daughter")!)).toBe(true);
+    expect(presetPressed({ ...d, label: "goddaughter", ownLabel: "godmother" }, PRESETS.find((p) => p.word === "daughter")!)).toBe(false);
   });
   it("ignores a stored kind that is not one", () => {
     expect(tiesSeenFrom("p1", [{ ...tie("t1", "p1", "p2", "godmother", "goddaughter"), kind: "text" } as unknown as Tie], [anne, lea])[0]).not.toHaveProperty("kind");

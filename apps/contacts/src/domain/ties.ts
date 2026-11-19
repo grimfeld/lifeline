@@ -180,8 +180,20 @@ export function presetWords(preset: Preset, own: Gender): { label: string; ownLa
   return { label: preset.word, ownLabel: KIND_WORDS[preset.kind].a[GENDER_INDEX[own]], kind: preset.kind };
 }
 
-/** Whether `preset`'s chip shows pressed: the draft holds its kind and its word for the other Person. */
-export const presetPressed = (draft: TieDraft, preset: Preset): boolean => draft.kind === preset.kind && norm(draft.label) === preset.word;
+/**
+ * The kind a draft saves with. A stored or chip-chosen kind always stays; a kind
+ * only read from old words stays while one word is still a preset word of it at
+ * its own end ("mum" / "daughter" keeps parent), and is none once neither is.
+ */
+export function draftKind(draft: Pick<TieDraft, "label" | "ownLabel" | "kind" | "kindRead">): TieKind | undefined {
+  const { kind } = draft;
+  if (!kind || !draft.kindRead) return kind;
+  const words = KIND_WORDS[kind];
+  return words.a.includes(norm(draft.ownLabel)) || words.b.includes(norm(draft.label)) ? kind : undefined;
+}
+
+/** Whether `preset`'s chip shows pressed: the draft saves with its kind and holds its word for the other Person. */
+export const presetPressed = (draft: TieDraft, preset: Preset): boolean => draftKind(draft) === preset.kind && norm(draft.label) === preset.word;
 
 /**
  * Tap a chip: fill both words and the kind (`own` is this Person's gender

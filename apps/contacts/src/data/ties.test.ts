@@ -59,6 +59,15 @@ describe("Ties (#412)", () => {
     expect(await getDocument(t.id)).toMatchObject({ kind: "parent" });
   });
 
+  it("keeps a read kind while one word still names it, from either end", async () => {
+    const { anne, lea } = await pair();
+    const t = await addTie({ from: anne.id, to: lea.id, label: "mother", toLabel: "daughter" });
+    await updateTie(t.id, anne.id, { label: "daughter", ownLabel: "mum", kind: "parent", kindRead: true });
+    expect(await getDocument(t.id)).toMatchObject({ labelA: "mum", kind: "parent" });
+    await updateTie(t.id, lea.id, { label: "mum", ownLabel: "daughter", kind: "child", kindRead: true });
+    expect(await getDocument(t.id)).toMatchObject({ kind: "parent" });
+  });
+
   it("keeps a stored kind when its words are edited to 'mum'", async () => {
     const { anne, lea } = await pair();
     const t = await addTie({ from: anne.id, to: lea.id, label: "mother", toLabel: "daughter", kind: "parent" });
