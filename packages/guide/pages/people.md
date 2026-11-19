@@ -226,8 +226,12 @@ exchange** on a Person's page, which starts with them in With):
   well, Lucie starts university in Lyon"), so you have it next time.
 
 Its title is made for you from the kind and the People: "Call · Grandma", "Message · Marc, Léa".
+People in the Private folder are never named in a title, even while it is open: one shows as
+"someone", several as "N people", after the names ("Call · Marc, someone").
 It is not a page you can `[[link]]` to. Renaming a Person renames their Exchanges; deleting one
 takes them out of With, and an Exchange left with nobody stays, as "Call · nobody", body and all.
+Moving a Person to another Workspace takes them out of the Exchanges they leave behind; an
+Exchange moved on its own keeps only the People of its new Workspace.
 
 - **Where it shows** — on the **Timeline** of each of its People ("via With"), and as one line in
   its day's **Daylog**: "Called Grandma", "Video call with Grandma", "Messaged Grandma", "Letter ·
