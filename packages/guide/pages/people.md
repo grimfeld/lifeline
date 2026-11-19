@@ -148,7 +148,26 @@ find the other Person by name, and give a word for each end ("mother" and "daugh
 stored once and shows on both pages, each read from its own side, with the other Person as a
 link. The dialog asks both ways round, by name: "Léa is Anne's…" and "Anne is Léa's…". The words
 are yours: "godmother", "ex" and "best friend's brother" all fit. Change or remove it under **Edit**
-on either page (with Undo) and both change. A Tie is never to you, only between two People.
+on either page (with Undo) and both change.
+
+Once you have picked the other Person, a row of **preset chips** sits under the first question:
+daughter, son, child, sister, brother, sibling, mother, father, parent, wife, husband, partner,
+the grandparent and grandchild words, niece, nephew, aunt, uncle and cousin. Tap one and both
+words fill in: tap "daughter" on Anne's page and Anne's word becomes "mother" (or "father", or
+"parent"). Lifeline picks it from what you have already written about Anne: if every preset word
+in her own Ties is female, "mother"; if all are male, "father"; with mixed words, or none yet,
+"parent". Nobody is asked their gender. The chip you tapped shows as pressed.
+
+A chip also sets the Tie's **kind**, what the words mean (parent and child, sibling, partner and
+so on). The words stay yours to change: "mum" in place of "mother" keeps the kind. Tap the
+pressed chip again to clear the kind and keep the words. A Tie with only free words has no kind
+and works as it always did. A Tie you made before chips existed whose words are a matching pair
+("mother" and "daughter", in any case) counts as that kind, with nothing rewritten. It keeps
+that kind only while its words still form that pair: change one to "mum" and the kind is gone;
+to keep it with your own words, tap the chip first. Claude reads
+Ties as words only.
+
+A Tie is never to you, only between two People.
 Deleting a Person removes their Ties; the other Person's page is untouched. A Tie is not a link
 in a body, so it adds no Backlink and counts for no Report.
 

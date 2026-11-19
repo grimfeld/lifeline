@@ -553,7 +553,7 @@ A built-in Links field to People that another App's type carries, so a Person is
 _Avoid_: attendees, participants, mention (a wikilink's), tag
 
 ### Tie
-How two People stand to each other — Anne and Léa, *mother* / *daughter*; Anne and Marc, *partner* / *partner* — entered once, from either Person's page, with a label for each end, and shown on both pages read from that Person's side ("daughter: Léa" on Anne's, "mother: Anne" on Léa's). Labels are the user's own words, never a fixed family vocabulary. Never involves me: I am no Person. Not a wikilink (that says one Document mentions another, not how they are related), not a Link field (one-way).
+How two People stand to each other — Anne and Léa, *mother* / *daughter*; Anne and Marc, *partner* / *partner* — entered once, from either Person's page, with a label for each end, and shown on both pages read from that Person's side ("daughter: Léa" on Anne's, "mother: Anne" on Léa's). Labels are the user's own words; a Tie may also carry a **kind** (parent ↔ child, sibling, partner, grandparent ↔ grandchild, aunt/uncle ↔ niece/nephew, cousin), optional and beside the words: the kind is the meaning, the words are what is shown. The Tie dialog's preset chips fill both words and the kind in one tap; a Tie of free words ("godmother") has none, and a Tie whose words are a matching preset pair reads as that kind without being rewritten (ADR 0130). Never involves me: I am no Person. Not a wikilink (that says one Document mentions another, not how they are related), not a Link field (one-way).
 _Avoid_: relation, relationship (mine to a Person), link, connection
 
 ### Relationship

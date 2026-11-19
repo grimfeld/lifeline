@@ -81,6 +81,8 @@ export const tieTypeDef: DocumentTypeDef = {
     { key: "b", label: "Other person", kind: "link", linkType: PERSON_TYPE, guarded: true },
     { key: "labelA", label: "What the first is to the second", kind: "text", guarded: true },
     { key: "labelB", label: "What the second is to the first", kind: "text", guarded: true },
+    // What the words mean, a to b (ADR 0130): optional, guarded, hidden; the words stay what is shown.
+    { key: "kind", label: "Kind", kind: "text", guarded: true, hidden: true },
   ],
   // Either Person speaks for it.
   owner: async (doc) => (typeof doc.a === "string" ? getDocument(doc.a) : undefined),
