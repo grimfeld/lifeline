@@ -72,7 +72,7 @@ export interface TieRow {
   ownLabel: string;
   /** What the Tie means read from this Person to the other (ADR 0130): stored, else read from the two words; none for free words. */
   kind?: TieKind;
-  /** The kind was read from the two words, not stored: kept on save only while the words still read as it. */
+  /** The kind was read from the two words, not stored: kept on save only while the two words still form that preset pair. */
   kindRead?: true;
 }
 
@@ -182,14 +182,13 @@ export function presetWords(preset: Preset, own: Gender): { label: string; ownLa
 
 /**
  * The kind a draft saves with. A stored or chip-chosen kind always stays; a kind
- * only read from old words stays while one word is still a preset word of it at
- * its own end ("mum" / "daughter" keeps parent), and is none once neither is.
+ * only read from old words stays while the pair still reads as it ("mum" /
+ * "daughter" is none; to keep a kind with your own words, tap its chip first).
  */
 export function draftKind(draft: Pick<TieDraft, "label" | "ownLabel" | "kind" | "kindRead">): TieKind | undefined {
   const { kind } = draft;
   if (!kind || !draft.kindRead) return kind;
-  const words = KIND_WORDS[kind];
-  return words.a.includes(norm(draft.ownLabel)) || words.b.includes(norm(draft.label)) ? kind : undefined;
+  return kindOfWords(draft.ownLabel, draft.label) === kind ? kind : undefined;
 }
 
 /** Whether `preset`'s chip shows pressed: the draft saves with its kind and holds its word for the other Person. */

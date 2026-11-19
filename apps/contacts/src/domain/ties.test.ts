@@ -86,22 +86,29 @@ describe("Tie kinds read from words (#608)", () => {
     expect(d).toMatchObject({ kind: "parent", kindRead: true });
     expect(selectPreset(d, PRESETS.find((p) => p.word === "son")!, "female")).not.toHaveProperty("kindRead");
   });
-  it("keeps a read kind while one word still names it, from either end, and drops it when neither does", () => {
-    const base = { otherId: "p2", kind: "parent" as const, kindRead: true as const };
-    expect(draftKind({ ...base, label: "daughter", ownLabel: "mum" })).toBe("parent");
-    expect(draftKind({ ...base, label: "girl", ownLabel: "mother" })).toBe("parent");
-    expect(draftKind({ ...base, label: "goddaughter", ownLabel: "godmother" })).toBeUndefined();
-    // From the other end the same Tie reads child: own word is "daughter", other word "mother".
-    const fromB = { kind: "child" as const, kindRead: true as const };
-    expect(draftKind({ ...fromB, label: "mother", ownLabel: "mummy" })).toBe("child");
-    expect(draftKind({ ...fromB, label: "godmother", ownLabel: "goddaughter" })).toBeUndefined();
+  it("keeps a read kind only while the pair still reads as it, from either end", () => {
+    const a = { kind: "parent" as const, kindRead: true as const };
+    expect(draftKind({ ...a, label: "daughter", ownLabel: "mother" })).toBe("parent");
+    expect(draftKind({ ...a, label: "daughter", ownLabel: "mum" })).toBeUndefined();
+    expect(draftKind({ ...a, label: "godson", ownLabel: "mother" })).toBeUndefined();
+    expect(draftKind({ ...a, label: "sister", ownLabel: "mother" })).toBeUndefined();
+    const b = { kind: "child" as const, kindRead: true as const };
+    expect(draftKind({ ...b, label: "mother", ownLabel: "daughter" })).toBe("child");
+    expect(draftKind({ ...b, label: "mother", ownLabel: "girl" })).toBeUndefined();
+    expect(draftKind({ ...b, label: "godmother", ownLabel: "goddaughter" })).toBeUndefined();
     // A stored kind always stays.
-    expect(draftKind({ kind: "parent", label: "x", ownLabel: "y" })).toBe("parent");
+    expect(draftKind({ kind: "parent", label: "daughter", ownLabel: "mum" })).toBe("parent");
   });
-  it("shows the chip pressed exactly when the kind is saved", () => {
-    const d = tieDraft({ id: "t1", otherId: "p2", otherName: "Léa", label: "daughter", ownLabel: "mum", kind: "parent", kindRead: true });
-    expect(presetPressed(d, PRESETS.find((p) => p.word === "daughter")!)).toBe(true);
-    expect(presetPressed({ ...d, label: "goddaughter", ownLabel: "godmother" }, PRESETS.find((p) => p.word === "daughter")!)).toBe(false);
+  it("shows a chip pressed exactly when its kind is saved", () => {
+    const chip = (w: string) => PRESETS.find((p) => p.word === w)!;
+    const row = { id: "t1", otherId: "p2", otherName: "Léa", label: "daughter", ownLabel: "mother", kind: "parent" as const, kindRead: true as const };
+    const d = tieDraft(row);
+    expect(presetPressed(d, chip("daughter"))).toBe(true);
+    expect(presetPressed({ ...d, ownLabel: "mum" }, chip("daughter"))).toBe(false);
+    expect(presetPressed({ ...d, label: "sister" }, chip("sister"))).toBe(false);
+    // Chip-chosen, then "mum": the kind stays and the chip stays pressed.
+    const tapped = { ...selectPreset(tieDraft(undefined), chip("daughter"), "female"), ownLabel: "mum" };
+    expect(presetPressed(tapped, chip("daughter"))).toBe(true);
   });
   it("ignores a stored kind that is not one", () => {
     expect(tiesSeenFrom("p1", [{ ...tie("t1", "p1", "p2", "godmother", "goddaughter"), kind: "text" } as unknown as Tie], [anne, lea])[0]).not.toHaveProperty("kind");

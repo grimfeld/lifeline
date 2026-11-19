@@ -162,7 +162,9 @@ A chip also sets the Tie's **kind**, what the words mean (parent and child, sibl
 so on). The words stay yours to change: "mum" in place of "mother" keeps the kind. Tap the
 pressed chip again to clear the kind and keep the words. A Tie with only free words has no kind
 and works as it always did. A Tie you made before chips existed whose words are a matching pair
-("mother" and "daughter", in any case) counts as that kind, with nothing rewritten. Claude reads
+("mother" and "daughter", in any case) counts as that kind, with nothing rewritten. It keeps
+that kind only while its words still form that pair: change one to "mum" and the kind is gone;
+to keep it with your own words, tap the chip first. Claude reads
 Ties as words only.
 
 A Tie is never to you, only between two People.
