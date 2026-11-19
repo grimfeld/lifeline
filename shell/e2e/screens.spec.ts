@@ -619,6 +619,26 @@ async function tieDialogWithLongPerson(page: Page) {
 }
 
 /**
+ * A Person page whose Ties card has a suggestion pending (ADR 0130): a long-named
+ * parent of this Person and of a long-named other, so the other is suggested as a
+ * sibling and the Suggested row holds two long names.
+ */
+async function tiesWithLongSuggestion(page: Page) {
+  await workLocally(page);
+  const personId = new URL(page.url()).pathname.split("/").pop()!;
+  await inCore(
+    page,
+    async (core, a: { personId: string; long: string; word: string }) => {
+      const parent = await core.createDocument({ type: "contacts_person", title: `${a.long} parent ${a.word}` });
+      const other = await core.createDocument({ type: "contacts_person", title: `${a.long} sibling ${a.word}` });
+      for (const child of [a.personId, other.id]) await core.putDocument({ type: "contacts_tie", title: "", a: parent.id, b: child, labelA: "mother", labelB: "daughter", kind: "parent" } as never);
+    },
+    { personId, long: longText("Suggested person"), word: LONG_WORD },
+  );
+  await expect(page.getByRole("region", { name: "Ties" }).getByRole("group", { name: "Suggested" })).toBeVisible();
+}
+
+/**
  * The seeded Household (its title as long as a person could type) holding
  * every seeded Person, and a second as long, so a Person's page names two
  * Households and the Household's page lists its members (ADR 0117).
@@ -1331,6 +1351,7 @@ const SCREENS: ScreenCase[] = [
   },
   { name: "Places · Add place, Here's places", path: "/app/places", afterOpen: openHere },
   { name: "Person · Add tie with a Person picked", path: "/app/people/person/:id", type: "contacts_person", afterOpen: tieDialogWithLongPerson },
+  { name: "Person · Ties with a suggestion pending", path: "/app/people/person/:id", type: "contacts_person", afterOpen: tiesWithLongSuggestion },
   { name: "Person · Households", path: "/app/people/person/:id", type: "contacts_person", afterOpen: async (page) => { await longHouseholds(page); await expect(page.getByRole("link", { name: /^Another household/ })).toBeVisible(); } },
   { name: "Households", path: "/app/people/households", afterOpen: async (page) => { await longHouseholds(page); await expect(page.getByRole("link", { name: /^Another household/ })).toBeVisible(); } },
   { name: "Household", path: "/app/people/household/:id", type: "contacts_household", afterOpen: async (page) => { await workLocally(page); await expect(page.getByText("No members yet.")).toBeVisible(); } },

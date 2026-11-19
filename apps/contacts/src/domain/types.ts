@@ -15,6 +15,8 @@ import { PERSON_TYPE, type Document } from "@lifeline/core";
  * - `addresses`: `Address[]` (below).
  * - `contactDetails`: `ContactDetail[]` (below).
  * - `excludedFromDrifting`: boolean (#413).
+ * - `dismissedTies`: `{ otherId, kind }[]` — Suggested Ties dismissed for good,
+ *   on both People of the pair (ADR 0130).
  *
  * Keeping Addresses and Contact details as two keys on the Person is what
  * lets the agent wall (ADR 0114) strip them from every answer in one place.
@@ -96,6 +98,8 @@ export interface Person extends Document {
   contactDetails?: ContactDetail[];
   /** Left out of Drifting by choice (#420). Absent means in. */
   excludedFromDrifting?: boolean;
+  /** Suggested Ties dismissed for good (ADR 0130), `{ otherId, kind }[]`: App-owned, guarded, hidden. */
+  dismissedTies?: { otherId: string; kind: TieKind }[];
 }
 
 /**

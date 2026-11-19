@@ -2,8 +2,9 @@ import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
 import { buildLinkIndex, documentsOf, documentsTable, getDocument, moveDocumentsToWorkspace, putDocument, removeDocument, initApps } from "@lifeline/core";
 import { personTypeDef, tieTypeDef } from "../types";
-import { addPerson } from "./repo";
-import { addTie, saveTieFrom, tiesOf, updateTie, removeTie, restoreTie } from "./ties";
+import { addPerson, allPeople } from "./repo";
+import { suggestedTies } from "../domain/ties";
+import { addAllSuggested, addSuggestedTie, addTie, dismissSuggestion, undoDismissal, saveTieFrom, tiesOf, updateTie, removeTie, restoreTie } from "./ties";
 
 initApps([{ id: "contacts", title: "Contacts", module: "people", types: [personTypeDef, tieTypeDef], screens: [], cards: [], commands: [] }]);
 
@@ -166,5 +167,56 @@ describe("Ties (#412)", () => {
     const index = buildLinkIndex(docs, [personTypeDef, tieTypeDef]);
     expect(index.backlinksTo(lea.id)).toEqual([]);
     expect(index.backlinksTo(anne.id)).toEqual([]);
+  });
+});
+
+describe("Suggested Ties (#615)", () => {
+  /** Paul, father of Tom and of Lily; Rose, Paul's mother. */
+  async function family() {
+    const [paul, tom, lily, rose] = await Promise.all(["Paul", "Tom", "Lily", "Rose"].map((name) => addPerson({ name })));
+    await addTie({ from: paul!.id, to: tom!.id, label: "father", toLabel: "son", kind: "parent" });
+    await addTie({ from: paul!.id, to: lily!.id, label: "father", toLabel: "daughter", kind: "parent" });
+    return { paul: paul!, tom: tom!, lily: lily!, rose: rose! };
+  }
+  const suggestionsOf = async (id: string) => suggestedTies(id, (await documentsOf("contacts_tie")) as never, await allPeople());
+
+  it("adds a suggestion as a real kinded Tie, which then is no suggestion on either page", async () => {
+    const { tom, lily } = await family();
+    const [sister] = await suggestionsOf(tom.id);
+    await addSuggestedTie(tom.id, sister!);
+    expect(await tiesOf(lily.id)).toContainEqual(expect.objectContaining({ a: tom.id, b: lily.id, labelA: "brother", labelB: "sister", kind: "sibling" }));
+    expect(await suggestionsOf(tom.id)).toEqual([]);
+    expect(await suggestionsOf(lily.id)).toEqual([]);
+  });
+
+  it("dismisses on both People, for good, even when other Ties change", async () => {
+    const { paul, tom, lily, rose } = await family();
+    const [sister] = await suggestionsOf(tom.id);
+    await dismissSuggestion(tom.id, sister!);
+    expect(await getDocument(tom.id)).toMatchObject({ dismissedTies: [{ otherId: lily.id, kind: "sibling" }] });
+    expect(await getDocument(lily.id)).toMatchObject({ dismissedTies: [{ otherId: tom.id, kind: "sibling" }] });
+    expect(await suggestionsOf(lily.id)).toEqual([]);
+    await addTie({ from: rose.id, to: paul.id, label: "mother", toLabel: "son", kind: "parent" });
+    expect((await suggestionsOf(tom.id)).map((s) => s.otherId)).toEqual([rose.id]);
+  });
+
+  it("puts a dismissed suggestion back on Undo, on both pages", async () => {
+    const { tom, lily } = await family();
+    const [sister] = await suggestionsOf(tom.id);
+    await dismissSuggestion(tom.id, sister!);
+    await undoDismissal(tom.id, sister!);
+    expect((await suggestionsOf(tom.id)).map((s) => s.otherId)).toEqual([lily.id]);
+    expect((await suggestionsOf(lily.id)).map((s) => s.otherId)).toEqual([tom.id]);
+  });
+
+  it("adds all of a page's suggestions at once", async () => {
+    const { paul, tom, lily, rose } = await family();
+    await addTie({ from: rose.id, to: paul.id, label: "mother", toLabel: "son", kind: "parent" });
+    const all = await suggestionsOf(tom.id);
+    expect(all).toHaveLength(2);
+    await addAllSuggested(tom.id, all);
+    expect((await tiesOf(tom.id)).map((t) => t.kind).sort()).toEqual(["grandchild", "parent", "sibling"]);
+    expect((await suggestionsOf(tom.id)).length).toBe(0);
+    expect((await suggestionsOf(lily.id)).map((s) => s.otherId)).toEqual([rose.id]);
   });
 });

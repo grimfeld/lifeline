@@ -114,3 +114,41 @@ test("a preset chip fills both words and sets the kind, which survives editing a
   await expect(edit).toBeHidden();
   await expect.poll(() => kindsOf([paul, lily])).toEqual([{ a: paul, labelA: "dad", labelB: "daughter", kind: null }]);
 });
+
+test("the Ties that follow are suggested: Add one from Lily's page, and a Dismiss stays gone after a reload", async ({ page }) => {
+  await page.goto("/app/people");
+  await workLocally(page);
+  const [paul, tom, lily, alice] = [await makePerson(page, "Paul"), await makePerson(page, "Tom"), await makePerson(page, "Lily"), await makePerson(page, "Alice")];
+  const tieUp = (a: string, b: string, labelA: string, labelB: string, kind: string) =>
+    inCore(page, async (core, t: Record<string, string>) => void (await core.putDocument({ type: "contacts_tie", title: "", ...t } as never)), { a, b, labelA, labelB, kind });
+  await tieUp(paul, tom, "father", "son", "parent");
+  await tieUp(paul, lily, "father", "daughter", "parent");
+
+  // Lily's card suggests her brother; Add makes it a real Tie on both pages.
+  await page.goto(`/app/people/person/${lily}`);
+  await workLocally(page);
+  const ties = page.getByRole("region", { name: "Ties" });
+  const suggested = ties.getByRole("group", { name: "Suggested" });
+  await expect(suggested).toContainText("Tom is Lily's brother");
+  await suggested.getByRole("button", { name: "Add Tom as Lily's brother", exact: true }).click();
+  await expect(ties).toContainText("brother: Tom");
+  await expect(suggested).toBeHidden();
+  await ties.getByRole("link", { name: "Tom", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/person/${tom}$`));
+  await expect(ties).toContainText("sister: Lily");
+  await expect(suggested).toBeHidden();
+
+  // Paul's wife Alice follows as their mother: two on Tom's card, so Add all shows; Dismiss one from Lily's.
+  await tieUp(alice, paul, "wife", "husband", "partner");
+  await expect(suggested).toContainText("Alice is Tom's mother");
+  await page.goto(`/app/people/person/${lily}`);
+  await workLocally(page);
+  await expect(suggested).toContainText("Alice is Lily's mother");
+  await suggested.getByRole("button", { name: "Dismiss Alice as Lily's mother", exact: true }).click();
+  await expect(suggested).toBeHidden();
+  await expect(page.getByText("Dismissed the suggestion", { exact: false })).toBeVisible();
+  await page.reload();
+  await workLocally(page);
+  await expect(ties).toContainText("brother: Tom");
+  await expect(suggested).toBeHidden();
+});
