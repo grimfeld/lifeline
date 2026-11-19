@@ -58,7 +58,8 @@ Required on `master`: `check`, `e2e` (one result for every e2e shard), `dependen
 
 The e2e gate (ADR 0129) runs behaviour flows: the `desktop` project, and the `mobile` project for
 cases tagged `@phone` or `@also-phone`. A PR's `e2e-changed` runs the gate specs it changes; the
-integration PR runs the whole gate. The UI checks (`screens.spec.ts`, `a11y-names.spec.ts`) and the
+integration PR runs the whole gate. Four runners (the integration PR, or a PR past 150 cases) split
+the spec files by their running time (`shell/e2e/durations.json`; refreshing it is in `shell/e2e/README.md`). The UI checks (`screens.spec.ts`, `a11y-names.spec.ts`) and the
 Demo (`demo.spec.ts`) run only in the nightly e2e run on master (`.github/workflows/e2e.yml`), never at
 delivery.
 

@@ -29,9 +29,28 @@ No `--` before the flags: pnpm would hand it to Playwright, which then reads the
 file filters. A PR runs only the gate specs it changes, three times each
 (`.github/workflows/check.yml`, `e2e-changed`), or once on four runners past 150 cases. The
 whole gate runs on every integration PR (`pnpm integrate`, ADR 0096), and everything runs on
-master each night. Both split it four ways with `--shard`, and each shard runs the setup
-projects its cases need. A red nightly run opens (or comments on) a `ready-for-agent` issue
-naming the failing cases (`scripts/e2e-failures.mjs`).
+master each night; each runner runs the setup projects its cases need. A red nightly run opens
+(or comments on) a `ready-for-agent` issue naming the failing cases (`scripts/e2e-failures.mjs`).
+
+### The four runners
+
+The nightly run splits the suite four ways with `--shard`. A PR's four runners instead split
+the spec files by how long each takes, from `e2e/durations.json`
+(`scripts/e2e-shards.mjs`): `--shard` splits by count, in file order, so slow files next to
+each other in the alphabet land on one runner. A file is never split between runners, so one
+that nears a quarter of the gate's case time (about 7 min, both widths together) holds its
+runner up: split it.
+A new spec needs no entry; it counts as the median time a case. When the runners drift more
+than a minute or two apart, refresh the times from an integration run's reports:
+
+```sh
+gh run download <run-id> --pattern 'e2e-results-*' --dir /tmp/e2e-results
+node scripts/e2e-shards.mjs durations /tmp/e2e-results/*/e2e-results.json > shell/e2e/durations.json
+```
+
+To time the four runners on a branch before it lands, run the Check workflow by hand
+(Actions → Check → Run workflow) with **gate** ticked: it runs the whole gate as an
+integration PR does.
 
 ## Widths
 
