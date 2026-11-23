@@ -1,7 +1,7 @@
 ---
 status: accepted
 supersedes: ADR 0021 (in part — the phone home is a user Screen), ADR 0047 (in part — the phone home per Workspace), ADR 0049 (in part — the slot list and per-Module memory)
-superseded-by: ADR 0057 (in part — a Module slot lands on the Module's home), ADR 0063 (in part — the two pinned time slots)
+superseded-by: ADR 0057 (in part — a Module slot lands on the Module's home), ADR 0063 (in part — the two pinned time slots), ADR 0133 (in part — three user slots)
 amended-by: ADR 0066 (in part — a Module's home may be its Overview), ADR 0089 (in part — Settings is no longer the only page that serves no Documents)
 ---
 
