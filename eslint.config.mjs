@@ -4,6 +4,10 @@
 import reactHooks from "eslint-plugin-react-hooks";
 import tseslint from "typescript-eslint";
 
+/** Why a raw read of the Documents table fails lint, and how one that must stays (#643). */
+const rawDocumentsRead = (what, rule) =>
+  `${what} reads Documents around Core's gates (Private while locked, other Workspaces: ADR 0038, 0048). Read through getDocument / documentsOf / documentsWhere / useDocuments, or documentsOfUngated for a check that must see past the gates. A read that must bypass them stays behind \`// eslint-disable-next-line ${rule} -- <reason>\`: the reason is required.`;
+
 export default tseslint.config(
   {
     ignores: [
@@ -56,12 +60,22 @@ export default tseslint.config(
           paths: [
             {
               name: "@lifeline/core",
-              importNames: ["documentsTable"],
-              message:
-                "documentsTable reads around Core's gates (Private while locked, other Workspaces: ADR 0038, 0048). Read through getDocument / documentsOf / documentsWhere / useDocuments, or documentsOfUngated for a check that must see past the gates. A read that must bypass them keeps this import behind `// eslint-disable-next-line no-restricted-imports -- <reason>`: the reason is required.",
+              importNames: ["documentsTable", "DOCUMENTS"],
+              message: rawDocumentsRead("This import", "no-restricted-imports"),
             },
           ],
         },
+      ],
+      // The same table by its other routes: `db().documents`, `db().table|collection("documents")`,
+      // `get|all("documents")`, or `documentsTable` reached off a namespace or dynamic import.
+      "no-restricted-syntax": [
+        "error",
+        ...[
+          "MemberExpression[property.name='documentsTable']",
+          "MemberExpression[object.type='CallExpression'][object.callee.name='db'][property.name='documents']",
+          "CallExpression[callee.property.name=/^(table|collection)$/][arguments.0.value='documents']",
+          "CallExpression[callee.name=/^(get|all)$/][arguments.0.value='documents']",
+        ].map((selector) => ({ selector, message: rawDocumentsRead("This", "no-restricted-syntax") })),
       ],
     },
   },

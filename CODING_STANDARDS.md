@@ -19,9 +19,9 @@ decision in `docs/adr/` outranks anything here.
 - **Reads go through Core's gates.** Outside Core, Documents are read with `getDocument`,
   `documentsOf`, `documentsWhere` or `useDocuments`, which hide the Private folder while
   locked and other Workspaces (ADR 0038, 0048); `documentsOfUngated` is for a check that
-  must see past them. `pnpm lint` flags an import of `documentsTable`: a read that must go
-  around the gates keeps it behind `// eslint-disable-next-line no-restricted-imports --
-  <why>` on the line above.
+  must see past them. `pnpm lint` flags the raw table (`documentsTable`, `DOCUMENTS`,
+  `db().documents`, `get`/`all("documents")`); a read that must go around the gates says
+  why on the line above, with `// eslint-disable-next-line <the rule> -- <why>`.
 - **ADRs.** A diff that contradicts an ADR is a finding, even when the code works: change
   the code, or the ADR in the same change.
 
