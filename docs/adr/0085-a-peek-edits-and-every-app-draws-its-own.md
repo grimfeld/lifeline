@@ -1,7 +1,7 @@
 ---
 status: accepted
 amends: ADR 0057 (the Peek), ADR 0068 (in part — bodies written in the Vault)
-amended-by: ADR 0110 (in part — a work's Peek leads to its page), ADR 0119 (in part — an App may draw above Core's Peek through `peekAside`), ADR 0124 (the App's part of the Peek is the type's Form, editing)
+amended-by: ADR 0110 (in part — a work's Peek leads to its page), ADR 0119 (in part — an App may draw above Core's Peek through `peekAside`), ADR 0124 (the App's part of the Peek is the type's Form, editing), ADR 0137 (in part — Core's Peek draws other Apps' document panels that opt in)
 ---
 
 # A Peek edits, and every App draws its own
