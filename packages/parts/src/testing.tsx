@@ -1,4 +1,4 @@
-import { afterEach, beforeAll } from "vitest";
+import { afterEach, beforeAll, vi } from "vitest";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { MemoryRouter } from "react-router";
@@ -14,8 +14,14 @@ import { PEEK_WRITE_DELAY } from "./components/WorkPeekFields";
  *
  * A test file opens with `// @vitest-environment jsdom` and
  * `import "fake-indexeddb/auto"`, then calls `peekTests([theApp])`.
+ *
+ * Each test gets 20 s, not vitest's 5 s: the helpers below sleep on real
+ * timers (an edit settles, a read waits out the write delay), which several
+ * `pnpm check` runs on one machine stretch past 5 s (#644). The setting holds
+ * for the calling test file only.
  */
 export function peekTests(apps: AppManifest[]): void {
+  vi.setConfig({ testTimeout: PEEK_TEST_TIMEOUT });
   initApps(apps);
   beforeAll(() => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -38,6 +44,9 @@ export function peekTests(apps: AppManifest[]): void {
     await documentsTable().clear();
   });
 }
+
+/** A Peek test's budget: about four times the worst case seen under parallel checks (#644). */
+export const PEEK_TEST_TIMEOUT = 20_000;
 
 let root: Root | null = null;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
