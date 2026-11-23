@@ -40,7 +40,7 @@ export function RouteBoundary({ children }: { children: ReactNode }) {
     <ErrorBoundary
       resetKey={location.pathname + location.search}
       fallback={() => (
-        <div className="p-4 md:p-6">
+        <div className="p-4 cq-md:p-6">
           <EmptyState
             role="alert"
             action={
