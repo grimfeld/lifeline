@@ -44,6 +44,28 @@ export default tseslint.config(
     },
   },
   {
+    // Reads go through Core's gates (ADR 0038: Private while locked; ADR 0048: other
+    // Workspaces), so the raw table stays inside Core (#643). A read that must go around
+    // them says why on the import line; tests and e2e set up the store as they like.
+    files: ["apps/**/*.{ts,tsx}", "shell/src/**/*.{ts,tsx}", "mcp/**/*.{ts,tsx}", "packages/**/*.{ts,tsx}"],
+    ignores: ["packages/core/**", "**/*.test.{ts,tsx}", "packages/parts/src/testing.tsx"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "@lifeline/core",
+              importNames: ["documentsTable"],
+              message:
+                "documentsTable reads around Core's gates (Private while locked, other Workspaces: ADR 0038, 0048). Read through getDocument / documentsOf / documentsWhere / useDocuments, or documentsOfUngated for a check that must see past the gates. A read that must bypass them keeps this import behind `// eslint-disable-next-line no-restricted-imports -- <reason>`: the reason is required.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // Playwright's fixtures take a `use` callback; it is not React's `use`.
     files: ["shell/e2e/**"],
     rules: { "react-hooks/rules-of-hooks": "off" },
