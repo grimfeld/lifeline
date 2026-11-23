@@ -315,3 +315,14 @@ test("the Relationship and Name written in place: Escape puts the stored value b
   expect(await personNamed(page, "Anne Dupont")).toBeTruthy();
   expect((await people(page)).filter((p) => p.title === "Léa Dupont")).toHaveLength(1);
 });
+
+test("World opens on the People screen and its navigation has no Map", { tag: "@also-phone" }, async ({ page }) => {
+  await page.goto("/module/people");
+  await workLocally(page);
+  await expect(page).toHaveURL(/\/app\/people$/);
+  await expect(page.getByRole("region", { name: "Everyone" })).toBeVisible();
+  // The sidebar on a desktop, the tabs in the Phone dock on a phone: People and Places are there, Map is not.
+  await expect(page.locator('a[href="/app/people"]').filter({ visible: true }).first()).toBeVisible();
+  await expect(page.locator('a[href="/app/places"]').filter({ visible: true }).first()).toBeVisible();
+  await expect(page.locator('a[href="/module/people"]').filter({ visible: true }).filter({ hasText: /^Map$/ })).toHaveCount(0);
+});

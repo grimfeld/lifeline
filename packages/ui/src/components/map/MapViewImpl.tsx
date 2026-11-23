@@ -1,9 +1,10 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "./map.css";
 import { cn } from "../../lib/utils";
+import { planView, type FitState } from "./fit";
 import { OSM_ATTRIBUTION, OSM_TILES, type MapPin } from "./tiles";
 
 /* Leaflet's side of the maps, loaded on first use (see ./MapView). */
@@ -23,24 +24,13 @@ export function pinIcon(color = "var(--primary)", size = 22): L.DivIcon {
 
 function FitToPins({ pins, focus }: { pins: MapPin[]; focus?: string }) {
   const map = useMap();
-  const signature = pins.map((p) => `${p.key}:${p.lat},${p.lon}`).join("|");
+  const state = useRef<FitState>({ fitted: false, focused: undefined });
   useEffect(() => {
-    const target = focus ? pins.find((p) => p.key === focus) : undefined;
-    if (target) {
-      map.setView([target.lat, target.lon], Math.max(map.getZoom(), 15));
-      return;
-    }
-    if (pins.length === 0) {
-      map.setView(WORLD, 2);
-      return;
-    }
-    if (pins.length === 1) {
-      map.setView([pins[0]!.lat, pins[0]!.lon], 13);
-      return;
-    }
-    map.fitBounds(L.latLngBounds(pins.map((p) => [p.lat, p.lon] as [number, number])), { padding: [32, 32], maxZoom: 15 });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- refit only when the set of pins (or the focus) changes, not on every render
-  }, [map, signature, focus]);
+    const plan = planView(pins, focus, state.current, map.getZoom());
+    state.current = plan.state;
+    if (plan.action === "centre") map.setView(plan.at, plan.zoom);
+    else if (plan.action === "fit") map.fitBounds(L.latLngBounds(pins.map((p) => [p.lat, p.lon] as [number, number])), { padding: [32, 32], maxZoom: 15 });
+  }, [map, pins, focus]);
   return null;
 }
 
@@ -58,8 +48,8 @@ function InvalidateOnResize() {
 
 /**
  * The map Surface's canvas: OSM tiles, one coloured pin per item, a popup
- * with name/subtitle/Open. Fits to the pins on mount and whenever they
- * change; `focus` centres on one pin instead.
+ * with name/subtitle/Open. Fits to the pins the first time it has any, then
+ * stays where the person put it (ADR 0135); `focus` centres on one pin.
  */
 export function MapView({
   pins,
