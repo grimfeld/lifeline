@@ -26,6 +26,8 @@ export interface ModuleShell {
   Nav?: ComponentType;
   /** Its own pages, routed under `/module/<id>/`; the one with path "" is its home. */
   pages: { path: string; component: ComponentType; bare?: boolean }[];
+  /** Ids of the App screens (`<app>.<screen>`) its navigation lists as places, so a test can tell when a Module leaves one out. */
+  placeScreens: readonly string[];
 }
 
 /** Hand-written Modules by id, filled in one at a time as each stand-in is replaced. */
