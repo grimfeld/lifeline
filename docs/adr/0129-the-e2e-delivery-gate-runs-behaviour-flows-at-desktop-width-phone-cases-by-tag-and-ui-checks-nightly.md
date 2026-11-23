@@ -1,5 +1,6 @@
 ---
 status: accepted
+amended-by: ADR 0132 (in part — the whole gate runs on each approved PR, not on an integration PR)
 amends: ADR 0065 (in part — the layout check runs nightly, not at delivery), ADR 0096 (in part — the integration run's e2e is the delivery gate only)
 ---
 

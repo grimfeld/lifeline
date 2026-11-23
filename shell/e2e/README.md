@@ -2,8 +2,8 @@
 
 Two kinds of case live here (ADR 0129):
 
-- **The delivery gate** proves user flows work. A PR runs the gate specs it changes, and every
-  integration PR runs the whole gate. Logic (rules, variants, edge cases) belongs in unit
+- **The delivery gate** proves user flows work. A PR runs the gate specs it changes, and a PR
+  carrying `ship` runs the whole gate (ADR 0132). Logic (rules, variants, edge cases) belongs in unit
   tests next to the code, not here.
 - **The nightly checks** run only on master each night (`.github/workflows/e2e.yml`): the
   layout test `screens.spec.ts` (every screen over the longest content a person could type,
@@ -28,7 +28,7 @@ pnpm test:e2e:quiet --project=desktop people.spec.ts                    # dot re
 No `--` before the flags: pnpm would hand it to Playwright, which then reads them as
 file filters. A PR runs only the gate specs it changes, three times each
 (`.github/workflows/check.yml`, `e2e-changed`), or once on four runners past 150 cases. The
-whole gate runs on every integration PR (`pnpm integrate`, ADR 0096), and everything runs on
+whole gate runs on every PR carrying `ship` (ADR 0132), and everything runs on
 master each night; each runner runs the setup projects its cases need. A red nightly run opens
 (or comments on) a `ready-for-agent` issue naming the failing cases (`scripts/e2e-failures.mjs`).
 
@@ -41,7 +41,7 @@ each other in the alphabet land on one runner. A file is never split between run
 that nears a quarter of the gate's case time (about 7 min, both widths together) holds its
 runner up: split it.
 A new spec needs no entry; it counts as the median time a case. When the runners drift more
-than a minute or two apart, refresh the times from an integration run's reports:
+than a minute or two apart, refresh the times from an approved PR's run reports:
 
 ```sh
 gh run download <run-id> --pattern 'e2e-results-*' --dir /tmp/e2e-results
@@ -50,7 +50,7 @@ node scripts/e2e-shards.mjs durations /tmp/e2e-results/*/e2e-results.json > shel
 
 To time the four runners on a branch before it lands, run the Check workflow by hand
 (Actions → Check → Run workflow) with **gate** ticked: it runs the whole gate as an
-integration PR does.
+approved PR does.
 
 ## Widths
 

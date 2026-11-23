@@ -1,7 +1,7 @@
 # Workflow: what to do next
 
 For the user and for agents. Find the line that matches where you are and do what it says.
-The why is in `CLAUDE.md` and ADR 0096 (batch landing).
+The why is in `CLAUDE.md` and ADR 0132 (landing).
 
 ## The path of one change
 
@@ -16,30 +16,28 @@ The why is in `CLAUDE.md` and ADR 0096 (batch landing).
 | Code written | `pnpm check`. Then run the e2e specs you touched, and `screens.spec.ts` if you changed a screen (`shell/e2e/README.md`). |
 | Checks green locally | Commit as `claude@grimfeld.tech`, push, and open the PR (the `pr` skill writes the body). |
 | PR's CI red | Fix it on the branch and push. A red **nightly** run means master was already broken, not your change. |
-| PR's CI green | **Stop.** Don't merge master into it to refresh CI, and don't merge it alone. It waits for the next batch. |
-| PR finished | Mark it ready once `/ship:pr-review` has written its review section. The user adds `ship`; the Ship workflow lands it (below). |
+| PR's CI green | **Stop.** Don't merge master into it to refresh CI, and don't merge it alone. It waits for review and `/ship:land`. |
+| PR finished | Mark it ready once `/ship:pr-review` has written its review section. The user adds `ship` and runs `/ship:land` (below). |
 | PR merged | `pnpm worktrees:prune` clears the worktrees whose work is on master. |
 
-## Landing a batch
+## Landing
 
 | You are here | Next |
 | --- | --- |
-| Green PRs labelled `ship` | Nothing to do: the Ship workflow (`ship.yml`, ADR 0126) runs `pnpm integrate` on them every two hours and when a label is added. To land now: Actions → Ship → Run workflow. `pnpm integrate --no-push` in a worktree previews a batch locally. |
-| "skip #N: conflicts" | Leave it. Tell PR #N's owner to rebase on master; it joins the next batch. |
-| "renumbered …" | Nothing to do: migrations were renumbered automatically, and the PR body lists them. |
-| Ship's `land` job failed on an ADR clash | Nothing was pushed. In `pnpm worktree:new integrate`, run `pnpm integrate` with the PR numbers from the job's log: it stops at the same clash. Move the narrower ADR with `pnpm adr:mv`, add `formerly: NNNN`, update its references by meaning (`CLAUDE.md`), commit, then run `pnpm integrate --continue`. |
-| Integration PR running | Wait. It runs the unit checks and the whole e2e suite once, on four runners. |
-| Integration PR red | Read the failing case and find the PR it points at. `pnpm integrate --drop <pr>` rebuilds the branch without it and re-runs CI. Send the failure back to that PR. |
-| Integration PR green | Nothing to do: it auto-merges with a merge commit, which deploys. |
-| Merged | The original PRs show as merged. Run `pnpm worktrees:prune`. |
+| A PR you approve | Add `ship`. CI reruns with the whole e2e gate (about five minutes). |
+| Approved PRs waiting | Run `/ship:land` (`/ship:land <pr>...` approves the named PRs first). For each, it merges master in, resolving conflicts, waits for its checks and merges it, parents before stacked PRs (`shipping.md`). |
+| `land:` comment "Conflict resolution" | Nothing to do: it kept both sides and the PR landed or goes on to its checks. Read the choices if you want to. |
+| `land:` comment: the sides contradict | Make the decision it names, on the branch: merge master in and push. The next `/ship:land` lands it. |
+| `land:` comment: a check failed | Read the failing case. It was red before the merge, or `/ship:land` couldn't fix it in two tries: fix it on the branch, then `/ship:land` again. |
+| Merged | Its merge commit deploys. Run `pnpm worktrees:prune`. |
 
 ## When stuck
 
 | Symptom | Fix |
 | --- | --- |
 | `pre-push: refusing to push commits made with an email other than…` | The hook prints the fix: amend or rebase with `-c user.email=claude@grimfeld.tech`. |
-| `adr:check` or `migrations:check` **red** on your PR | Your own branch holds a number twice. Fix it there: `pnpm adr:mv` for an ADR, `pnpm migrations:next` and `git mv` for a migration. The exception is a migration that only "sorts before" master's newest because master moved on: leave that one, since the integration run renumbers it. |
-| The same check only **warns** about another branch | Leave it. Whichever PR lands first keeps the number, and the integration run deals with the other. |
+| `adr:check` or `migrations:check` **red** on your PR | Your own branch holds a number twice. Fix it there: `pnpm adr:mv` for an ADR, `pnpm migrations:next` and `git mv` for a migration. The exception is a migration that only "sorts before" master's newest because master moved on: leave that one, since `/ship:land` renumbers it when it lands. |
+| The same check only **warns** about another branch | Leave it. Whichever PR lands first keeps the number, and `/ship:land` renumbers the other when it lands. |
 | `gh pr edit` fails (`projectCards`) | Use the REST API (`issue-tracker.md`). |
 | Classes missing on a new App | Its `@source` line is missing from `shell/src/index.css`. |
 | Unsure which model a subagent gets | `haiku` for lookups and merges, `sonnet` for implementing a settled design, `opus` for design, review and diagnosis. |

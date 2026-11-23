@@ -1,6 +1,7 @@
 ---
-status: accepted
+status: superseded
 amends: ADR 0096 (in part — who starts a batch and who merges it)
+superseded-by: ADR 0132
 ---
 
 # Reviewed PRs land through a ship label and a scheduled batch
