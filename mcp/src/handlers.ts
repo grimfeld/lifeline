@@ -8,6 +8,7 @@ import {
   checkMacro,
   reasonLine,
   memoLookup,
+  storeLookup,
   commandNavigates,
   isInvocable,
   reportMessage,
@@ -214,7 +215,7 @@ async function readFields(def: DocumentTypeDef, raw: Args): Promise<Args> {
   const clears = Object.keys(raw).filter((k) => raw[k] === null);
   for (const k of clears) if (byKey.get(k)!.required) throw new ToolError(`“${byKey.get(k)!.label}” is required`);
   const set = Object.fromEntries(Object.entries(raw).filter(([, v]) => v !== null));
-  const checked = await readCommandArgs(def.fields.filter((f) => f.key in set).map(fieldArg), set).catch((e: Error) => {
+  const checked = await readCommandArgs(def.fields.filter((f) => f.key in set).map(fieldArg), set, isAgentVisible).catch((e: Error) => {
     throw new ToolError(e.message);
   });
   return { ...checked, ...Object.fromEntries(clears.map((k) => [k, null])) };
@@ -372,11 +373,12 @@ function assertMacroOutsideWall(macro: MacroShape): void {
 
 /**
  * Check a Macro an agent wrote exactly as the app's editor does, with fixed
- * links looked up in the Workspace the call is in.
+ * links looked up in the Workspace the call is in, among the Documents the
+ * agent may see: one naming a hidden Document names nothing (ADR 0114).
  */
 async function assertFine(macro: MacroShape): Promise<void> {
   assertMacroOutsideWall(macro);
-  const check = await checkMacro(macro, await registry());
+  const check = await checkMacro(macro, await registry(), storeLookup(isAgentVisible));
   if (!check.ok) throw new ToolError(`“${macro.name}” would be broken: ${check.reasons.map(reasonLine).join("; ")}`);
 }
 
@@ -411,7 +413,7 @@ const handlers: Record<string, (a: Args) => Promise<unknown>> = {
     const macros = await allMacros();
     const all = await registry(macros);
     const tools = macroTools(macros, all);
-    const lookup = memoLookup();
+    const lookup = memoLookup(storeLookup(isAgentVisible));
     const list = await Promise.all(
       macros.map(async (m) => {
         const check = await checkMacro(m, all, lookup);

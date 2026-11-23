@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { Button, toast } from "@lifeline/ui";
-import { documentType, patchDocument, removeDocument, useDocument, useLinkIndex, type Document } from "@lifeline/core";
-import { DocumentEditor } from "@lifeline/editor";
+import { documentType, patchDocument, useDocument, useLinkIndex, type Document } from "@lifeline/core";
+import { BacklinksSection, DocumentEditor, UnlinkedMentionsSection, useOpenLinkRef } from "@lifeline/editor";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import { MemoryForm } from "../components/MemoryForm";
-import { patchMemory } from "../data/repo";
+import { deleteMemory, patchMemory, restoreMemory } from "../data/repo";
 import { MEMORY, type Memory } from "../domain/types";
 
 /** Where a Memory leads back to: the Memories grid. */
@@ -39,27 +39,29 @@ function Fields({ memory }: { memory: Memory }) {
 
 /**
  * One Memory, on its own page under the Journal (ADR 0136): its title, date
- * and About in the Memory form the add dialog shares, and its body (words and
- * photos) in the writing interface beneath.
+ * and About in the Memory form the add dialog shares, its body (words and
+ * photos) in the writing interface beneath, and what links to it under that.
  */
 export function MemoryScreen() {
   const { id } = useParams();
   const navigate = useNavigate();
   const memory = useDocument<Memory>(id);
   const index = useLinkIndex();
+  const open = useOpenLinkRef(index);
   // Only the body and its Tags are written from the editor, so a Field changed beside it is never sent back as it was.
   const saveBody = useCallback((next: Document) => patchDocument(next.id, { body: next.body, tags: next.tags }), []);
   if (!memory || memory.type !== MEMORY) {
     return <div className="text-muted-foreground p-6 text-sm">This memory isn't here — it may have been deleted, or it lives in another Workspace.</div>;
   }
+  // Deleted at once, with Undo (CODING_STANDARDS § Deleting): the same Memory comes back.
   async function remove() {
-    try {
-      await removeDocument(memory!.id);
-    } catch (e) {
-      toast.error(`Couldn’t delete “${memory!.title}” — ${e instanceof Error ? e.message : String(e)}`);
-      return;
-    }
-    toast.success(`“${memory!.title}” deleted`);
+    const title = memory!.title;
+    const gone = await deleteMemory(memory!.id).catch((e: unknown) => {
+      toast.error(`Couldn’t delete “${title}” — ${e instanceof Error ? e.message : String(e)}`);
+      return null;
+    });
+    if (gone === null) return;
+    toast.success(`“${title}” deleted`, gone ? { action: { label: "Undo", onClick: () => void restoreMemory(gone) } } : undefined);
     navigate(BACK);
   }
   return (
@@ -79,6 +81,10 @@ export function MemoryScreen() {
           <Fields key={memory.id} memory={memory} />
           <div className="min-h-40 min-w-0 rounded-lg border p-2">
             <DocumentEditor key={memory.id} doc={memory} def={documentType(MEMORY)} index={index} bodyOnly bodyLabel="Words" save={saveBody} />
+          </div>
+          <div className="grid min-w-0 gap-4 text-sm">
+            <BacklinksSection docId={memory.id} index={index} onOpen={open} />
+            <UnlinkedMentionsSection docId={memory.id} index={index} onOpen={open} />
           </div>
         </div>
       </div>

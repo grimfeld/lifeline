@@ -149,3 +149,15 @@ test("today's Day shows Remember with a seeded on-this-day Memory, and Another c
   await remember.getByRole("button", { name: "Another" }).click();
   await expect(remember.getByRole("link").last()).not.toHaveText(first);
 });
+
+test("a Memory's page shows what links to it, and its Delete is undone from the toast", async ({ page }) => {
+  await page.goto("/app/journal/memories");
+  await workLocally(page);
+  await keep(page, "Old harbour", "2020-05-01");
+  await page.locator("main ul > li > a").filter({ hasText: "Old harbour" }).click();
+  await expect(page.getByRole("heading", { name: /Backlinks/ })).toBeVisible();
+  await page.getByRole("button", { name: "Delete" }).click();
+  await expect(page).toHaveURL(/\/app\/journal\/memories$/);
+  await page.getByRole("button", { name: "Undo" }).click();
+  await expect(page.locator("main ul > li > a").filter({ hasText: "Old harbour" })).toHaveCount(1);
+});
