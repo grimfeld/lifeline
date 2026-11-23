@@ -58,7 +58,7 @@ export function JournalScreen() {
             Today
           </Button>
           <DatePickerButton aria-label="Jump to date" variant="ghost" size="icon-sm" value={date} onPick={go} />
-          {note && <JournalLinksButton docId={note.id} index={index} />}
+          {note && <JournalLinksButton docId={note.id} doc={note} index={index} />}
           <div role="group" aria-label="Days around" className="hidden items-center gap-1 xl:flex">
             {strip.map((d) => (
               <button
@@ -97,7 +97,7 @@ export function JournalScreen() {
           </div>
         )}
         {/* Kept on a date with no Day, so the calendar stays to carry on from (#206). */}
-        <JournalAside date={date} docId={note?.id} />
+        <JournalAside date={date} doc={note} />
       </div>
     </div>
   );

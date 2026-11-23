@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { useUnlinkedIn, type LinkIndex } from "@lifeline/core";
+import { documentPanels, useUnlinkedIn, type Document, type LinkIndex } from "@lifeline/core";
 import { BacklinksSection, UnlinkedNamesSection, useOpenLinkRef } from "@lifeline/editor";
 import { Button, Sheet, SheetContent, SheetTitle } from "@lifeline/ui";
 import { Link2 } from "lucide-react";
@@ -7,9 +7,11 @@ import { Link2 } from "lucide-react";
 /**
  * A Journal page's links (ADR 0068, amended): the unlinked names in its own
  * words, ready to link, then what links to it. Days are never mention targets,
- * so their unlinked mentions are always empty and not shown.
+ * so their unlinked mentions are always empty and not shown. Given the Day
+ * itself (`doc`), the other Apps' document panels come first, as in the editor's
+ * side column (the Memories panel lists the Memories dated that day).
  */
-export function JournalLinks({ docId, index, onFollow }: { docId: string; index: LinkIndex; /** After a link is followed (a sheet closes). */ onFollow?: () => void }) {
+export function JournalLinks({ docId, doc, index, onFollow }: { docId: string; doc?: Document; index: LinkIndex; /** After a link is followed (a sheet closes). */ onFollow?: () => void }) {
   const open = useOpenLinkRef(index);
   const onOpen: typeof open = (ref, name) => {
     onFollow?.();
@@ -17,6 +19,15 @@ export function JournalLinks({ docId, index, onFollow }: { docId: string; index:
   };
   return (
     <div className="grid min-w-0 content-start gap-4 text-sm">
+      {doc &&
+        documentPanels().map((p) => {
+          const Panel = p.component;
+          return (
+            <div key={`${p.appId}/${p.id}`} className="min-w-0 empty:hidden">
+              <Panel doc={doc} index={index} />
+            </div>
+          );
+        })}
       <UnlinkedNamesSection docId={docId} index={index} />
       <BacklinksSection docId={docId} index={index} onOpen={onOpen} />
     </div>
@@ -28,7 +39,7 @@ export function JournalLinks({ docId, index, onFollow }: { docId: string; index:
  * dock on a phone) opening the same links in a bottom sheet, its badge
  * counting the names left to link.
  */
-export function JournalLinksButton({ docId, index, children }: { docId: string; index: LinkIndex; /** More for the sheet, under the links (a period's Reports). */ children?: ReactNode }) {
+export function JournalLinksButton({ docId, doc, index, children }: { docId: string; doc?: Document; index: LinkIndex; /** More for the sheet, under the links (a period's Reports). */ children?: ReactNode }) {
   const [open, setOpen] = useState(false);
   const unlinked = useUnlinkedIn(index, docId).length;
   return (
@@ -41,7 +52,7 @@ export function JournalLinksButton({ docId, index, children }: { docId: string; 
         <SheetContent side="bottom" aria-describedby={undefined} className="max-h-[80vh]">
           <SheetTitle>Links</SheetTitle>
           <div className="min-h-0 flex-1 overflow-y-auto p-4">
-            <JournalLinks docId={docId} index={index} onFollow={() => setOpen(false)} />
+            <JournalLinks docId={docId} doc={doc} index={index} onFollow={() => setOpen(false)} />
             {children && <div className="mt-4 grid min-w-0 gap-4 text-sm" onClickCapture={(e) => (e.target as HTMLElement).closest("a,button") && setOpen(false)}>{children}</div>}
           </div>
         </SheetContent>

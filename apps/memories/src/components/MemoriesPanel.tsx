@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
-import { EVENT_TYPE, useDocuments, type Document, type LinkIndex } from "@lifeline/core";
+import { DAY_TYPE, EVENT_TYPE, useDocuments, type Document, type LinkIndex } from "@lifeline/core";
 import { Button } from "@lifeline/ui";
 import { Images, Plus } from "lucide-react";
 import { eventBegun, memoryFromEvent } from "../domain/event";
+import { panelMemories } from "../domain/panel";
 import { MEMORY, memoryHref, type Memory } from "../domain/types";
 import { MemoryPhoto } from "./MemoryPhoto";
 import { NewMemoryDialog } from "./NewMemoryDialog";
@@ -12,15 +13,16 @@ import { NewMemoryDialog } from "./NewMemoryDialog";
  * The Memories panel (ADR 0137), drawn in an Event's Peek: the Memories about
  * the Event as thumbnails, each opening its Memory, and Add a memory once the
  * Event has begun. An Event that has not begun and has none shows nothing, and
- * so does any other Document.
+ * so does any other Document. On a Day (the Journal and the Vault) it lists the
+ * Memories dated that day, and nothing when there are none.
  */
 export function MemoriesPanel({ doc }: { doc: Document; index: LinkIndex }) {
   const memories = useDocuments<Memory>(MEMORY);
   const [adding, setAdding] = useState(false);
   // Stable, or the dialog would reset its fields on every render while open.
   const initial = useMemo(() => memoryFromEvent(doc), [doc.id, doc.title, doc.date]); // eslint-disable-line react-hooks/exhaustive-deps
-  if (doc.type !== EVENT_TYPE) return null;
-  const mine = memories.filter((m) => m.about?.includes(doc.id));
+  if (doc.type !== EVENT_TYPE && doc.type !== DAY_TYPE) return null;
+  const mine = panelMemories(doc, memories);
   const begun = eventBegun(doc);
   if (!mine.length && !begun) return null;
   return (
