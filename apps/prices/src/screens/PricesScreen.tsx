@@ -179,7 +179,7 @@ export function PricesScreen() {
                     <span className="min-w-0 flex-1 truncate">
                       {p.title} <span className="text-muted-foreground text-xs">· {unitName(measureOf(p))}</span>
                     </span>
-                    <span className="text-muted-foreground hidden text-xs sm:inline">
+                    <span className="text-muted-foreground hidden text-xs cq-sm:inline">
                       {n} price{n === 1 ? "" : "s"} · {nShops} shop{nShops === 1 ? "" : "s"}
                     </span>
                     {best ? (

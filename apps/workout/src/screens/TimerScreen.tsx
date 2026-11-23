@@ -200,7 +200,8 @@ export function TimerScreen() {
               </span>
             )}
           </div>
-          <div className={cn("font-mono text-[22vw] leading-none font-bold tabular-nums md:text-[9rem]", color)}>{formatClock(Math.ceil(pos.remaining))}</div>
+          {/* ui-allow: text-size — the countdown scales with the viewport, then caps (pre-existing) */}
+          <div className={cn("font-mono text-[22vw] leading-none font-bold tabular-nums cq-md:text-[9rem]", color)}>{formatClock(Math.ceil(pos.remaining))}</div>
           {current?.kind === "work" && (
             <div className="min-h-12">
               <div className="text-2xl font-semibold">{movementName ?? (current.open ? MODE_LABEL[current.mode] : "")}</div>

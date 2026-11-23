@@ -94,7 +94,7 @@ export function ProductScreen() {
       <SpanPicker months={months} onChange={setMonths} />
 
       {history.size > 0 && (
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-2 cq-sm:grid-cols-2 cq-lg:grid-cols-3">
           {[...history.entries()]
             .map(([sid, pts]) => ({ sid, usual: latestUsual(pts), n: pts.length, otherUsual: latestUsual(otherHistory?.get(sid) ?? []) }))
             .sort((a, b) => (a.usual?.unit ?? Infinity) - (b.usual?.unit ?? Infinity))
