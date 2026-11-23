@@ -145,6 +145,7 @@ of its own (the day it happened, today unless you say otherwise), its words and 
   any image does, pasted or dropped in.
 - A Memory about an Event, a Person or a Place shows in that page's **Backlinks**, as "via
   About".
+- A Memory dated a day shows in that day's **Daylog** as a "Memory" row linking to it.
 - Deleting a Memory leaves its photos behind as unused attachments; **Clean up unused
   attachments…** removes them.
 

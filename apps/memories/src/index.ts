@@ -3,6 +3,7 @@ import { lazyChunk } from "@lifeline/ui";
 import { Images } from "lucide-react";
 import { memoriesCommands } from "./commands";
 import { memoryTypeDef } from "./types";
+import { memoriesDaylog } from "./daylog";
 
 // Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
 const MemoriesScreen = lazyChunk(() => import("./screens/MemoriesScreen").then((m) => ({ default: m.MemoriesScreen })));
@@ -28,4 +29,5 @@ export const memoriesApp: AppManifest = {
   ],
   cards: [],
   commands: memoriesCommands,
+  daylog: memoriesDaylog,
 };
