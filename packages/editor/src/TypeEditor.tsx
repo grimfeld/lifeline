@@ -225,7 +225,7 @@ export function TypeEditor({
         )}
         {fixedFolder && <p className="text-muted-foreground text-xs">Folder is fixed by rule ({base?.id === "daily" ? "Journal/YYYY/MM" : "Templates"}).</p>}
         {!base && (
-          <div className="grid gap-2 md:grid-cols-2">
+          <div className="grid gap-2 cq-md:grid-cols-2">
             <div className="grid min-w-0 gap-1">
               <Label className="text-xs">Writing</Label>
               <Select value={body} onValueChange={(v) => setBody(v as BodyPolicy)}>
@@ -252,7 +252,7 @@ export function TypeEditor({
           <Label className="flex items-center gap-1 text-xs">
             Icon <Icon className="size-3.5" />
           </Label>
-          <div className="grid grid-cols-8 gap-1 md:grid-cols-12">
+          <div className="grid grid-cols-8 gap-1 cq-md:grid-cols-12">
             {Object.entries(TYPE_ICONS).map(([name, I]) => (
               <button key={name} type="button" title={name} aria-label={name} className={cn("flex size-7 items-center justify-center rounded-md border", icon === name ? "border-primary bg-primary/10" : "hover:bg-accent")} onClick={() => setIcon(name)}>
                 <I className="size-4" />
@@ -262,7 +262,7 @@ export function TypeEditor({
         </div>
         <div className="grid gap-1">
           <Label className="text-xs">Fields</Label>
-          <div className="grid gap-2 md:gap-1">
+          <div className="grid gap-2 cq-md:gap-1">
             <Reorderable ids={rows.map((r) => r.uid)} onMove={(from, to) => setRows(moveItem(rows, from, to))}>
               {rows.map((r, i) => (
                 <ReorderItem key={r.uid} id={r.uid} label={r.label || "field"}>
