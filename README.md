@@ -62,7 +62,7 @@ pnpm typecheck      # all packages
 pnpm test           # unit and domain tests
 pnpm check          # what CI runs: scripts' tests, UI rules, ADR and migration numbering, typecheck, tests
                     # (CI also re-runs the tests under fr_FR and America/Los_Angeles)
-pnpm test:e2e       # Playwright screen checks at phone and desktop widths (slow; CI runs the changed specs on every PR, the full suite on integration PRs and nightly)
+pnpm test:e2e       # Playwright screen checks at phone and desktop widths (slow; CI runs the changed specs on every PR, the full suite on approved PRs and nightly)
 pnpm tauri dev      # desktop shell (needs Rust)
 ```
 

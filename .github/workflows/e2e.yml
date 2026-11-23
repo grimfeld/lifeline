@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     # Four runners, each with its own setup projects (seed, demo-setup): the whole suite
-    # on one takes about half an hour. An integration PR runs the gate the same way (check.yml).
+    # on one takes about half an hour. An approved PR runs the gate the same way (check.yml).
     strategy:
       fail-fast: false
       matrix:

@@ -15,7 +15,7 @@ the other ADR).
 
 A new PocketBase migration likewise takes its number from `pnpm migrations:next`;
 `pnpm migrations:check` (in CI) fails on a number taken twice or one below master's newest.
-`pnpm integrate` renumbers those clashes when a batch lands (below).
+`/ship:land` renumbers the PR's migration when master moved past it (below).
 
 Unsure what to do next? `docs/agents/workflow.md` maps each step, from issue to master.
 
@@ -40,7 +40,7 @@ unit tests next to the code (ADR 0129). The commands are in `shell/e2e/README.md
   width only, or `@also-phone` for both: `test("…", { tag: "@phone" }, …)`. Never pick a
   width with `test.skip(isMobile)` or a viewport check (`scripts/e2e-widths.test.mjs`).
 - **At delivery:** a PR runs the gate specs it changes three times each (once on four runners
-  past 150 cases); every integration PR runs the whole gate; four runners split the
+  past 150 cases); a PR carrying `ship` runs the whole gate; four runners split the
   spec files by running time (`.github/workflows/check.yml`, `shell/e2e/durations.json`). Both run the `desktop` and `mobile` projects only.
 - **Nightly:** the UI checks (`screens.spec.ts`, `a11y-names.spec.ts`) and the Demo
   (`demo.spec.ts`) run only on master each night, with the gate (`.github/workflows/e2e.yml`).
@@ -68,24 +68,22 @@ The **Guide** is Lifeline's in-app manual (`/guide`, and Claude's MCP `guide` to
 
 Start each piece of work with `pnpm worktree:new <name>`: a worktree under
 `.claude/worktrees/<name>` on a new branch off `origin/master` (code, ADRs and CONTEXT.md
-alike; `--base <ref>` branches off another ref, say an integration branch), installed and
+alike; `--base <ref>` branches off another ref, say a PR's branch to stack on), installed and
 ready for e2e. Rerun it on a worktree that stopped partway to finish it. The main checkout belongs to whoever opened it.
 `pnpm worktrees:prune` clears the worktrees whose work is on master.
 
-**PRs land in batches (ADR 0096, 0126); how is in `docs/agents/shipping.md`.** A PR runs its CI
+**PRs land through `/ship:land` (ADR 0132); how is in `docs/agents/shipping.md`.** A PR runs its CI
 once. Once green, don't merge master into it to refresh CI, and never merge it yourself: the user
-reviews it and adds the `ship` label, and the Ship workflow batches labelled, green PRs through
-`pnpm integrate` into one `integration/<date>` PR that merges itself when its CI passes. Open a
-PR as a draft and mark it ready only once it's finished and `/ship:pr-review` has run. When an
-integration PR goes red, `pnpm integrate --drop <pr>` (in a worktree of its own) rebuilds it
-without the PR at fault; an ADR clash stops it, for `--continue` once fixed.
+reviews it and adds the `ship` label, which reruns CI with the whole e2e gate, and runs `/ship:land`, which
+merges master into each approved PR, waits for its checks and merges it. Open a PR as a draft and mark it
+ready only once it's finished and `/ship:pr-review` has run.
 
 Run `pnpm check` in the foreground with a 600000 ms timeout: it takes a few minutes, and a wait keyed on a process
 name can match another agent's run.
 
 Agents working in parallel run only their own change's e2e specs, with
-`pnpm test:e2e:quiet` (dot reporter: a dot per case, then the failures); the whole gate runs once, before the integration
-branch merges. Runs share the machine through slots, one per 5 GB: a run that finds them all taken waits and says
+`pnpm test:e2e:quiet` (dot reporter: a dot per case, then the failures); the whole gate runs on each
+approved PR before it merges. Runs share the machine through slots, one per 5 GB: a run that finds them all taken waits and says
 whose they are (`E2E_SLOTS` overrides; `shell/e2e/README.md`). A subagent reports in ten lines at most: branch, commit, what failed, and
 each decision it took.
 

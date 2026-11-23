@@ -1,7 +1,11 @@
 name: Check
 # Deploys live here too, so nothing reaches Fly before the checks pass.
 on:
+  # `labeled` too: adding `ship` must rerun the e2e plan, which then runs the whole gate
+  # (ADR 0132). Any label reruns everything: a run whose jobs all skip would count as a
+  # pass on the required checks.
   pull_request:
+    types: [opened, synchronize, reopened, labeled]
   push:
     branches: [master]
   # Redeploy without a change (a lost machine, a rotated secret). Runs the checks first.
@@ -13,7 +17,7 @@ on:
         options: [both, pb, mcp]
         default: both
       gate:
-        description: Run the whole e2e gate on this branch, as an integration PR does (no deploy unless on master)
+        description: Run the whole e2e gate on this branch, as an approved PR does (no deploy unless on master)
         type: boolean
         default: false
 permissions:
@@ -62,7 +66,7 @@ jobs:
       - run: pnpm -r test
       # Again on a French desk west of UTC: no test may lean on the runner's
       # English locale or UTC clock. The full e2e suite is too slow for here: it runs
-      # nightly (e2e.yml) and on an integration PR; e2e-changed below runs the specs
+      # nightly (e2e.yml) and on an approved PR; e2e-changed below runs the specs
       # this PR touches.
       - run: pnpm -r test
         env:
@@ -72,8 +76,8 @@ jobs:
 
   # Which e2e cases this PR runs, and on how many runners. A PR runs the specs it adds or
   # changes, three times each so a flaky one shows here rather than in the nightly run.
-  # An integration PR (pnpm integrate, ADR 0096) runs the whole gate once: it is the
-  # gate before master, and the only run that sees the batch's PRs together. Either way
+  # A PR carrying `ship` runs the whole gate once (ADR 0132): it is the gate before master,
+  # and /ship:land merges master into the PR first, so it runs on what lands. Either way
   # only the gate projects (ADR 0129): the UI checks (screens, a11y-names) and the Demo
   # run nightly (e2e.yml), and a gate run never builds the Demo. A manual run with `gate`
   # runs the whole gate on its branch, to time the runners before a change to them lands.
@@ -94,16 +98,16 @@ jobs:
           fetch-depth: 0
       # The spec files this PR adds or edits, and nothing else: --only-changed would also
       # pull in every spec importing a changed support file or the config, which can be
-      # the whole suite; the nightly run and the integration PR cover that. The nightly-only
+      # the whole suite; the nightly run and the approved PR's run cover that. The nightly-only
       # specs are left out: the agent runs the rows it touched locally.
       - id: specs
         env:
           BASE: origin/${{ github.base_ref }}
-          INTEGRATION: ${{ startsWith(github.head_ref, 'integration/') || inputs.gate }}
+          FULL: ${{ contains(github.event.pull_request.labels.*.name, 'ship') || inputs.gate }}
         run: |
           echo "projects=--project=desktop --project=mobile" >> "$GITHUB_OUTPUT"
-          if [ "$INTEGRATION" = true ]; then
-            echo "Integration PR (or a manual gate run): the whole gate."
+          if [ "$FULL" = true ]; then
+            echo "Approved PR (or a manual gate run): the whole gate."
             echo "files=" >> "$GITHUB_OUTPUT"
             echo "full=true" >> "$GITHUB_OUTPUT"
             exit 0
@@ -131,7 +135,7 @@ jobs:
         run: pnpm install --frozen-lockfile
       # Each changed case three times, no retries: a case that needs one is the flake this
       # job is here to catch. Past 150 cases once, on four runners; below that one runner,
-      # since each pays a minute or two of setup. The whole gate (integration PR) runs
+      # since each pays a minute or two of setup. The whole gate (approved PR) runs
       # once on four runners, with the config's retry. Four runners split the spec files by
       # running time (shell/e2e/durations.json, scripts/e2e-shards.mjs), not Playwright's
       # --shard, which splits by count and leaves the slow files together on one runner.
@@ -209,8 +213,8 @@ jobs:
           if-no-files-found: ignore
 
   # One stable name for the e2e result, required by the ruleset on master (ship.yml,
-  # docs/agents/shipping.md): the shards' names change with their count, and auto-merge
-  # waits only for required checks, so a red integration run must fail here.
+  # docs/agents/shipping.md): the shards' names change with their count, so a red
+  # whole-gate run must fail here.
   e2e:
     if: always() && (github.event_name == 'pull_request' || inputs.gate)
     needs: [e2e-plan, e2e-changed]

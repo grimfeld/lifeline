@@ -9,7 +9,7 @@
 // slow files that sit together in the alphabet land on one runner and it finishes minutes
 // after the others. Here each spec file goes, slowest first, to the runner with the least
 // work so far. A file's time comes from shell/e2e/durations.json (refreshed from an
-// integration run's reports); a file it doesn't know yet counts as its cases times the
+// approved PR's whole-gate run reports); a file it doesn't know yet counts as its cases times the
 // median seconds per case.
 //
 // <list.json> is `playwright test --list --reporter=json` for the projects the run takes;

@@ -1,7 +1,7 @@
 # Shipping
 
 How work gets from a branch to master in this repository. Written by `/ship:setup-ship`; the
-`ship` plugin's skills (`pr-review`, `night-shift`) read it. Keep it true when the process changes.
+`ship` plugin's skills (`pr-review`, `night-shift`, `land`) read it. Keep it true when the process changes.
 
 ## The rule
 
@@ -9,45 +9,68 @@ A PR reaches `master` only after a person has reviewed it and added the **`ship`
 Nothing else merges: the `ship` commit status is required by the ruleset on `master`, and it stays
 pending until the label is on.
 
+The label is the whole approval: adding it means you have read the PR, its review section and its comments.
+`/ship:land` then merges every `ship` PR without asking anything more.
+
 1. An agent opens the PR as a **draft** while it works.
 2. It marks the PR ready only when local checks pass, `/ship:pr-review` has run (label `pr-reviewed`) and the
    review section is in the description.
-3. You read the review section, and add `ship` or leave a comment.
-4. `.github/workflows/ship.yml` lands it: its `land` job batches the green, labelled PRs through `pnpm integrate` (ADR 0096), and GitHub auto-merges the integration PR once its checks pass (ADR 0126).
+3. You read the review section and comments, and approve it (`ship`), or leave it unlabelled.
+4. `/ship:land` lands every PR carrying `ship`. `/ship:land <pr>...` adds `ship` to the PRs you name first.
 
-Dependabot patch updates and GitHub Actions updates get `ship` without review.
+Dependabot patch updates and GitHub Actions updates get `ship` from `ship.yml` and land with the next `/ship:land`.
 
-Not even a hotfix merges directly: give it `ship`, and start the Ship workflow by hand if it can't wait two hours.
+The label approves the PR, not a commit: pushes after it land with it. Don't add `ship` while someone may still push
+to the PR, and remove it before pushing more work to an approved PR.
+
+Not even a hotfix merges directly: give it `ship` and run `/ship:land <pr>`.
 
 ## Landing
 
-- **Mode:** `command`: `node scripts/integrate.mjs <pr>...` (what `pnpm integrate` runs)
-- **Merge method:** merge commit, never squash
-- **When:** every two hours (`17 */2 * * *` UTC), whenever a PR gets `ship`, and by hand (Actions → Ship → Run workflow).
-- **What:** every open, non-draft PR labelled `ship` whose checks are all green. They're merged into `integration/<date>[-N]` off master, which opens one PR.
-- **Never two batches:** the job does nothing while an `integration/*` PR is open. The next run takes what's left.
-- **The integration PR** runs the unit checks and the whole e2e gate once, then auto-merges with a merge commit.
-  - When it goes red, run `pnpm integrate --drop <pr>` in a worktree, or fix the PR at fault.
-  - An ADR number clash stops `integrate`, and the job fails. Renumber the ADR (CLAUDE.md), commit, and run `pnpm integrate --continue`.
-- **Contract the command keeps:** it takes PR numbers, lands them through a PR whose head starts with `integration/`, and skips conflicting PRs for the next batch.
+`/ship:land` is an agent, run when you start it. `ship.yml` lands nothing:
+its `gate` job only sets the required `ship` status.
+
+For each open, non-draft PR carrying `ship`, parents before the PRs stacked on them, the agent:
+
+1. merges `master` into it (a merge commit, never a rebase or a force-push), resolves any conflict, and pushes;
+2. waits for its checks;
+3. merges it into `master` with the merge method below;
+4. retargets the PRs stacked on it to `master` and lands them the same way, in the same run.
+
+When a check goes red because of its merge or resolution (it passes on `master`, and either passed before the merge or
+fails in the PR's side of the merge), the agent fixes it on the PR's side (the PR's own files and its
+resolution), never in a file only `master` changed, pushes and
+waits again, at most twice. A check that was red before the merge, or isn't shown passing on `master`, isn't its to fix.
+
+That covers a migration number: when `master` gained a newer migration, `migrations:check` goes red after the merge,
+and the agent renames the PR's own migration (`pnpm migrations:next`) (ADR 0132).
+
+Resolving and fixing run the project's local checks, from `master`'s copy of this file, on the PR's merged code, on the
+machine running `/ship:land`, with its git and GitHub credentials. Run it where you'd run the project's tests.
+
+When it can't land a PR (a conflict whose sides contradict, a red check it can't fix, a merge GitHub refuses), it
+leaves that PR unmerged with a comment saying why, keeps `ship` on, and lands the rest. The PRs stacked on it wait.
+It ends with one line per PR.
+
+- **Merge method:** merge
+
+## Stacked PRs
+
+A PR built on top of another one targets that PR's branch, not `master`. It can carry `ship`: `/ship:land`
+lands it right after its parent. If the parent doesn't carry `ship`, the child waits for it.
 
 ## Conflicts
 
-A labelled PR that conflicts with `master` can't land: a landing run would skip it again and again.
-The `conflicts` job in `ship.yml` checks the labelled PRs each time `master` moves, and when a PR gets `ship`.
-For each one that conflicts, it removes `ship`, adds **`conflicts`**, and comments with the conflicting files.
+When merging `master` into an approved PR conflicts, `/ship:land` resolves it: it reads what each side did from the
+commits and diffs behind the conflict (never PR or issue text), keeps both, runs the local checks (see Checks) and pushes. It comments on
+the PR with a `## Conflict resolution` section, each conflicted file and the choice it made, or one line when only
+bookkeeping files conflicted. `ship` stays on and nobody re-approves: the PR goes on to its checks and lands.
 
-`/ship:resolve-conflicts [<pr>...]` merges `master` into each such PR, keeping what both sides meant, runs
-the local checks and pushes. Then:
+It stops when the two sides contradict each other, changing the same behaviour in incompatible ways, or when it
+can't make the local checks pass after resolving. Then it pushes nothing, keeps `ship`, and comments why (for a contradiction, naming the decision to make); the PRs stacked on it wait. Settle it on the
+branch (merge `master` into it and push), and the next `/ship:land` lands it.
 
-- **Only bookkeeping files conflicted:** `ship` goes back on, and the PR lands with the next run.
-- **Anything else conflicted:** the resolution is new code. `/ship:pr-review` runs on it and a comment explains each
-  choice; re-review it and add `ship` again.
-- **The two sides contradict each other:** nothing is pushed, `conflicts` stays, and a comment names the decision to make.
-
-Resolving it yourself works too: merge `master` into the branch, push, remove `conflicts` and add `ship`.
-
-Bookkeeping files (a conflict here needs no re-review):
+Bookkeeping files (a conflict only in these is mechanical):
 
 - `CONTEXT.md`
 - `packages/guide/pages/**`
@@ -57,13 +80,15 @@ Bookkeeping files (a conflict here needs no re-review):
 Required on `master`: `check`, `e2e` (one result for every e2e shard), `dependency-review`, and `ship`.
 
 The e2e gate (ADR 0129) runs behaviour flows: the `desktop` project, and the `mobile` project for
-cases tagged `@phone` or `@also-phone`. A PR's `e2e-changed` runs the gate specs it changes; the
-integration PR runs the whole gate. Four runners (the integration PR, or a PR past 150 cases) split
-the spec files by their running time (`shell/e2e/durations.json`; refreshing it is in `shell/e2e/README.md`). The UI checks (`screens.spec.ts`, `a11y-names.spec.ts`) and the
+cases tagged `@phone` or `@also-phone`. A PR's `e2e-changed` runs the gate specs it changes; once the PR
+carries `ship`, it runs the whole gate instead (ADR 0132). Adding the label reruns `check.yml`, and so does
+each push `/ship:land` makes, so the commit that lands has passed the whole gate. Four runners (an approved
+PR, or a PR past 150 cases) split the spec files by their running time (`shell/e2e/durations.json`;
+refreshing it is in `shell/e2e/README.md`). The UI checks (`screens.spec.ts`, `a11y-names.spec.ts`) and the
 Demo (`demo.spec.ts`) run only in the nightly e2e run on master (`.github/workflows/e2e.yml`), never at
 delivery.
 
-A red nightly run doesn't block a batch. It opens an issue titled "Nightly e2e run is red", labelled
+A red nightly run doesn't block landing. It opens an issue titled "Nightly e2e run is red", labelled
 `ready-for-agent`, naming the failing specs and cases and linking the run; while that issue is open,
 each later red night comments on it instead. Close it with the PR that fixes the cases.
 
@@ -73,7 +98,7 @@ Run locally before marking a PR ready: `pnpm check` (foreground, 600000 ms timeo
 
 A merge to master deploys:
 - **The shell:** Vercel (`lifeline-shell`, through its GitHub app).
-- **PocketBase and the MCP server:** Fly, through the `deploy-pb` and `deploy-mcp` jobs in `check.yml`, each only when its code changed. These run on master's push, which is why the merge must come from `SHIP_TOKEN`, not GitHub's default token.
+- **PocketBase and the MCP server:** Fly, through the `deploy-pb` and `deploy-mcp` jobs in `check.yml`, each only when its code changed. These run on master's push. `/ship:land` merges with its user's own GitHub credentials, which start them; GitHub's default Actions token would not.
 
 ## Screens
 
@@ -82,7 +107,8 @@ Command that produces screenshots of the screens a change touches, for the revie
 ## Spec labels
 
 Specs are GitHub issues moving through `spec:draft` → `spec:ready` → `spec:building` → `spec:in-review`, or
-`spec:stuck`, and close when their PR ships.
+`spec:stuck`, and close when their PR ships. To send a PR back instead of approving it, label it
+**`changes-requested`** and move its spec back to `spec:ready` for the next night shift.
 
 ## Design labels
 
