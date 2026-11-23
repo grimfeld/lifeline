@@ -309,7 +309,7 @@ export function macroCommand(macro: MacroShape & { id: string }, commands: reado
  */
 export async function runMacroHeadless(macro: MacroShape, commands: readonly OwnedCommand[], raw: Record<string, unknown>, who?: InvokeContext): Promise<MacroReport> {
   if (!isMacroHeadless(macro, commands)) throw new Error(`“${macro.name}” cannot be run without a dialog`);
-  const asked = await readCommandArgs(macroArgs(macro, commands), raw);
+  const asked = await readCommandArgs(macroArgs(macro, commands), raw, who?.sees);
   const r = await runMacro(macro, commands, { asked, invoke: who });
   if (r.broken) throw new Error(`“${macro.name}” is broken: ${r.broken.join("; ")}`);
   return r;

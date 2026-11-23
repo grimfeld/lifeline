@@ -387,7 +387,7 @@ async function runMacroTool(tool: MacroTool, args: Args, agent: InvokeAgent): Pr
   if (!macro) throw new ToolError(`Macro ${tool.name} is gone`);
   assertMacroOutsideWall(macro);
   try {
-    const report = await runMacroHeadless(macro, await registry(macros), args, { agent });
+    const report = await runMacroHeadless(macro, await registry(macros), args, { agent, sees: isAgentVisible });
     return { message: reportMessage(report), report: { name: report.name, steps: report.steps } };
   } catch (e) {
     throw new ToolError((e as Error).message);
@@ -675,7 +675,7 @@ export async function runTool(name: string, args: Args, agent: InvokeAgent = {})
     if (!def) throw new ToolError(`Command ${spec.command} is gone`);
     // No Command takes a walled part, whatever its signature grows (ADR 0114).
     refuseWalled(Object.keys(rest));
-    return invokeCommand(def, rest, { agent }).catch((e: Error) => {
+    return invokeCommand(def, rest, { agent, sees: isAgentVisible }).catch((e: Error) => {
       throw new ToolError(e.message);
     });
   }

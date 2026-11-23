@@ -77,6 +77,34 @@ describe("memories_add", () => {
     expect(core.createDocument).not.toHaveBeenCalled();
   });
 
+  // The agent wall (ADR 0114): a Private or internal Document is never named, by title or id, nor linked.
+  it.each([
+    ["by its title", "Diary of Ana"],
+    ["by its id", "secret1"],
+    ["an internal type's, by its title", "Hidden ledger"],
+    ["an internal type's, by its id", "internal1"],
+  ])("refuses an About naming a Document the agent may not see, %s, as unknown, and never names it", async (_, value) => {
+    types.set("note", linkable("note"));
+    types.set("hidden", { ...linkable("hidden"), internal: true });
+    docs.set("secret1", doc("secret1", "note", "Diary of Ana", { folder: "Private/Diary" }));
+    docs.set("internal1", doc("internal1", "hidden", "Hidden ledger"));
+    const error = await runTool("memories_add", { title: "Then", about: [value] }).then(
+      (out) => JSON.stringify(out),
+      (e: Error) => e.message,
+    );
+    expect(error).toMatch(/About: No .* called/);
+    for (const leak of ["Diary of Ana", "secret1", "Hidden ledger", "internal1"]) if (leak !== value) expect(error).not.toContain(leak);
+    expect(core.createDocument).not.toHaveBeenCalled();
+  });
+
+  it("never names a hidden Document among the candidates of an ambiguous About", async () => {
+    types.set("note", linkable("note"));
+    docs.set("secret1", doc("secret1", "note", "Ana", { folder: "Private" }));
+    const out = await runTool("memories_add", { title: "Then", about: ["Ana"] });
+    expect(core.createDocument).toHaveBeenCalledWith(expect.objectContaining({ fields: expect.objectContaining({ about: ["p1"] }) }));
+    expect(JSON.stringify(out)).not.toContain("secret1");
+  });
+
   it("takes no photo", () => {
     const add = memoriesApp.commands.find((c) => c.id === "memories.add")!;
     expect(add.args?.map((a) => a.key)).toEqual(["title", "date", "about", "body"]);

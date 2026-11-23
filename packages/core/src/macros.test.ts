@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { commandNavigates, invokeCommand, type OwnedCommand } from "./commands";
 import { db, openDb } from "./data/db";
 import { putDocument } from "./documents/store";
-import { MACRO_APP, macroCommand, moveStep, onMacroReport, removeStep, runMacro, withMacros, type MacroReport, type MacroStep, type StepArg } from "./macros";
+import { MACRO_APP, macroCommand, moveStep, onMacroReport, removeStep, runMacro, runMacroHeadless, withMacros, type MacroReport, type MacroStep, type StepArg } from "./macros";
 import type { CommandArg, CommandDef } from "./manifest";
 
 /** A fake headless Command that records each run it is given, in `log`. */
@@ -279,6 +279,52 @@ describe("a Macro's headless form", () => {
     stop();
     expect(log).toEqual([]);
     expect(reports).toEqual([]);
+  });
+});
+
+describe("the Documents a run may see (InvokeContext.sees)", () => {
+  const ABOUT: CommandArg[] = [{ key: "about", label: "About", kind: "links" }];
+  const visible = (d: { folder: string }) => d.folder !== "Hidden";
+
+  let seeded: Promise<{ shown: string; hidden: string }> | undefined;
+  /** One shown and one hidden note, put once: the store outlives each case. */
+  const seed = () =>
+    (seeded ??= (async () => {
+      openDb([], []);
+      await db().open();
+      const shown = await putDocument({ type: "note", title: "Open book", folder: "", tags: [] });
+      const hidden = await putDocument({ type: "note", title: "Locked diary", folder: "Hidden", tags: [] });
+      return { shown: shown.id, hidden: hidden.id };
+    })());
+
+  it("names only those Documents, by title or by id: one outside them is unknown, and never named", async () => {
+    const { shown, hidden } = await seed();
+    const log: string[] = [];
+    const def = headless("notes", "add", ABOUT, log);
+    for (const value of ["Locked diary", hidden]) {
+      const error = await invokeCommand(def, { about: [value] }, { sees: visible }).then(() => "ran", (e: Error) => e.message);
+      expect(error).toBe(`About: No About called “${value}”`);
+    }
+    await invokeCommand(def, { about: ["Open book"] }, { sees: visible });
+    expect(log).toEqual([`notes/add {"about":["${shown}"]}`]);
+  });
+
+  it("leaves every Document nameable when absent, as the palette runs it", async () => {
+    const { hidden } = await seed();
+    const log: string[] = [];
+    await invokeCommand(headless("notes", "add", ABOUT, log), { about: ["Locked diary"] });
+    expect(log).toEqual([`notes/add {"about":["${hidden}"]}`]);
+  });
+
+  it("holds through a Macro run headless, for its asked and its fixed links alike", async () => {
+    const { hidden } = await seed();
+    const log: string[] = [];
+    const commands = [headless("notes", "add", ABOUT, log)];
+    const asked = macroCommand({ id: "m", name: "Asked", steps: [step("notes/add", { about: { from: "asked" } })] }, commands);
+    await expect(invokeCommand(asked, { s1_about: [hidden] }, { sees: visible })).rejects.toThrow(`About: No About called “${hidden}”`);
+    const report = await runMacroHeadless({ name: "Fixed", steps: [fixed("notes/add", { about: [hidden] })] }, commands, {}, { sees: visible }).catch((e: Error) => e.message);
+    expect(JSON.stringify(report)).not.toContain("Locked diary");
+    expect(log).toEqual([]);
   });
 });
 
