@@ -1,4 +1,4 @@
-import { addAttachment, createDocument, documentsOf, getDocument, patchDocument, renameDocument, todayStr } from "@lifeline/core";
+import { addAttachment, createDocument, documentsOf, getDocument, patchDocument, putDocument, removeDocument, renameDocument, todayStr } from "@lifeline/core";
 import { MEMORIES_FOLDER, MEMORY, type Memory } from "../domain/types";
 
 /** `title`, or numbered "title (2)", "(3)"… when a Memory in the folder already has it, case aside. */
@@ -57,4 +57,16 @@ export async function patchMemory(id: string, patch: MemoryPatch): Promise<void>
   if (patch.date) fields.date = patch.date;
   if (patch.about) fields.about = [...new Set(patch.about)];
   if (Object.keys(fields).length) await patchDocument(id, fields);
+}
+
+/** Delete a Memory (a tombstone); returns what `restoreMemory` brings back, for the Undo toast. */
+export async function deleteMemory(id: string): Promise<Memory | undefined> {
+  const before = await getDocument<Memory>(id);
+  await removeDocument(id);
+  return before;
+}
+
+/** Undo `deleteMemory`: the same Memory, under its own id, as it was. */
+export async function restoreMemory(memory: Memory): Promise<void> {
+  await putDocument<Memory>({ ...memory, deleted: 0 });
 }

@@ -141,8 +141,9 @@ of its own (the day it happened, today unless you say otherwise), its words and 
   shrunk like any attachment; one over 20 MB, or a file that is not an image, is refused and
   keeps nothing. Where: the palette (Ctrl+K), the **+** capture sheet on the phone, and the
   Memories place.
-- **The Memory page** — its title, date, About and words, all editable; **Delete** in its bar removes
-  it. Photos go in its text as any image does, pasted or dropped in.
+- **The Memory page** — its title, date, About and words, all editable, and under them its
+  **Backlinks** (and unlinked mentions): what links to it. **Delete** in its bar removes it at once;
+  **Undo** in the toast brings it back. Photos go in its text as any image does, pasted or dropped in.
 - A Memory about an Event, a Person or a Place shows in that page's **Backlinks**, as "via
   About".
 - **On an Event's Peek** — a **Memories** panel below the Event's form lists the Memories about it

@@ -1,6 +1,6 @@
 import { commandKey, commandNavigates, isInvocable, linkableDocuments, linkSource, linkProblemText, linkValues, matchLinks, pickLinked, readCommandArgs, takesDocument, type LinkableDocument, type OwnedCommand } from "./commands";
 import { MACRO_APP, type MacroShape } from "./macros";
-import type { CommandArg } from "./manifest";
+import type { CommandArg, InvokeContext } from "./manifest";
 
 /**
  * The check a Macro passes before its first step (ADR 0092): every step can be
@@ -13,13 +13,18 @@ import type { CommandArg } from "./manifest";
  * Where a fixed link's Document is looked for: the Documents a link argument
  * may name (of its Role, else its type(s), else all), as the store holds them
  * — with their Roles. `storeLookup` reads the Workspace the caller is in.
+ * A Document the run may not see (`InvokeContext.sees`, an agent's) is never
+ * a candidate: a fixed link naming one reads as naming nothing, and an
+ * ambiguous one never lists it.
  */
 export interface DocumentLookup {
   linkable(arg: CommandArg): Promise<readonly LinkableDocument[]>;
 }
 
-/** The lookup over the local store, through its Workspace gates — the shell's, and the MCP device worker's. */
-export const storeLookup: DocumentLookup = { linkable: linkableDocuments };
+/** The lookup over the local store, through its Workspace gates — the shell's, and the MCP device worker's: only the Documents `sees` keeps, when given (an agent's). */
+export function storeLookup(sees?: InvokeContext["sees"]): DocumentLookup {
+  return { linkable: (arg) => linkableDocuments(arg, sees) };
+}
 
 /**
  * One reason a Macro is broken. `fixed-link` is a fixed link, or entry of a
@@ -44,7 +49,7 @@ export const reasonLine = (r: MacroReason): string => (r.step === undefined ? r.
 export type MacroCheck = { ok: true } | { ok: false; reasons: MacroReason[] };
 
 /** A lookup that reads each candidate set once, however many links ask for it: one per check pass. */
-export function memoLookup(lookup: DocumentLookup = storeLookup): DocumentLookup {
+export function memoLookup(lookup: DocumentLookup = storeLookup()): DocumentLookup {
   const seen = new Map<string, Promise<readonly LinkableDocument[]>>();
   return {
     linkable(arg) {
@@ -125,7 +130,7 @@ export function returnsDocument(def: OwnedCommand): boolean {
  * result is taken only by a link or a list of links (as its one entry), from
  * an earlier step that returns a Document, and every required value has a source.
  */
-export async function checkMacro(macro: MacroShape, commands: readonly OwnedCommand[], lookup: DocumentLookup = storeLookup): Promise<MacroCheck> {
+export async function checkMacro(macro: MacroShape, commands: readonly OwnedCommand[], lookup: DocumentLookup = storeLookup()): Promise<MacroCheck> {
   if (macro.steps.length === 0) return { ok: false, reasons: [{ kind: "other", text: "It has no steps" }] };
   const defs = macro.steps.map((s) => commands.find((c) => commandKey(c) === s.command));
   const reasons: MacroReason[] = [];
