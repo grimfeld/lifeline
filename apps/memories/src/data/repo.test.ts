@@ -5,6 +5,9 @@ import { memoryTypeDef } from "../types";
 import { MEMORIES_FOLDER, MEMORY } from "../domain/types";
 import { addMemory } from "./repo";
 
+const addAttachment = vi.hoisted(() => vi.fn(async (_f: Blob) => ({ name: "Pasted image 1.jpg" })));
+vi.mock("@lifeline/core", async (orig) => ({ ...(await orig<typeof import("@lifeline/core")>()), addAttachment }));
+
 initApps([{ id: "memories", title: "Memories", module: "journal", types: [memoryTypeDef], screens: [], cards: [], commands: [] }]);
 
 beforeEach(async () => {
@@ -32,5 +35,19 @@ describe("adding a Memory (ADR 0136)", () => {
   it("numbers a title another Memory has, rather than failing", async () => {
     await addMemory({ title: "Birthday", date: "2025-03-02" });
     expect((await addMemory({ title: "birthday" })).title).toBe("birthday (2)");
+  });
+
+  it("embeds a photo by name after the words, as Attachments are embedded", async () => {
+    const photo = new File(["x"], "terrace.jpg", { type: "image/jpeg" });
+    const m = await addMemory({ title: "Terrace", body: "Warm night.", photo });
+    expect(addAttachment).toHaveBeenCalledWith(photo);
+    expect(m.body).toBe("Warm night.\n\n![[Pasted image 1.jpg]]\n");
+    expect((await addMemory({ title: "Bare", photo })).body).toBe("![[Pasted image 1.jpg]]\n");
+  });
+
+  it("makes no Memory when the photo is refused", async () => {
+    addAttachment.mockRejectedValueOnce(new Error("File is too big (25 MB; the limit is 20 MB)"));
+    await expect(addMemory({ title: "Huge", photo: new File(["x"], "h.jpg", { type: "image/jpeg" }) })).rejects.toThrow("too big");
+    expect(await documentsTable().count()).toBe(0);
   });
 });

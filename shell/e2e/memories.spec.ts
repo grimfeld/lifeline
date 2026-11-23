@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { inCore } from "./support/core";
+import { openPalette } from "./support/palette";
 
 /**
  * Memories (ADR 0136): the Journal's Memories place is a grid of tiles, the
@@ -33,4 +34,26 @@ test("the Journal's Memories place shows the Memories newest first, and a tile o
   await dancing.click();
   await expect(page).toHaveURL(/\/app\/journal\/memories\/.+/);
   await expect(page.locator("main").getByRole("link", { name: "Memories" })).toBeVisible();
+});
+
+const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+
+test("New memory from the palette keeps a photo in the Memory's body, opens it, and shows its tile in the grid", async ({ page }) => {
+  await page.goto("/app/journal/memories");
+  await workLocally(page);
+  await openPalette(page);
+  await page.keyboard.type("New memory");
+  await page.getByRole("option", { name: /New memory/ }).first().click();
+  const dialog = page.getByRole("dialog", { name: "New memory" });
+  await dialog.getByLabel("Photo", { exact: true }).setInputFiles({ name: "terrace.png", mimeType: "image/png", buffer: PNG });
+  await dialog.getByRole("textbox", { name: "Title" }).fill("Dancing on the terrace");
+  await dialog.getByRole("button", { name: "Keep" }).click();
+  await expect(page).toHaveURL(/\/app\/journal\/memories\/.+/);
+
+  const body = await inCore(page, async (core) => ((await core.documentsOf("memories_memory")) as { title: string; body: string }[]).find((m) => m.title === "Dancing on the terrace")?.body ?? "", undefined);
+  expect(body).toMatch(/!\[\[.+\]\]/);
+
+  await page.goto("/app/journal/memories");
+  await expect(page.locator("main ul > li > a").filter({ hasText: "Dancing on the terrace" })).toHaveCount(1);
+  await expect(page.locator("main ul > li > a img")).toHaveCount(1);
 });

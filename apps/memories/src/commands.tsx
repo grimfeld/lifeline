@@ -16,6 +16,7 @@ export const memoriesCommands: CommandDef[] = [
     keywords: ["memory", "memories", "moment", "remember", "photo", "keep"],
     icon: Images,
     dialog: NewMemoryDialog,
+    capture: true,
     args: [
       { key: "title", label: "Title", kind: "text", required: true, hint: "What the moment was, in a few words (\"Dancing on the terrace\")." },
       { key: "date", label: "Date", kind: "date", hint: "Optional: the day it happened, YYYY-MM-DD; today when left out." },

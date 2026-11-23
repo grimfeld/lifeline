@@ -1,4 +1,4 @@
-import { createDocument, documentsOf, todayStr } from "@lifeline/core";
+import { addAttachment, createDocument, documentsOf, todayStr } from "@lifeline/core";
 import { MEMORIES_FOLDER, MEMORY, type Memory } from "../domain/types";
 
 /** `title`, or numbered "title (2)", "(3)"… when a Memory in the folder already has it, case aside. */
@@ -16,6 +16,8 @@ export interface MemoryInput {
   about?: readonly string[];
   /** Markdown: words, and photos embedded by name. */
   body?: string;
+  /** An image stored as an Attachment first (downscaled, 20 MB ceiling) and embedded after the words; a refusal makes no Memory. */
+  photo?: Blob & { name?: string };
 }
 
 /**
@@ -27,7 +29,8 @@ export async function addMemory(input: MemoryInput): Promise<Memory> {
   const wanted = input.title.trim();
   if (!wanted) throw new Error("A Memory needs a title");
   const taken = (await documentsOf(MEMORY)).filter((m) => m.folder === MEMORIES_FOLDER).map((m) => m.title);
-  const body = input.body?.trimEnd();
+  let body = input.body?.trimEnd() ?? "";
+  if (input.photo) body = `${body}\n\n![[${(await addAttachment(input.photo)).name}]]`.trim();
   return (await createDocument({
     type: MEMORY,
     title: freeTitle(wanted, taken),

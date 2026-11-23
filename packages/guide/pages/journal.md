@@ -136,8 +136,11 @@ of its own (the day it happened, today unless you say otherwise), its words and 
   tile shows the Memory's first photo, or its title alone when it has none, with its title and
   its date; tap one to open the Memory. With no Memories yet it says so and offers **New
   memory**.
-- **New memory** — give it a title and its day; it opens on its own page. Where: the palette
-  (Ctrl+K).
+- **New memory** — pick or take a photo (or skip it), then give it a title and its day; the
+  Memory is kept with the photo in its text and opens on its own page for the words. A photo is
+  shrunk like any attachment; one over 20 MB, or a file that is not an image, is refused and
+  keeps nothing. Where: the palette (Ctrl+K), the **+** capture sheet on the phone, and the
+  Memories place.
 - **The Memory page** — its title, date, About and words, all editable. Photos go in its text as
   any image does, pasted or dropped in.
 - A Memory about an Event, a Person or a Place shows in that page's **Backlinks**, as "via
