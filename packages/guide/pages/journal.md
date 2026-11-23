@@ -1,7 +1,8 @@
 # Journal
 
 Living day to day in writing: one page per Day, a review for each week, month, quarter and
-year, and the people, places and other kinds of page you write about.
+year, the moments you keep as Memories, and the people, places and other kinds of page you write
+about.
 
 Its sidebar (on a phone, the tabs in the Phone dock): **Today**, **This week**, **This month**,
 **This quarter**, **This year**, **Types** and **Templates**.
@@ -125,6 +126,21 @@ Place these on a Screen or any Overview.
 - **Random note** — a page at random, of a type or from a folder; reroll for another.
 - **Saved search** — a full-text search over titles, aliases and text, kept on screen.
 
+## Memories
+
+What you keep here: **Memories**, moments worth remembering. A Memory has a **title**, a **date**
+of its own (the day it happened, today unless you say otherwise), its words and photos, and
+**About**: links to what it remembers — an Event, People, a Place, a Work, any page — or nothing.
+
+- **New memory** — give it a title and its day; it opens on its own page. Where: the palette
+  (Ctrl+K).
+- **The Memory page** — its title, date, About and words, all editable. Photos go in its text as
+  any image does, pasted or dropped in.
+- A Memory about an Event, a Person or a Place shows in that page's **Backlinks**, as "via
+  About".
+- Deleting a Memory leaves its photos behind as unused attachments; **Clean up unused
+  attachments…** removes them.
+
 ## Capture
 
 **+** on the phone (or Ctrl+K at the desk) offers **Quick capture** from the Journal: a line
@@ -132,6 +148,8 @@ for today's Day, stamped with the time.
 
 ## Ask Claude
 
+- "Remember the dinner at Chez Janou with Ana last Saturday" — `memories_add`: a Memory with a
+  title, its day, its words and what it is about (no photos: you add those).
 - "Jot down that the plumber came" — `notes_capture`: one line appended to today's Day with the
   time, as **Quick capture** does.
 - "What did I write last Tuesday?" — `search_documents`, `get_document`.

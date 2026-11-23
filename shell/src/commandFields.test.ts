@@ -47,6 +47,7 @@ const ADDS: Record<string, { command: string; as?: Record<string, string | strin
   contacts_exchange: { command: "people.exchange-add" },
   atlas_place: { command: "places.add" },
   thought: { command: "thoughts.capture" },
+  memories_memory: { command: "memories.add" },
   ledger_transaction: { command: "ledger.add", as: { accountId: "account", categoryId: "category" } },
   pocket_spend: { command: "pocket.spend", as: { allowanceId: "allowance" } },
   price_product: { command: "prices.product-add", as: { countName: "count_name", secondaryDimension: "secondary_dimension", secondaryUnit: "secondary_unit", compareBy: "compare_by" } },

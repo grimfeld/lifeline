@@ -24,6 +24,7 @@
     "@lifeline/app-library": "workspace:*",
     "@lifeline/app-lifelevel": "workspace:*",
     "@lifeline/app-manuscript": "workspace:*",
+    "@lifeline/app-memories": "workspace:*",
     "@lifeline/app-mood": "workspace:*",
     "@lifeline/app-museum": "workspace:*",
     "@lifeline/app-notes": "workspace:*",
