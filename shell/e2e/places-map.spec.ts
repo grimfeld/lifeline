@@ -163,12 +163,24 @@ test("the map stays where you put it: chips, a Kind and To try leave the Pin you
   const markers = page.locator(".leaflet-marker-icon");
   await expect(markers).toHaveCount(2);
 
-  // Zoom in on the map; the first Pin is where it is now.
+  // Zoom in on the map.
   await page.getByRole("button", { name: "Zoom in" }).click();
-  await page.waitForTimeout(600); // Leaflet's zoom animation
-  const box = async () => (await markers.first().boundingBox())!;
-  const before = await box();
-  const stays = async () => expect.poll(box).toEqual(before);
+  // Chez Janou is the westernmost Pin and stays under every filter below: follow it, not
+  // whichever marker Leaflet happens to draw first.
+  const janou = async () =>
+    (await markers.evaluateAll((els) => els.map((el) => { const r = el.getBoundingClientRect(); return [Math.round(r.x), Math.round(r.y)] as const; })))
+      .sort((a, b) => a[0] - b[0])[0];
+  // Leaflet animates the zoom: wait until the view has settled before noting where the Pin is.
+  let before: readonly [number, number] | undefined;
+  await expect
+    .poll(async () => {
+      const now = await janou();
+      const settled = JSON.stringify(now) === JSON.stringify(before);
+      before = now;
+      return settled;
+    }, { intervals: [300] })
+    .toBe(true);
+  const stays = async () => expect.poll(janou).toEqual(before);
 
   const places = page.getByRole("button", { name: /^Places \d/ });
   await places.click(); // off: 0 pins

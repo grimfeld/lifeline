@@ -6,7 +6,7 @@ import { idOf } from "./act";
 
 /**
  * Atlas's Places (ADR 0128): the spots of the persona's life, with their
- * coordinates, so they stand on the World map. Her flat is no Place: a home
+ * coordinates, so they stand on the Map. Her flat is no Place: a home
  * stays an Address on its Person. One she hasn't been to yet is To try.
  */
 export async function seedPlaces(): Promise<void> {
