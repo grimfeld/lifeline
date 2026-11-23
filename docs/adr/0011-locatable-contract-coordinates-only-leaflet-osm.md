@@ -1,5 +1,5 @@
 ---
-amended-by: ADR 0122 (in part — a Document may stand at the Document it links to; an Event at its At)
+amended-by: ADR 0122 (in part — a Document may stand at the Document it links to; an Event at its At), ADR 0135 (in part — a map fits its Pins once, then keeps the view)
 ---
 
 # Locatable contract carries coordinates only, geocoded at edit time; maps are Leaflet over OSM raster tiles

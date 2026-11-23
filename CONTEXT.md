@@ -521,7 +521,7 @@ The Module for living day to day in writing: Days and their Weeks, Months, Quart
 _Avoid_: diary, vault (the raw editor), collections (for its Types — a Collection is a Stat kind)
 
 ### World
-The Module for the people and places of my life, titled World: **Contacts** (People) and **Atlas** (Places) side by side. It is Core's `people` Module, which keeps its id, so a Workspace that took People takes World with nothing to redo. Opens on one map of every Pin from both Apps (Places and People's current Addresses, told apart by each App's colour); Atlas's Places screen and the People screen sit beside it.
+The Module for the people and places of my life, titled World: **Contacts** (People) and **Atlas** (Places) side by side. It is Core's `people` Module, which keeps its id, so a Workspace that took People takes World with nothing to redo. Opens on the People screen, with Places beside it; their Pins are on the Map, which narrows Places by Kind and To try.
 _Avoid_: People (the Module's old name; People is Contacts' type, and a screen), Atlas (an App inside it), directory
 
 ### Place
