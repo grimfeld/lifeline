@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { initialList, initialText, todayStr, type CommandDialogProps } from "@lifeline/core";
-import { Button, DatePicker, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Field, Input } from "@lifeline/ui";
+import { Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@lifeline/ui";
 import { ImagePlus, X } from "lucide-react";
 import { addMemory } from "../data/repo";
 import { memoryHref } from "../domain/types";
+import { MemoryForm, type MemoryFormValue } from "./MemoryForm";
 
 /** The chosen photo, shown while it waits to be kept. */
 function Chosen({ file }: { file: File }) {
@@ -26,10 +27,10 @@ function Chosen({ file }: { file: File }) {
  * it for an Event without changing the Command's args.
  */
 export function NewMemoryDialog({ open, onOpenChange, initial }: CommandDialogProps) {
-  const [title, setTitle] = useState("");
-  const [date, setDate] = useState(todayStr());
+  const [value, setValue] = useState<MemoryFormValue>({ title: "", date: todayStr(), about: [] });
+  const { title, date, about } = value;
   const [error, setError] = useState("");
-  const [about, setAbout] = useState<string[]>([]);
+  const [photoError, setPhotoError] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
   const photoRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -37,22 +38,23 @@ export function NewMemoryDialog({ open, onOpenChange, initial }: CommandDialogPr
 
   useEffect(() => {
     if (!open) return;
-    setTitle(initialText(initial, "title"));
-    setDate(initialText(initial, "date") || todayStr());
-    setAbout(initialList(initial, "about"));
+    setValue({ title: initialText(initial, "title"), date: initialText(initial, "date") || todayStr(), about: initialList(initial, "about") });
     setPhoto(null);
     setError("");
+    setPhotoError("");
   }, [open, initial]);
 
   async function save() {
     if (!title.trim()) return setError("A Memory needs a title.");
     setBusy(true);
+    setPhotoError("");
     try {
       const m = await addMemory({ title, date, about, photo: photo ?? undefined });
       onOpenChange(false);
       navigate(memoryHref(m.id));
     } catch (e) {
-      setError(photo ? `The photo could not be kept, so the Memory was not: ${(e as Error).message}` : `The Memory could not be kept: ${(e as Error).message}`);
+      if (photo) setPhotoError(`The photo could not be kept, so the Memory was not: ${(e as Error).message}`);
+      else setError(`The Memory could not be kept: ${(e as Error).message}`);
     } finally {
       setBusy(false);
     }
@@ -92,25 +94,26 @@ export function NewMemoryDialog({ open, onOpenChange, initial }: CommandDialogPr
               aria-label="Photo"
               onChange={(e) => {
                 setPhoto(e.target.files?.[0] ?? null);
-                setError("");
+                setPhotoError("");
                 e.target.value = "";
               }}
             />
+            {photoError && (
+              <p role="alert" className="text-destructive text-sm">
+                {photoError}
+              </p>
+            )}
           </div>
-          <Field label="Title" error={error}>
-            <Input
-              value={title}
-              autoFocus
-              placeholder="Dancing on the terrace"
-              onChange={(e) => {
-                setTitle(e.target.value);
-                setError("");
-              }}
-            />
-          </Field>
-          <Field label="Date">
-            <DatePicker value={date} required onChange={(d) => setDate(d || todayStr())} />
-          </Field>
+          <MemoryForm
+            value={value}
+            showAbout={false}
+            autoFocus
+            titleError={error}
+            onChange={(patch) => {
+              setValue((v) => ({ ...v, ...patch }));
+              if (patch.title !== undefined) setError("");
+            }}
+          />
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel

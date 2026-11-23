@@ -1,4 +1,4 @@
-import { addAttachment, createDocument, documentsOf, todayStr } from "@lifeline/core";
+import { addAttachment, createDocument, documentsOf, getDocument, patchDocument, renameDocument, todayStr } from "@lifeline/core";
 import { MEMORIES_FOLDER, MEMORY, type Memory } from "../domain/types";
 
 /** `title`, or numbered "title (2)", "(3)"… when a Memory in the folder already has it, case aside. */
@@ -38,4 +38,23 @@ export async function addMemory(input: MemoryInput): Promise<Memory> {
     body: body ? body + "\n" : "",
     fields: { date: input.date || todayStr(), about: [...new Set(input.about ?? [])] },
   })) as Memory;
+}
+
+export interface MemoryPatch {
+  title?: string;
+  date?: string;
+  about?: readonly string[];
+}
+
+/** Change a Memory: only the patched keys; a new title renames it (rewriting links to it), an empty one is refused. */
+export async function patchMemory(id: string, patch: MemoryPatch): Promise<void> {
+  if (patch.title !== undefined) {
+    if (!patch.title.trim()) throw new Error("A Memory needs a title");
+    const doc = await getDocument(id);
+    if (doc) await renameDocument(doc, patch.title);
+  }
+  const fields: Record<string, unknown> = {};
+  if (patch.date) fields.date = patch.date;
+  if (patch.about) fields.about = [...new Set(patch.about)];
+  if (Object.keys(fields).length) await patchDocument(id, fields);
 }

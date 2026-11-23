@@ -57,3 +57,26 @@ test("New memory from the palette keeps a photo in the Memory's body, opens it, 
   await expect(page.locator("main ul > li > a").filter({ hasText: "Dancing on the terrace" })).toHaveCount(1);
   await expect(page.locator("main ul > li > a img")).toHaveCount(1);
 });
+
+test("a Memory whose photo is gone shows its title-only tile, not a loading placeholder", async ({ page }) => {
+  await page.goto("/app/journal/memories");
+  await workLocally(page);
+  await inCore(page, async (core) => (await core.createDocument({ type: "memories_memory", title: "Lost snapshot", folder: "Memories", body: "![[never-kept.png]]\n", fields: { date: "2026-01-02", about: [] } })).id as string, undefined);
+  const tile = page.locator("main ul > li > a").filter({ hasText: "Lost snapshot" });
+  await expect(tile).toHaveCount(1);
+  await expect(tile.getByRole("img", { name: "Loading photo" })).toHaveCount(0);
+});
+
+test("a Memory's page edits its title, date and About through the Memory form", async ({ page }) => {
+  await page.goto("/app/journal/memories");
+  await workLocally(page);
+  await keep(page, "Old harbour", "2020-05-01");
+  await page.locator("main ul > li > a").filter({ hasText: "Old harbour" }).click();
+  const title = page.getByRole("textbox", { name: "Title" });
+  await title.fill("New harbour");
+  await title.blur();
+  await expect(page.getByRole("button", { name: "Delete" })).toBeVisible();
+  await expect(page.getByText("About", { exact: true })).toBeVisible();
+  const titles = await inCore(page, async (core) => ((await core.documentsOf("memories_memory")) as { title: string }[]).map((m) => m.title), undefined);
+  expect(titles).toContain("New harbour");
+});
