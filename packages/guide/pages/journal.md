@@ -153,6 +153,12 @@ of its own (the day it happened, today unless you say otherwise), its words and 
 - **On a Day** — a **Memories** panel in the Day's side column (in the Journal and the Vault) lists
   the Memories dated that day as tiles, each opening its Memory. A Day with none dated it shows no
   panel.
+- **Remember, on today's Day** — the same panel opens with **Remember**: one Memory from a past day,
+  with its first photo, title, date and how long ago ("3 years ago"). A Memory from this date in an
+  earlier year comes first; with none, any earlier one. It is the same one all day on every device.
+  **Another** shows a different one on that device only, until tomorrow; it is hidden when there is
+  just one past Memory. With no past Memories, Remember is hidden, and a Day with neither it nor
+  Memories of its own shows no panel.
 - A Memory dated a day shows in that day's **Daylog** as a "Memory" row linking to it.
 - Deleting a Memory leaves its photos behind as unused attachments; **Clean up unused
   attachments…** removes them.

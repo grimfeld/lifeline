@@ -130,3 +130,22 @@ test("a Memory's page edits its title, date and About through the Memory form", 
   const titles = await inCore(page, async (core) => ((await core.documentsOf("memories_memory")) as { title: string }[]).map((m) => m.title), undefined);
   expect(titles).toContain("New harbour");
 });
+
+test("today's Day shows Remember with a seeded on-this-day Memory, and Another changes it", { tag: "@also-phone" }, async ({ page }) => {
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const [, mm, dd] = today.split("-");
+  await seedJournal(page, {});
+  await keep(page, "Long ago on this day", `${Number(today.slice(0, 4)) - 3}-${mm}-${dd}`);
+  await keep(page, "Another year, another day", `${Number(today.slice(0, 4)) - 3}-01-${mm === "01" ? "02" : "01"}`);
+  await keep(page, "Also this date", `${Number(today.slice(0, 4)) - 5}-${mm}-${dd}`);
+
+  await openDay(page, today);
+  await showDayLinks(page);
+  const remember = page.getByRole("region", { name: "Memories" }).getByRole("group", { name: "Remember" });
+  const first = await remember.getByRole("link").last().innerText();
+  expect(["Long ago on this day", "Also this date"]).toContain(first);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await remember.getByRole("button", { name: "Another" }).click();
+  await expect(remember.getByRole("link").last()).not.toHaveText(first);
+});
