@@ -33,7 +33,7 @@ Its places, in order: Map, People, Households, Places.
 - **Contacts** — the people you know, or knew, each with a page of their own. It is covered on
   [People](people.md): Everyone, Upcoming, Drifting, Occasions, Ties and Addresses are all unchanged.
 - **Households** — the people who live together, listed after People, each with a page of its own.
-  It is covered under [Households](people.md#households) on the People page.
+  It is covered in the Households section of [People](people.md).
 - **Atlas** — the places you go (restaurants, cafés, museums, shops), each a **Place** with a page
   of its own. It is covered on [Places](places.md).
 
