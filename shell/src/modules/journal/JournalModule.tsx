@@ -1,5 +1,5 @@
 import { Navigate } from "react-router";
-import { CalendarRange, LayoutTemplate, NotebookPen, Shapes } from "lucide-react";
+import { CalendarRange, Images, LayoutTemplate, NotebookPen, Shapes } from "lucide-react";
 import { handModule } from "../handModule";
 
 /** Home: the Journal opens on today. */
@@ -22,6 +22,7 @@ export const journalShell = handModule({
     { key: "month", title: "This month", icon: CalendarRange, href: "/app/journal/p/month" },
     { key: "quarter", title: "This quarter", icon: CalendarRange, href: "/app/journal/p/quarter" },
     { key: "year", title: "This year", icon: CalendarRange, href: "/app/journal/p/year" },
+    { key: "memories", title: "Memories", icon: Images, screen: "memories.memories" },
     { key: "types", title: "Types", icon: Shapes, screen: "notes.types" },
     { key: "templates", title: "Templates", icon: LayoutTemplate, screen: "notes.templates" },
   ],

@@ -5,8 +5,8 @@ import { DocumentEditor } from "@lifeline/editor";
 import { ArrowLeft } from "lucide-react";
 import { MEMORY, type Memory } from "../domain/types";
 
-/** Where a Memory leads back to: the Journal (its Memories place is its own ticket). */
-const BACK = "/app/journal";
+/** Where a Memory leads back to: the Memories grid. */
+const BACK = "/app/journal/memories";
 
 /**
  * One Memory, written in the Journal's writing interface (ADR 0136): its
@@ -25,7 +25,7 @@ export function MemoryScreen() {
       <div className="flex items-center gap-2 border-b px-3 py-1.5">
         <Button asChild size="sm" variant="ghost">
           <Link to={BACK}>
-            <ArrowLeft /> Journal
+            <ArrowLeft /> Memories
           </Link>
         </Button>
       </div>

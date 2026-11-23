@@ -5,7 +5,7 @@ year, the moments you keep as Memories, and the people, places and other kinds o
 about.
 
 Its sidebar (on a phone, the tabs in the Phone dock): **Today**, **This week**, **This month**,
-**This quarter**, **This year**, **Types** and **Templates**.
+**This quarter**, **This year**, **Memories**, **Types** and **Templates**.
 
 ## Journal
 
@@ -132,6 +132,10 @@ What you keep here: **Memories**, moments worth remembering. A Memory has a **ti
 of its own (the day it happened, today unless you say otherwise), its words and photos, and
 **About**: links to what it remembers — an Event, People, a Place, a Work, any page — or nothing.
 
+- **The Memories place** — a grid of tiles, the newest date first (two columns on a phone). Each
+  tile shows the Memory's first photo, or its title alone when it has none, with its title and
+  its date; tap one to open the Memory. With no Memories yet it says so and offers **New
+  memory**.
 - **New memory** — give it a title and its day; it opens on its own page. Where: the palette
   (Ctrl+K).
 - **The Memory page** — its title, date, About and words, all editable. Photos go in its text as
