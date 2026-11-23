@@ -1086,6 +1086,8 @@ const SCREENS: ScreenCase[] = [
   { name: "Progress", path: "/module/progress", afterOpen: workLocally },
   { name: "Knowledge module", path: "/module/languages" },
   { name: "Journal module", path: "/module/journal" },
+  // World has no map (ADR 0135): its home lands on the People screen.
+  { name: "World module", path: "/module/people" },
   { name: "Notes module", path: "/module/notes" },
   { name: "Thoughts module", path: "/module/thoughts" },
   { name: "Research module", path: "/module/research" },
