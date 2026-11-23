@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { documentsTable, getDocument, initApps } from "@lifeline/core";
 import { memoryTypeDef } from "../types";
 import { MEMORIES_FOLDER, MEMORY } from "../domain/types";
-import { addMemory, patchMemory } from "./repo";
+import { addMemory, deleteMemory, patchMemory, restoreMemory } from "./repo";
 
 const addAttachment = vi.hoisted(() => vi.fn(async (_f: Blob) => ({ name: "Pasted image 1.jpg" })));
 vi.mock("@lifeline/core", async (orig) => ({ ...(await orig<typeof import("@lifeline/core")>()), addAttachment }));
@@ -63,5 +63,15 @@ describe("changing a Memory", () => {
   it("refuses an empty title", async () => {
     const m = await addMemory({ title: "Lunch" });
     await expect(patchMemory(m.id, { title: " " })).rejects.toThrow("A Memory needs a title");
+  });
+});
+
+describe("deleting a Memory", () => {
+  it("is undone: the same Memory comes back, as it was", async () => {
+    const m = await addMemory({ title: "First snow", date: "2026-01-04", about: ["p1"], body: "Cold.\n" });
+    const gone = await deleteMemory(m.id);
+    expect(await getDocument(m.id)).toBeUndefined();
+    await restoreMemory(gone!);
+    expect(await getDocument(m.id)).toMatchObject({ id: m.id, title: "First snow", date: "2026-01-04", about: ["p1"], body: "Cold.\n", deleted: 0 });
   });
 });

@@ -80,3 +80,15 @@ test("a Memory's page edits its title, date and About through the Memory form", 
   const titles = await inCore(page, async (core) => ((await core.documentsOf("memories_memory")) as { title: string }[]).map((m) => m.title), undefined);
   expect(titles).toContain("New harbour");
 });
+
+test("a Memory's page shows what links to it, and its Delete is undone from the toast", async ({ page }) => {
+  await page.goto("/app/journal/memories");
+  await workLocally(page);
+  await keep(page, "Old harbour", "2020-05-01");
+  await page.locator("main ul > li > a").filter({ hasText: "Old harbour" }).click();
+  await expect(page.getByRole("heading", { name: /Backlinks/ })).toBeVisible();
+  await page.getByRole("button", { name: "Delete" }).click();
+  await expect(page).toHaveURL(/\/app\/journal\/memories$/);
+  await page.getByRole("button", { name: "Undo" }).click();
+  await expect(page.locator("main ul > li > a").filter({ hasText: "Old harbour" })).toHaveCount(1);
+});
