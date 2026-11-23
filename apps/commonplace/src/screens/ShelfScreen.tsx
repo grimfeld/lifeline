@@ -113,10 +113,10 @@ export function ShelfScreen() {
   }, [sources, q, counts]);
 
   return (
-    <div className="mx-auto grid w-full max-w-5xl gap-5 p-4 md:p-6">
+    <div className="mx-auto grid w-full max-w-5xl gap-5 p-4 cq-md:p-6">
       <div className="flex items-center gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">Notes</h1>
-        <span className="text-muted-foreground text-sm tabular-nums max-md:hidden">
+        <span className="text-muted-foreground text-sm tabular-nums cq-max-md:hidden">
           {sources.length} sources · {notes.length} notes · {quotes.length} quotes
         </span>
         <Button size="sm" className="ml-auto" onClick={() => setCapturing(true)}>

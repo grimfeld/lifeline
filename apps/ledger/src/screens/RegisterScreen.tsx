@@ -330,7 +330,7 @@ export function RegisterScreen() {
                           )}
                           <TagChips tags={t.tags} size="xs" className="ml-1 inline-flex" />
                         </span>
-                        <span className="text-muted-foreground hidden w-28 shrink-0 truncate text-right text-xs sm:block">{t.kind === "transfer" ? "" : (byAccount.get(t.accountId)?.title ?? "")}</span>
+                        <span className="text-muted-foreground hidden w-28 shrink-0 truncate text-right text-xs cq-sm:block">{t.kind === "transfer" ? "" : (byAccount.get(t.accountId)?.title ?? "")}</span>
                         <span className={`w-28 shrink-0 text-right tabular-nums ${t.kind === "expense" ? "" : t.kind === "income" ? "text-green-600 dark:text-green-500" : "text-muted-foreground"}`}>{d.sign}</span>
                       </button>
                     </li>
