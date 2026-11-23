@@ -137,7 +137,7 @@ test("today's Day shows Remember with a seeded on-this-day Memory, and Another c
   const [, mm, dd] = today.split("-");
   await seedJournal(page, {});
   await keep(page, "Long ago on this day", `${Number(today.slice(0, 4)) - 3}-${mm}-${dd}`);
-  await keep(page, "Another year, another day", `${Number(today.slice(0, 4)) - 3}-01-${mm === "01" ? "02" : "01"}`);
+  await keep(page, "Another year, another day", `${Number(today.slice(0, 4)) - 3}-${mm === "01" ? "02" : "01"}-15`);
   await keep(page, "Also this date", `${Number(today.slice(0, 4)) - 5}-${mm}-${dd}`);
 
   await openDay(page, today);
