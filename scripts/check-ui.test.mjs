@@ -132,3 +132,14 @@ test("--all with a path that holds no screen code is clean and exits 0", () => {
   const out = execFileSync("node", ["scripts/check-ui.mjs", "--all", "no/such/path"], { encoding: "utf8" });
   assert.match(out, /every line clean/);
 });
+
+test("a viewport breakpoint in content is flagged; the container variants pass", () => {
+  assert.deepEqual(rules(`<div className="flex md:grid max-md:hidden" />`), ["1:viewport-breakpoint"]);
+  assert.deepEqual(rules(`<div className="grid cq-md:grid-cols-2 cq-max-md:hidden lg:x" />`), ["1:viewport-breakpoint"]);
+  assert.deepEqual(rules(`<div className="grid cq-md:grid-cols-2 cq-max-md:hidden cq-lg:gap-6" />`), []);
+});
+
+test("the Phone dock's max-md:contents wrapper and an allowed portalled width pass", () => {
+  assert.deepEqual(rules(`<div className="flex gap-2 max-md:contents" />`), []);
+  assert.deepEqual(rules(`{/* ui-allow: viewport-breakpoint — portalled into <body> */}\n<DialogContent className="md:max-w-2xl" />`), []);
+});
