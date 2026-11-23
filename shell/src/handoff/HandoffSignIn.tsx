@@ -20,10 +20,10 @@ export function HandoffSignIn({ onDone }: { onDone: () => void }) {
       </div>
       <SignInFields form={form} idPrefix="handoff-login" />
       <div className="flex flex-wrap gap-2">
-        <Button className="max-md:flex-1" disabled={form.busy} onClick={() => void form.submit()}>
+        <Button className="cq-max-md:flex-1" disabled={form.busy} onClick={() => void form.submit()}>
           {form.busy && <Loader2 className="animate-spin" />} Sign in
         </Button>
-        <Button className="max-md:flex-1" variant="outline" onClick={onDone}>
+        <Button className="cq-max-md:flex-1" variant="outline" onClick={onDone}>
           Work locally
         </Button>
       </div>
