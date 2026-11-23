@@ -294,6 +294,12 @@ export interface InvokeAgent {
 /** Who runs a headless Command (ADR 0115): `agent` when an outside agent calls it through MCP, so an App may treat what it makes as a draft, not chosen. A Macro run by an agent hands it to every step. */
 export interface InvokeContext {
   agent?: InvokeAgent;
+  /**
+   * The Documents whoever runs it may see (the agent wall, ADR 0114): a link
+   * argument names only these, by name, alias or id, so one outside them is
+   * refused as unknown and never named. Absent, every Document.
+   */
+  sees?: (doc: Document) => boolean;
 }
 
 /**

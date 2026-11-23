@@ -212,10 +212,13 @@ export function pickLinks(arg: CommandArg, values: readonly string[], docs: read
   return ids;
 }
 
-/** Whether every value is the id of a Document the argument may name, read on its own without reading every Document it may name. */
-async function areIds(arg: CommandArg, values: readonly string[]): Promise<boolean> {
+/** The Documents a run may see: those `sees` keeps, else every one. */
+type Sees = InvokeContext["sees"];
+
+/** Whether every value is the id of a Document the argument may name (and the run may see), read on its own without reading every Document it may name. */
+async function areIds(arg: CommandArg, values: readonly string[], sees?: Sees): Promise<boolean> {
   const found = await Promise.all(values.map((id) => getDocument(id)));
-  return found.every((d) => d && linkCandidates(arg, [d]).length > 0);
+  return found.every((d) => d && (!sees || sees(d)) && linkCandidates(arg, [d]).length > 0);
 }
 
 /** Where a link argument's Documents are read from: its Role, else its type(s), else all. Two arguments with the same source read the same Documents. */
@@ -224,15 +227,15 @@ export function linkSource(arg: CommandArg): { role: string } | { types: string[
   return arg.linkRole ? { role: arg.linkRole } : types ? { types } : { all: true };
 }
 
-/** The Documents a link argument may name, read from the store (the current Workspace): of its Role, else its type(s), else all. */
-export async function linkableDocuments(arg: CommandArg): Promise<Document[]> {
+/** The Documents a link argument may name, read from the store (the current Workspace): of its Role, else its type(s), else all; only those `sees` keeps, when given. */
+export async function linkableDocuments(arg: CommandArg, sees?: Sees): Promise<Document[]> {
   const from = linkSource(arg);
-  if ("role" in from) return documentsWithRole(from.role);
-  return "types" in from ? (await Promise.all(from.types.map((t) => documentsOf(t)))).flat() : allDocuments();
+  const docs = "role" in from ? await documentsWithRole(from.role) : "types" in from ? (await Promise.all(from.types.map((t) => documentsOf(t)))).flat() : await allDocuments();
+  return sees ? docs.filter(sees) : docs;
 }
 
 /** One argument, coerced to its kind; undefined when absent. Throws a readable message on a bad value. */
-async function readArg(arg: CommandArg, v: unknown): Promise<unknown> {
+async function readArg(arg: CommandArg, v: unknown, sees?: Sees): Promise<unknown> {
   if (v === undefined || v === null || v === "") return undefined;
   switch (arg.kind) {
     case "text":
@@ -275,14 +278,14 @@ async function readArg(arg: CommandArg, v: unknown): Promise<unknown> {
       return asStrings(arg, v);
     case "link": {
       const value = String(v);
-      if (await areIds(arg, [value])) return value;
-      return pickLinked(arg, value, await linkableDocuments(arg));
+      if (await areIds(arg, [value], sees)) return value;
+      return pickLinked(arg, value, await linkableDocuments(arg, sees));
     }
     case "links": {
       const values = linkValues(arg, v);
       if (!values.length) return undefined;
-      if (await areIds(arg, values)) return [...new Set(values)];
-      return pickLinks(arg, values, await linkableDocuments(arg));
+      if (await areIds(arg, values, sees)) return [...new Set(values)];
+      return pickLinks(arg, values, await linkableDocuments(arg, sees));
     }
     case "json": {
       if (typeof v === "string") {
@@ -308,7 +311,7 @@ async function readArg(arg: CommandArg, v: unknown): Promise<unknown> {
       const rows: Record<string, unknown>[] = [];
       for (const [i, row] of list.entries()) {
         if (!row || typeof row !== "object" || Array.isArray(row)) throw new Error(`${arg.label}, row ${i + 1}: expected a record`);
-        rows.push(await readCommandArgs(arg.of ?? [], row as Record<string, unknown>).catch((e: Error) => Promise.reject(new Error(`${arg.label}, row ${i + 1}: ${e.message}`))));
+        rows.push(await readCommandArgs(arg.of ?? [], row as Record<string, unknown>, sees).catch((e: Error) => Promise.reject(new Error(`${arg.label}, row ${i + 1}: ${e.message}`))));
       }
       return rows.length ? rows : undefined;
     }
@@ -329,14 +332,14 @@ export function momentOf(date: string | undefined, time: string | undefined, now
   return at.toISOString();
 }
 
-/** Check `raw` against the signature: unknown keys and missing required arguments are refused. */
-export async function readCommandArgs(args: CommandArg[], raw: Record<string, unknown>): Promise<Record<string, unknown>> {
+/** Check `raw` against the signature: unknown keys and missing required arguments are refused. A link argument names only the Documents `sees` keeps, when given (`InvokeContext.sees`). */
+export async function readCommandArgs(args: CommandArg[], raw: Record<string, unknown>, sees?: Sees): Promise<Record<string, unknown>> {
   const known = new Set(args.map((a) => a.key));
   const unknown = Object.keys(raw).filter((k) => !known.has(k));
   if (unknown.length) throw new Error(`Unknown argument${unknown.length > 1 ? "s" : ""}: ${unknown.join(", ")}`);
   const out: Record<string, unknown> = {};
   for (const arg of args) {
-    const v = await readArg(arg, raw[arg.key]);
+    const v = await readArg(arg, raw[arg.key], sees);
     if (v === undefined) {
       if (arg.required) throw new Error(`${arg.label} is required`);
       continue;
@@ -362,7 +365,7 @@ export async function argProblems(args: CommandArg[], raw: Record<string, unknow
 /** Run a Command headless: arguments checked against its signature, then the App's `invoke`. */
 export async function invokeCommand(def: CommandDef, raw: Record<string, unknown>, ctx?: InvokeContext): Promise<CommandResult> {
   if (!isInvocable(def)) throw new Error(`“${def.title}” cannot be run without its dialog`);
-  return def.invoke(await readCommandArgs(def.args, raw), ctx);
+  return def.invoke(await readCommandArgs(def.args, raw, ctx?.sees), ctx);
 }
 
 // ── A dialog's initial values (CommandDialogProps.initial) ────────────────

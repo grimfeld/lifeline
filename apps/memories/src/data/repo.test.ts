@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { documentsTable, getDocument, initApps } from "@lifeline/core";
 import { memoryTypeDef } from "../types";
 import { MEMORIES_FOLDER, MEMORY } from "../domain/types";
-import { addMemory } from "./repo";
+import { addMemory, patchMemory } from "./repo";
 
 const addAttachment = vi.hoisted(() => vi.fn(async (_f: Blob) => ({ name: "Pasted image 1.jpg" })));
 vi.mock("@lifeline/core", async (orig) => ({ ...(await orig<typeof import("@lifeline/core")>()), addAttachment }));
@@ -49,5 +49,19 @@ describe("adding a Memory (ADR 0136)", () => {
     addAttachment.mockRejectedValueOnce(new Error("File is too big (25 MB; the limit is 20 MB)"));
     await expect(addMemory({ title: "Huge", photo: new File(["x"], "h.jpg", { type: "image/jpeg" }) })).rejects.toThrow("too big");
     expect(await documentsTable().count()).toBe(0);
+  });
+});
+
+describe("changing a Memory", () => {
+  it("renames, redates and re-points it, only what is patched", async () => {
+    const m = await addMemory({ title: "Lunch", date: "2026-06-14", about: ["p1"] });
+    await patchMemory(m.id, { title: "Lunch at Janou" });
+    await patchMemory(m.id, { date: "2026-06-15", about: ["p2", "p2"] });
+    expect(await getDocument(m.id)).toMatchObject({ title: "Lunch at Janou", date: "2026-06-15", about: ["p2"] });
+  });
+
+  it("refuses an empty title", async () => {
+    const m = await addMemory({ title: "Lunch" });
+    await expect(patchMemory(m.id, { title: " " })).rejects.toThrow("A Memory needs a title");
   });
 });
