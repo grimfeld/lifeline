@@ -52,7 +52,7 @@ node scripts/e2e-shards.mjs durations /tmp/e2e-results/*/e2e-results.json > shel
 To time the four runners on a branch before it lands, or prove a PR against the whole gate,
 label its PR **`e2e:gate`** (`.github/workflows/e2e-gate.yml`): it runs the whole gate on the
 PR's head as an approved PR does, shows as its own `e2e-gate` check with each runner's cases
-and minutes in the run's summary, and takes the label off when it ends; add it again to rerun.
+and minutes in the run's summary, and takes the label off when it ends; add it again to rerun. A run you cancel by hand leaves the label on: take it off yourself.
 An agent can add a label where a workflow dispatch is refused. Without a PR, run the Check
 workflow by hand (Actions → Check → Run workflow) with **gate** ticked.
 

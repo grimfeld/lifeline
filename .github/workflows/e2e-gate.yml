@@ -24,10 +24,13 @@ jobs:
       full: true
 
   # The result, and the label off, green or red. Each runner's line (cases, minutes) is in
-  # this run's summary.
+  # this run's summary. Not after a cancel: a run cancelled by the label added again would
+  # take off the label its successor runs for. Another label's run names this job apart, so
+  # its skipped job never hides the gate's result on the PR.
   e2e-gate:
+    name: ${{ github.event.label.name == 'e2e:gate' && 'e2e-gate' || 'e2e-gate (another label)' }}
     needs: runners
-    if: always() && github.event.label.name == 'e2e:gate'
+    if: "!cancelled() && github.event.label.name == 'e2e:gate'"
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -38,8 +41,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number }}
-        # A 404 means someone already took it off.
-        run: gh api -X DELETE "repos/$REPO/issues/$PR/labels/e2e%3Agate" > /dev/null || true
+        # A 404 means someone already took it off; anything else fails the check, loudly.
+        run: |
+          if ! out=$(gh api -X DELETE "repos/$REPO/issues/$PR/labels/e2e%3Agate" 2>&1); then
+            if grep -q "HTTP 404" <<<"$out"; then echo "The label was already off."
+            else echo "::error::Could not take e2e:gate off: $out"; exit 1
+            fi
+          fi
       - name: Every runner passed
         env:
           RUNNERS: ${{ needs.runners.result }}
