@@ -12,11 +12,19 @@
  * which are the viewport breakpoints' widths measured on that container:
  * `cq-md:` where content used `md:`, `cq-max-md:` where it used `max-md:`.
  * Tailwind's own `@md:` is a different scale (28rem), hence the names.
- * Phone navigation (the Phone bar, the Phone dock) and portalled content (a
- * dialog in <body>, outside every container) keep the viewport's `md:`.
+ * <body> is a `content` container too: content portalled into it (a dialog,
+ * a Sheet, the Peek) sits outside the page's containers, and there the `cq-`
+ * variants measure the viewport, exactly as `md:` did. Phone navigation (the
+ * Phone bar, the Phone dock) keeps the viewport's `md:`: it is the device's.
+ * The widths are NARROW_BELOW in content-container.tsx (768px = 48rem).
  */
 @utility content-container {
     container: content / inline-size;
+}
+@layer base {
+    body {
+        container: content / inline-size;
+    }
 }
 @custom-variant cq-sm { @container content (width >= 40rem) { @slot; } }
 @custom-variant cq-md { @container content (width >= 48rem) { @slot; } }

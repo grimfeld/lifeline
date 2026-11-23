@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { ContentContainer, isNarrowWidth, NARROW_BELOW, useNarrow } from "./content-container";
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogFooter, AlertDialogTitle } from "./alert-dialog";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -103,5 +104,42 @@ describe("useNarrow", () => {
     const el = host.querySelector("[data-slot=content-container]")!;
     expect(el.className).toContain("content-container");
     expect(el.className).toContain("flex");
+  });
+});
+
+describe("AlertDialog, portalled into <body>", () => {
+  const open = (width: number) => {
+    viewport = 1920;
+    boxWidth = width;
+    render(
+      <ContentContainer>
+        <AlertDialog open>
+          <AlertDialogContent aria-describedby={undefined}>
+            <AlertDialogTitle>Delete type</AlertDialogTitle>
+            <AlertDialogFooter>
+              <AlertDialogAction>Delete</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </ContentContainer>,
+    );
+    const content = document.querySelector("[data-slot=alert-dialog-content]")!;
+    return { content, footer: content.querySelector("[data-slot=alert-dialog-footer]")!, action: content.querySelector("button")! };
+  };
+
+  it("opened from a narrow container, sits at the bottom with thumb-sized buttons", () => {
+    const { content, footer, action } = open(400);
+    expect(content.className).toContain("bottom-0");
+    expect(content.className).not.toContain("max-w-sm");
+    expect(footer.className).not.toContain("flex-row");
+    expect(action.getAttribute("data-size")).toBe("touch");
+  });
+
+  it("opened from a wide container, is the centred desk dialog", () => {
+    const { content, footer, action } = open(1000);
+    expect(content.className).toContain("max-w-sm");
+    expect(content.className).not.toContain("bottom-0");
+    expect(footer.className).toContain("flex-row");
+    expect(action.getAttribute("data-size")).toBe("default");
   });
 });

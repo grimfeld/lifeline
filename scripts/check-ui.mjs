@@ -60,7 +60,7 @@ const LINE_RULES = [
     id: "sm-breakpoint",
     heading: "Layout",
     test: /(?<![\w-])sm:(?!max-w-)/,
-    message: "layout switches at md (the phone line); sm: is only for dialog widths",
+    message: "sm: is only for dialog widths; content uses the container variants (cq-sm:, cq-md:)",
   },
   {
     // ADR 0133: content follows its container. The viewport's `md:` stays for phone
@@ -68,7 +68,7 @@ const LINE_RULES = [
     // which a line can't tell apart: those carry `ui-allow: viewport-breakpoint`.
     id: "viewport-breakpoint",
     heading: "Layout",
-    test: /(?<![\w-])!?(?:max-)?(?:md|lg|xl|2xl):(?!contents\b)/,
+    test: /(?<![\w-])!?(?:max-(?:sm|md|lg|xl|2xl)|md|lg|xl|2xl):(?<!max-md:)|(?<![\w-])!?max-md:(?!contents\b)/,
     message: "viewport breakpoint in content — content follows its container: cq-md:, cq-max-md: (the viewport's md: is for phone navigation and portalled content only)",
   },
   {

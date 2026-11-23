@@ -143,3 +143,10 @@ test("the Phone dock's max-md:contents wrapper and an allowed portalled width pa
   assert.deepEqual(rules(`<div className="flex gap-2 max-md:contents" />`), []);
   assert.deepEqual(rules(`{/* ui-allow: viewport-breakpoint — portalled into <body> */}\n<DialogContent className="md:max-w-2xl" />`), []);
 });
+
+test("max-sm: counts as a viewport breakpoint; only max-md:contents (the Phone dock's wrapper) passes", () => {
+  assert.deepEqual(rules(`<div className="flex max-sm:hidden" />`), ["1:viewport-breakpoint"]);
+  assert.deepEqual(rules(`<div className="flex md:contents" />`), ["1:viewport-breakpoint"]);
+  assert.deepEqual(rules(`<div className="flex max-lg:contents" />`), ["1:viewport-breakpoint"]);
+  assert.deepEqual(rules(`<div className="flex cq-max-sm:hidden max-md:contents" />`), []);
+});

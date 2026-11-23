@@ -114,9 +114,12 @@ nearest existing pattern and don't hand-roll a new one.
   each Window with the Hub) at the breakpoints' widths. Never the viewport's `md:`,
   `max-md:`, `lg:` in content: a Module in a narrow Window on a wide screen must get its
   narrow layout. Tailwind's own `@md:` is another scale; don't use it.
+- Content portalled into `<body>` (a dialog, a Sheet, the Peek) uses the same `cq-`
+  classes: `<body>` is a `content` container too, so there they measure the viewport.
+  Where it must follow its opener's Window, it asks `useNarrow()` (context crosses the
+  portal), as `AlertDialog` does.
 - The viewport's `md:` is kept only for phone navigation (the Phone bar, the Phone dock
-  and what moves into it, `max-md:contents` wrappers) and for content portalled into
-  `<body>` (a dialog's width), which sits outside every container. Mark such a line
+  and what moves into it, `max-md:contents` wrappers). Mark such a line
   `ui-allow: viewport-breakpoint`. `sm:` is only for dialog widths (`sm:max-w-md`).
 - **(check)** Two questions, two hooks, both from `@lifeline/ui`. **Is this a phone?**
   `usePhone()`, the device: for navigation only (the Phone bar, the Phone dock's move to

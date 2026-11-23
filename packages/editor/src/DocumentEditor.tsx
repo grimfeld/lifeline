@@ -90,12 +90,12 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, l
   const navigate = useNavigate();
   const narrow = useNarrow();
   const [panelOpen, setPanelOpen] = useState(showPanel);
-  /** Phone: the panel is a right sheet, not a column — it starts closed whatever `showPanel` says. */
+  /** Narrow (a phone, a narrow Window): the panel is a right sheet, not a column — it starts closed whatever `showPanel` says. */
   const [panelSheet, setPanelSheet] = useState(false);
   const panelShown = narrow ? panelSheet : panelOpen;
   const togglePanel = () => (narrow ? setPanelSheet((o) => !o) : setPanelOpen((o) => !o));
   const [mode, setMode] = useState<"edit" | "read" | "text">("edit");
-  /** Phone: the Fields + Tags strip is folded away — on a phone the body is the point. */
+  /** Narrow: the Fields + Tags strip is folded away — in a narrow box the body is the point. */
   const [detailsOpen, setDetailsOpen] = useState(false);
   /**
    * The header recedes while the body is being written and comes back on a
@@ -517,7 +517,7 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, l
       {/* Not merely CSS-hidden on a phone: the sheet below holds the same panel, and mounting both
           would run every App's document panel twice. */}
       {hasPanel && panelOpen && !narrow && <aside className="w-80 min-w-0 shrink-0 overflow-x-hidden overflow-y-auto border-l p-3 cq-max-md:hidden">{panel}</aside>}
-      {/* Phone: the same panel as a right sheet — there is no width for a column, and
+      {/* Narrow: the same panel as a right sheet — there is no width for a column, and
           the links, the local graph and an App's own panels are not desk-only (ADR 0021). */}
       <Sheet open={hasPanel && narrow && panelSheet} onOpenChange={setPanelSheet}>
         <SheetContent side="right" aria-describedby={undefined} className="w-[85%] max-w-sm overflow-hidden">

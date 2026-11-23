@@ -1,8 +1,5 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 
-// The phone question is the kit's: usePhone() (the device) and useNarrow()
-// (the container), from @lifeline/ui (ADR 0133).
-
 /**
  * How much of the layout viewport is hidden below the visual one — the on-screen
  * keyboard, in practice (plus whatever accessory strip the OS puts above it).
