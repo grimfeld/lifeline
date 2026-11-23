@@ -27,7 +27,7 @@ pnpm test:e2e:quiet --project=desktop people.spec.ts                    # dot re
 
 No `--` before the flags: pnpm would hand it to Playwright, which then reads them as
 file filters. A PR runs only the gate specs it changes, three times each
-(`.github/workflows/check.yml`, `e2e-changed`), or once on four runners past 150 cases. The
+(`.github/workflows/e2e-runners.yml`, called by `check.yml`), or once on four runners past 150 cases. The
 whole gate runs on every PR carrying `ship` (ADR 0132), and everything runs on
 master each night; each runner runs the setup projects its cases need. A red nightly run opens
 (or comments on) a `ready-for-agent` issue naming the failing cases (`scripts/e2e-failures.mjs`).
@@ -49,9 +49,12 @@ gh run download <run-id> --pattern 'e2e-results-*' --dir /tmp/e2e-results
 node scripts/e2e-shards.mjs durations /tmp/e2e-results/*/e2e-results.json > shell/e2e/durations.json
 ```
 
-To time the four runners on a branch before it lands, run the Check workflow by hand
-(Actions → Check → Run workflow) with **gate** ticked: it runs the whole gate as an
-approved PR does.
+To time the four runners on a branch before it lands, or prove a PR against the whole gate,
+label its PR **`e2e:gate`** (`.github/workflows/e2e-gate.yml`): it runs the whole gate on the
+PR's head as an approved PR does, shows as its own `e2e-gate` check with each runner's cases
+and minutes in the run's summary, and takes the label off when it ends; add it again to rerun.
+An agent can add a label where a workflow dispatch is refused. Without a PR, run the Check
+workflow by hand (Actions → Check → Run workflow) with **gate** ticked.
 
 ### A CI runner, locally
 
@@ -73,7 +76,7 @@ docker pull mcr.microsoft.com/playwright:v$PW-noble
 # A fresh clone of the branch's commits (not uncommitted work) to mount into the container.
 rm -rf /tmp/e2e-runner && git clone -q --branch "$(git branch --show-current)" "$PWD" /tmp/e2e-runner
 
-# Runner 2 of 4's files, planned as check.yml plans them.
+# Runner 2 of 4's files, planned as e2e-runners.yml plans them.
 (cd shell && pnpm exec playwright test --list --reporter=json --project=desktop --project=mobile) > /tmp/e2e-list.json
 node scripts/e2e-shards.mjs plan 4 /tmp/e2e-list.json shell/e2e/durations.json > /tmp/e2e-plan.json
 FILES=$(node -p "require('/tmp/e2e-plan.json').include[1].files")
