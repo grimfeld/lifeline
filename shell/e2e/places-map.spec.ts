@@ -2,10 +2,10 @@ import { test, expect, type Page } from "@playwright/test";
 import { inCore } from "./support/core";
 
 /**
- * A Place's address and the World map (#500, ADR 0128): typing a Place's name
+ * A Place's address and the Map (#500, ADR 0128, ADR 0135): typing a Place's name
  * offers real places (Photon, stubbed here), and one pick fills its name,
  * address and coordinates; a typed address is Located (Nominatim, stubbed).
- * The Place then stands on World's map beside People's Addresses, told apart
+ * The Place then stands on the Map beside People's Addresses, told apart
  * by App, filtered by Kind, and drawing the map looks nothing up.
  */
 
@@ -51,7 +51,7 @@ async function openAddPlace(page: Page) {
   return page.getByRole("dialog", { name: "Add a place" });
 }
 
-test("a Place added by picking its name from the lookup stands on the World map beside an Address, filtered by Kind", async ({ page }) => {
+test("a Place added by picking its name from the lookup stands on the Map beside an Address, filtered by Kind", async ({ page }) => {
   const asked = await stubGeocoders(page);
   const dialog = await openAddPlace(page);
   await dialog.getByLabel("Name").fill("chez jan");
@@ -76,7 +76,7 @@ test("a Place added by picking its name from the lookup stands on the World map 
   );
 
   const before = { ...asked };
-  await page.goto("/module/people");
+  await page.goto("/map");
   await workLocally(page);
   await expect(page.getByRole("button", { name: /^Places 1$/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /^People 1$/ })).toBeVisible();
@@ -125,7 +125,7 @@ test("a Place with no coordinates is no Pin; editing its address finds them", as
   await workLocally(page);
   const id = await inCore(page, async (core, type: string) => (await core.createDocument({ type, title: "The stall", folder: "Places", fields: { aliases: [], kind: "", address: "Somewhere unknown", geo: null } })).id as string, PLACE);
 
-  await page.goto("/module/people");
+  await page.goto("/map");
   await workLocally(page);
   await expect(page.getByRole("button", { name: /^Places 0$/ })).toBeVisible();
 
@@ -138,7 +138,7 @@ test("a Place with no coordinates is no Pin; editing its address finds them", as
   await expect(details.getByText("On the map at 43.2722, 5.3889")).toBeVisible();
   await expect(page.getByRole("region", { name: "On the map" })).toBeVisible();
 
-  await page.goto("/module/people");
+  await page.goto("/map");
   await workLocally(page);
   await expect(page.getByRole("button", { name: /^Places 1$/ })).toBeVisible();
 });

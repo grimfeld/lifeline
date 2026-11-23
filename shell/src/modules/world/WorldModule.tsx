@@ -4,14 +4,14 @@ import { EVENT_TYPE, PLACE_TYPE, appById, documentType, openPin, useDocumentType
 import { cn, MapView, PageHeader, PhoneDock, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
 import { Home, Map as MapIcon, MapPin, Sparkles, Users } from "lucide-react";
 import { handModule } from "../handModule";
-import { worldPins } from "./worldMap";
+import { mapPins } from "../../surfaces/mapFilter";
 
 /** The Apps (and the Event type, #505) whose Pins the World map shows, and what each chip calls them. Stable, so the Pins hook keeps its memo. */
 const WORLD_APPS = ["atlas", "contacts", EVENT_TYPE];
 const CHIPS = [
-  { appId: "atlas", label: "Places" },
-  { appId: "contacts", label: "People" },
-  { appId: "calendar", label: "Events" },
+  { appId: "atlas", type: PLACE_TYPE, label: "Places" },
+  { appId: "contacts", type: "contacts_person", label: "People" },
+  { appId: "calendar", type: EVENT_TYPE, label: "Events" },
 ];
 const ANY = "__any__";
 
@@ -34,9 +34,9 @@ function WorldMap() {
   const [hidden, setHidden] = useState<string[]>([]);
   const [kind, setKind] = useState("");
   const [toTry, setToTry] = useState(false);
-  const pins = useMemo(() => worldPins(all, docs, { hidden, kind, toTry }), [all, docs, hidden, kind, toTry]);
+  const pins = useMemo(() => mapPins(all, docs, { hidden, kind, toTry }), [all, docs, hidden, kind, toTry]);
   const chips = CHIPS.filter((c) => appById(c.appId));
-  const toggle = (appId: string) => setHidden((h) => (h.includes(appId) ? h.filter((x) => x !== appId) : [...h, appId]));
+  const toggle = (type: string) => setHidden((h) => (h.includes(type) ? h.filter((x) => x !== type) : [...h, type]));
 
   return (
     <div className="flex h-full min-w-0 flex-col">
@@ -48,13 +48,13 @@ function WorldMap() {
         <PhoneDock order={1}>
           <div className="ml-auto flex min-w-0 flex-wrap items-center gap-1 max-md:w-full">
             {chips.map((c) => {
-              const on = !hidden.includes(c.appId);
-              const count = all.filter((p) => p.appId === c.appId).length;
+              const on = !hidden.includes(c.type);
+              const count = all.filter((p) => p.type === c.type).length;
               return (
                 <button
                   key={c.appId}
                   type="button"
-                  onClick={() => toggle(c.appId)}
+                  onClick={() => toggle(c.type)}
                   aria-pressed={on}
                   className={cn(
                     "focus-visible:ring-ring flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs transition-colors focus-visible:ring-2 focus-visible:outline-none max-md:h-8 max-md:justify-center max-md:px-3",

@@ -643,7 +643,7 @@ async function openHere(page: Page) {
   await expect(dialog.getByRole("group", { name: "Places here" }).getByRole("button", { name: "Just here" })).toBeVisible();
 }
 
-/** World's map with the long Place on it and its Kind's long name in the Kind filter. */
+/** The Map with the long Place on it and its Kind's long name in the Kind filter. */
 async function longWorld(page: Page) {
   await seedLongPlace(page);
   await expect(page.getByRole("button", { name: /^Places 1$/ })).toBeVisible();
@@ -1053,7 +1053,7 @@ const SCREENS: ScreenCase[] = [
   { name: "Calendar · Week · a subscription's read-only card", path: `/calendar?view=week&d=${PEEK_DAY}`, afterOpen: icalCardFromSchedule },
   { name: "Calendar · Month", path: "/calendar?view=month" },
   { name: "Calendar · Month · Peek of a Task from its chip", path: `/calendar?view=month&d=${PEEK_DAY}`, afterOpen: taskPeekFromMonthChip },
-  { name: "Map", path: "/map" },
+  { name: "Map", path: "/map", afterOpen: longWorld },
   { name: "Graph", path: "/graph" },
   { name: "Bases", path: "/base", afterOpen: workLocally },
   { name: "Base", path: "/base/task" },
