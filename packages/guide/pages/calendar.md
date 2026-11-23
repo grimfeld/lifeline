@@ -132,7 +132,7 @@ The **Events** page has three tabs:
   its backlinks ("via At"), and its At shows wherever Events are listed ("At Chez Janou"), and in
   its Peek, where it can be changed. At on a Person never counts as having seen them: feeding
   Marc's cat while he is away is not seeing Marc. Put him in **With** for that.
-  An Event At a Place or a Person stands on the [Map](map.md) there, with its title and day; see
+  An Event At a Place or a Person stands on the [Map](map.md), with its title and day; see
   the Map for which home a Person's Event stands at. On the Map, an Event At a Place follows that
   Place through the Kind and To try filters. Claude is never
   told where an Event At a Person is: it reads the Person's name only.
