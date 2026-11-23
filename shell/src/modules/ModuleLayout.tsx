@@ -48,7 +48,7 @@ function ModuleChrome({ moduleId, bare, children }: { moduleId: string; bare: bo
   if (isSingleScreen(moduleId)) return <main className={cn("min-w-0 flex-1", bare ? "overflow-hidden" : "overflow-y-auto")}>{children}</main>;
   return (
     <>
-      <aside className="bg-sidebar text-sidebar-foreground flex w-56 shrink-0 flex-col border-r max-md:hidden">
+      <aside className="bg-sidebar text-sidebar-foreground flex w-56 shrink-0 flex-col border-r cq-max-md:hidden">
         <ModuleNav moduleId={moduleId} />
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
@@ -79,14 +79,14 @@ export function FrameLayout({ frame, bare = false, children }: { frame: FrameDef
   const Sidebar = frame.sidebar;
   return (
     <>
-      <aside className="bg-sidebar text-sidebar-foreground flex w-72 shrink-0 flex-col border-r max-md:hidden">
+      <aside className="bg-sidebar text-sidebar-foreground flex w-72 shrink-0 flex-col border-r cq-max-md:hidden">
         <div className="flex min-h-0 flex-1 flex-col">
           <Sidebar />
         </div>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
         <PhoneDock slot="module">
-          <div className="flex gap-1 overflow-x-auto px-2 py-1.5 md:hidden">
+          <div className="flex gap-1 overflow-x-auto px-2 py-1.5 cq-md:hidden">
             <VaultTabs />
           </div>
         </PhoneDock>
@@ -101,7 +101,7 @@ function FrameModuleLayout({ moduleId, frame, bare, children }: { moduleId: stri
   const Sidebar = frame.sidebar;
   return (
     <>
-      <aside className="bg-sidebar text-sidebar-foreground flex w-72 shrink-0 flex-col border-r max-md:hidden">
+      <aside className="bg-sidebar text-sidebar-foreground flex w-72 shrink-0 flex-col border-r cq-max-md:hidden">
         <div className="flex min-h-0 flex-1 flex-col">
           <Sidebar />
         </div>
@@ -159,7 +159,7 @@ function ModuleTabs({ moduleId }: { moduleId: string }) {
   if (screens.length < 2) return null;
   return (
     <PhoneDock slot="module">
-      <div className="flex gap-1 overflow-x-auto px-2 py-1.5 md:hidden">
+      <div className="flex gap-1 overflow-x-auto px-2 py-1.5 cq-md:hidden">
         {screens.map((s) => {
           const Icon = s.icon ?? LayoutDashboard;
           return (
