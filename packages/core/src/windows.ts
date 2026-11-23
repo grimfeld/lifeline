@@ -1,3 +1,6 @@
+import { SURFACES } from "./manifest";
+import { moduleOfPath } from "./registry";
+
 /**
  * The **window layout** (ADR 0133): which Windows are open on the Hub's stage,
  * where, in what order, and on which route — per device (localStorage) and per
@@ -82,23 +85,171 @@ export type WindowAction =
 /** A layout with nothing open. */
 export const EMPTY_LAYOUT: WindowLayout = { windows: [], remembered: {} };
 
-export declare function windowsReducer(layout: WindowLayout, action: WindowAction): WindowLayout;
+const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), Math.max(lo, hi));
 
-/** The front Window, if any. */
-export declare function frontWindow(layout: WindowLayout): WindowState | undefined;
-
-/** A new desk (no saved layout): one maximised Window of `target` at `route`. */
-export declare function newDesk(target: string, route: string): WindowLayout;
+/** Where the first Window of an empty stage, and a wrapped cascade, start. */
+const CASCADE_START = CASCADE_STEP;
 
 /** Clamp a box (fractions) to the limits on a stage of this size; returns fractions. */
-export declare function clampBox(box: Box, stage: Stage): Box;
+export function clampBox(box: Box, stage: Stage): Box {
+  if (stage.width <= 0 || stage.height <= 0) return { ...box };
+  const wPx = Math.min(Math.max(box.w * stage.width, MIN_WIDTH), stage.width);
+  const hPx = Math.min(Math.max(box.h * stage.height, MIN_HEIGHT), stage.height);
+  const xPx = clamp(box.x * stage.width, BAR_KEEP - wPx, stage.width - BAR_KEEP);
+  const yPx = clamp(box.y * stage.height, 0, stage.height - BAR_HEIGHT);
+  return { x: xPx / stage.width, y: yPx / stage.height, w: wPx / stage.width, h: hPx / stage.height };
+}
 
 /** The box to draw a Window at, in pixels: its mode decides (maximised and full fill the stage). */
-export declare function boxInPixels(win: WindowState, stage: Stage): Box;
+export function boxInPixels(win: WindowState, stage: Stage): Box {
+  if (win.mode === "full" || win.mode === "maximised") return { x: 0, y: 0, w: stage.width, h: stage.height };
+  const b = win.box;
+  return { x: b.x * stage.width, y: b.y * stage.height, w: b.w * stage.width, h: b.h * stage.height };
+}
+
+/** The box a Window keeps when it closes: its own, not the one a mode gave it. */
+function normalBox(win: WindowState): Box {
+  return win.mode === "normal" ? win.box : (win.restore ?? win.box);
+}
+
+function openBox(layout: WindowLayout, target: string, stage: Stage): Box {
+  const remembered = layout.remembered[target];
+  if (remembered) return clampBox(remembered, stage);
+  const last = layout.windows.find((w) => w.id === layout.lastOpened);
+  const w = OPEN_SIZE;
+  const h = OPEN_SIZE;
+  let x = (1 - w) / 2;
+  let y = (1 - h) / 2;
+  if (last) {
+    const from = normalBox(last);
+    x = from.x + CASCADE_STEP;
+    y = from.y + CASCADE_STEP;
+    if (x + w > 1 || y + h > 1) {
+      x = CASCADE_START;
+      y = CASCADE_START;
+    }
+  }
+  return clampBox({ x, y, w, h }, stage);
+}
+
+function nextId(layout: WindowLayout, target: string): string {
+  const taken = new Set(layout.windows.map((w) => w.id));
+  for (let n = 1; ; n++) if (!taken.has(`${target}:${n}`)) return `${target}:${n}`;
+}
+
+function toFront(layout: WindowLayout, id: string, patch?: Partial<WindowState>): WindowLayout {
+  const win = layout.windows.find((w) => w.id === id);
+  if (!win) return layout;
+  return { ...layout, windows: [...layout.windows.filter((w) => w.id !== id), { ...win, ...patch }] };
+}
+
+function update(layout: WindowLayout, id: string, f: (w: WindowState) => WindowState): WindowLayout {
+  if (!layout.windows.some((w) => w.id === id)) return layout;
+  return { ...layout, windows: layout.windows.map((w) => (w.id === id ? f(w) : w)) };
+}
+
+/** Every change to the layout: a pure step from one layout to the next. */
+export function windowsReducer(layout: WindowLayout, action: WindowAction): WindowLayout {
+  switch (action.type) {
+    case "open": {
+      const existing = layout.windows.find((w) => w.target === action.target);
+      if (existing) return toFront(layout, existing.id, { route: action.route });
+      const id = nextId(layout, action.target);
+      const win: WindowState = { id, target: action.target, route: action.route, box: openBox(layout, action.target, action.stage), mode: "normal" };
+      return { ...layout, windows: [...layout.windows, win], lastOpened: id };
+    }
+    case "focus":
+      return layout.windows[layout.windows.length - 1]?.id === action.id ? layout : toFront(layout, action.id);
+    case "close": {
+      const win = layout.windows.find((w) => w.id === action.id);
+      if (!win) return layout;
+      return {
+        ...layout,
+        windows: layout.windows.filter((w) => w.id !== action.id),
+        remembered: { ...layout.remembered, [win.target]: normalBox(win) },
+      };
+    }
+    case "route":
+      return update(layout, action.id, (w) => (w.route === action.route ? w : { ...w, route: action.route }));
+    case "place":
+      return update(layout, action.id, (w) => ({ id: w.id, target: w.target, route: w.route, mode: "normal", box: clampBox(action.box, action.stage) }));
+    case "maximise":
+      return update(layout, action.id, (w) => {
+        if (w.mode === "maximised") return { ...w, mode: "normal", box: w.restore ?? w.box, restore: undefined };
+        if (w.mode === "normal" || w.mode === "snapped") return { ...w, mode: "maximised", restore: w.box };
+        return w;
+      });
+    case "prune": {
+      const keep = new Set(action.targets);
+      const windows = layout.windows.filter((w) => keep.has(w.target));
+      return windows.length === layout.windows.length ? layout : { ...layout, windows };
+    }
+  }
+}
+
+/** The front Window, if any. */
+export function frontWindow(layout: WindowLayout): WindowState | undefined {
+  return layout.windows[layout.windows.length - 1];
+}
+
+/** A new desk (no saved layout): one maximised Window of `target` at `route`. */
+export function newDesk(target: string, route: string): WindowLayout {
+  const box = { x: (1 - OPEN_SIZE) / 2, y: (1 - OPEN_SIZE) / 2, w: OPEN_SIZE, h: OPEN_SIZE };
+  const id = `${target}:1`;
+  return { windows: [{ id, target, route, box, mode: "maximised", restore: box }], remembered: {}, lastOpened: id };
+}
+
+const storageKey = (workspaceId: string) => `lifeline:windows:${workspaceId}`;
+
+const isNum = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
+const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+const isBox = (v: unknown): v is Box => isObj(v) && isNum(v.x) && isNum(v.y) && isNum(v.w) && isNum(v.h);
+const MODES: readonly unknown[] = ["normal", "snapped", "maximised", "full"];
+
+function isWindow(v: unknown): v is WindowState {
+  return (
+    isObj(v) &&
+    typeof v.id === "string" &&
+    typeof v.target === "string" &&
+    typeof v.route === "string" &&
+    isBox(v.box) &&
+    MODES.includes(v.mode) &&
+    (v.restore === undefined || isBox(v.restore))
+  );
+}
+
+function isLayout(v: unknown): v is WindowLayout {
+  return (
+    isObj(v) &&
+    Array.isArray(v.windows) &&
+    v.windows.every(isWindow) &&
+    isObj(v.remembered) &&
+    Object.values(v.remembered).every(isBox) &&
+    (v.lastOpened === undefined || typeof v.lastOpened === "string")
+  );
+}
 
 /** The saved layout of a Workspace on this device, or null when there is none or it can't be read. */
-export declare function loadWindowLayout(workspaceId: string): WindowLayout | null;
-export declare function saveWindowLayout(workspaceId: string, layout: WindowLayout): void;
+export function loadWindowLayout(workspaceId: string): WindowLayout | null {
+  if (typeof localStorage === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(storageKey(workspaceId));
+    if (raw == null) return null;
+    const parsed: unknown = JSON.parse(raw);
+    return isLayout(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveWindowLayout(workspaceId: string, layout: WindowLayout): void {
+  if (typeof localStorage === "undefined") return;
+  try {
+    localStorage.setItem(storageKey(workspaceId), JSON.stringify(layout));
+  } catch {
+    /* private mode or full: the layout lasts the session */
+  }
+}
 
 /**
  * Where a route opens on the desk: in the Window of a Module or Surface, or as
@@ -107,4 +258,13 @@ export declare function saveWindowLayout(workspaceId: string, layout: WindowLayo
  * Screens Surface's. Built on `moduleOfPath`.
  */
 export type RouteTarget = { kind: "window"; target: string } | { kind: "page"; target: string };
-export declare function routeTarget(pathname: string): RouteTarget;
+
+export function routeTarget(pathname: string): RouteTarget {
+  const mod = moduleOfPath(pathname);
+  if (mod) return { kind: "window", target: mod };
+  const under = (root: string) => pathname === root || pathname.startsWith(root + "/");
+  const surface = SURFACES.find((s) => under(s.path));
+  if (surface) return { kind: "window", target: surface.id };
+  if (under("/screens") || under("/screen")) return { kind: "window", target: "screens" };
+  return { kind: "page", target: "page:" + (pathname.split("/")[1] ?? "") };
+}
