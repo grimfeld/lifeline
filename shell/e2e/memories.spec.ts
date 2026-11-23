@@ -57,3 +57,31 @@ test("New memory from the palette keeps a photo in the Memory's body, opens it, 
   await expect(page.locator("main ul > li > a").filter({ hasText: "Dancing on the terrace" })).toHaveCount(1);
   await expect(page.locator("main ul > li > a img")).toHaveCount(1);
 });
+
+test("from a past Event's Peek, Add a memory keeps a Memory about it, and its thumbnail shows in the panel", async ({ page }) => {
+  await page.goto("/vault");
+  await workLocally(page);
+  const event = await inCore(page, async (core) => (await core.putDocument({ type: "event", title: "Midsummer lunch", date: "2026-03-02", endDate: null, start: null, end: null, notes: "", tags: [] })).id as string, undefined);
+  const future = await inCore(page, async (core) => (await core.putDocument({ type: "event", title: "Far away", date: "2099-03-02", endDate: null, start: null, end: null, notes: "", tags: [] })).id as string, undefined);
+
+  await inCore(page, async (core, id: string) => core.openPeek(id), future);
+  const ahead = page.getByRole("dialog", { name: "Far away" });
+  await expect(ahead).toBeVisible();
+  await expect(ahead.getByRole("button", { name: "Add a memory" })).toHaveCount(0);
+  await expect(ahead.getByRole("region", { name: "Memories" })).toHaveCount(0);
+  await page.keyboard.press("Escape");
+
+  await inCore(page, async (core, id: string) => core.openPeek(id), event);
+  const peek = page.getByRole("dialog", { name: "Midsummer lunch" });
+  await peek.getByRole("button", { name: "Add a memory" }).click();
+  const dialog = page.getByRole("dialog", { name: "New memory" });
+  await expect(dialog.getByRole("textbox", { name: "Title" })).toHaveValue("Midsummer lunch");
+  await dialog.getByLabel("Photo", { exact: true }).setInputFiles({ name: "lunch.png", mimeType: "image/png", buffer: PNG });
+  await dialog.getByRole("button", { name: "Keep" }).click();
+  await expect(page).toHaveURL(/\/app\/journal\/memories\/.+/);
+
+  await page.goto("/vault");
+  await inCore(page, async (core, id: string) => core.openPeek(id), event);
+  const panel = page.getByRole("dialog", { name: "Midsummer lunch" }).getByRole("region", { name: "Memories" });
+  await expect(panel.locator("a img")).toHaveCount(1);
+});
