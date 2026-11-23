@@ -150,7 +150,7 @@ Place.
 
 ## Related
 
-- [World](world.md) — the Module Places belong to, and its map.
+- [World](world.md) — the Module Places belong to.
 - [Map](map.md) — every pin, Places among them.
 - [People](people.md) — the people in your life, beside Places in World.
 - [Links](links.md) — how `[[links]]`, aliases and backlinks work.
