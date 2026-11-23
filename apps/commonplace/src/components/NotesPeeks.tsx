@@ -27,7 +27,7 @@ export function SourcePeek({ doc }: PeekProps) {
   const set = (patch: Record<string, unknown>) => patchDocument(s.id, patch);
   return (
     <div className="grid gap-3">
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid gap-3 cq-md:grid-cols-2">
         <ChoiceField label="Kind" value={s.kind ?? ""} options={SOURCE_KINDS} optional onCommit={(kind) => set({ kind })} />
         <CommitField label="Author" delay={WRITE_DELAY} value={s.author ?? ""} onCommit={(author) => set({ author })} />
         <CommitField label="URL" type="url" delay={WRITE_DELAY} value={s.url ?? ""} onCommit={(url) => set({ url })} />
@@ -130,7 +130,7 @@ export function QuotePeek({ doc }: PeekProps) {
         </span>
         <KeepMenu quote={q} className="size-7 shrink-0" />
       </div>
-      <div className="grid gap-3 md:grid-cols-[10rem_1fr]">
+      <div className="grid gap-3 cq-md:grid-cols-[10rem_1fr]">
         <CommitField label="Where" delay={WRITE_DELAY} value={q.locator ?? ""} placeholder="Page, chapter, 34:12" onCommit={(locator) => patchDocument(q.id, { locator })} />
         <CommitField label="Comment" delay={WRITE_DELAY} value={q.comment ?? ""} placeholder="Your comment" onCommit={(comment) => patchDocument(q.id, { comment })} />
       </div>
