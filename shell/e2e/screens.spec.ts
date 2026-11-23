@@ -643,7 +643,7 @@ async function openHere(page: Page) {
   await expect(dialog.getByRole("group", { name: "Places here" }).getByRole("button", { name: "Just here" })).toBeVisible();
 }
 
-/** World's map with the long Place on it and its Kind's long name in the Kind filter. */
+/** The Map with the long Place on it and its Kind's long name in the Kind filter. */
 async function longWorld(page: Page) {
   await seedLongPlace(page);
   await expect(page.getByRole("button", { name: /^Places 1$/ })).toBeVisible();
@@ -1053,7 +1053,7 @@ const SCREENS: ScreenCase[] = [
   { name: "Calendar · Week · a subscription's read-only card", path: `/calendar?view=week&d=${PEEK_DAY}`, afterOpen: icalCardFromSchedule },
   { name: "Calendar · Month", path: "/calendar?view=month" },
   { name: "Calendar · Month · Peek of a Task from its chip", path: `/calendar?view=month&d=${PEEK_DAY}`, afterOpen: taskPeekFromMonthChip },
-  { name: "Map", path: "/map" },
+  { name: "Map", path: "/map", afterOpen: longWorld },
   { name: "Graph", path: "/graph" },
   { name: "Bases", path: "/base", afterOpen: workLocally },
   { name: "Base", path: "/base/task" },
@@ -1086,7 +1086,8 @@ const SCREENS: ScreenCase[] = [
   { name: "Progress", path: "/module/progress", afterOpen: workLocally },
   { name: "Knowledge module", path: "/module/languages" },
   { name: "Journal module", path: "/module/journal" },
-  { name: "World module", path: "/module/people", afterOpen: longWorld },
+  // World has no map (ADR 0135): its home lands on the People screen.
+  { name: "World module", path: "/module/people" },
   { name: "Notes module", path: "/module/notes" },
   { name: "Thoughts module", path: "/module/thoughts" },
   { name: "Research module", path: "/module/research" },
@@ -1172,6 +1173,11 @@ const SCREENS: ScreenCase[] = [
   { name: "Journal · Calendar years", path: "/app/journal?d=2001-02-14", afterOpen: zoomCalendar(2) },
   { name: "Journal · Types", path: "/app/journal/t" },
   { name: "Journal · Types (old link)", path: "/app/journal/c" },
+  // The Memories grid (ADR 0136): a tile with the longest title, and the empty state.
+  { name: "Journal · Memories", path: "/app/journal/memories", type: "memories_memory" },
+  { name: "Journal · Memories (none)", path: "/app/journal/memories" },
+  // A Memory's page (ADR 0136): the longest title, and an About of three long-titled Documents.
+  { name: "Journal · Memory", path: "/app/journal/memories/:id", type: "memories_memory" },
   {
     // The Type editor over the seeded type with long Field, option and type labels, every fold-out open.
     name: "Journal · Types · Type editor",

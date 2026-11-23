@@ -91,12 +91,11 @@ a match, which is saved at once with its spot. An address that is not on the map
 
 ### On the map
 
-A Place with an address found stands on [World](world.md)'s map and on the [Map](map.md), as a pin
-in Atlas's colour, apart from People's homes. A closed Place has no pin. On World's map, **To try**
-shows only the Places you want to try, and goes with the Kind: To try and Café are the cafés you
+A Place with an address found stands on the [Map](map.md), as a pin in Atlas's colour, apart from
+People's homes. A closed Place has no pin. While Places are on the Map, **To try** shows only the Places you want to try, and goes with the Kind: To try and Café are the cafés you
 haven't been to yet. People's homes stay on the map either way.
 Each Event **At** the Place stands at its pin too, in the Calendar's colour, with its title and day.
-On World's map it follows its Place through **Kind** and **To try**: To try shows the Events at the
+On the Map it follows its Place through **Kind** and **To try**: To try shows the Events at the
 Places you want to try, and no others.
 
 ### Visited and its Reports
@@ -151,7 +150,7 @@ Place.
 
 ## Related
 
-- [World](world.md) — the Module Places belong to, and its map.
+- [World](world.md) — the Module Places belong to.
 - [Map](map.md) — every pin, Places among them.
 - [People](people.md) — the people in your life, beside Places in World.
 - [Links](links.md) — how `[[links]]`, aliases and backlinks work.

@@ -2,7 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { inCore } from "./support/core";
 
 /**
- * An Event At a Place stands on the World map (#505, ADR 0122): at the
+ * An Event At a Place stands on the Map (#505, ADR 0122): at the
  * Place's Pin, under its own title and day, and opens the Event. An Event
  * At a Person stands at their Home Address; one At a Person with no
  * current Address is off the map. Prior art: places-map.spec.ts.
@@ -13,7 +13,7 @@ async function workLocally(page: Page) {
   await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
 }
 
-test("an Event At a Place stands on the World map, shows its title and day, and opens the Event", async ({ page }) => {
+test("an Event At a Place stands on the Map, shows its title and day, and opens the Event", async ({ page }) => {
   // The map tiles are refused: drawing the map needs no outside request.
   await page.route(/^https:\/\/(?!localhost)/, (route) => route.abort());
   const stamp = Date.now();
@@ -40,7 +40,7 @@ test("an Event At a Place stands on the World map, shows its title and day, and 
     { title, stamp },
   );
 
-  await page.goto("/module/people");
+  await page.goto("/map");
   await workLocally(page);
   // The Place's Event and the Person's: the one At a Person with no Address is off the map.
   await expect(page.getByRole("button", { name: /^Events 2$/ })).toBeVisible();

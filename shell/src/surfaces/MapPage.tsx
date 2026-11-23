@@ -1,12 +1,17 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { openPin, useLocatablePins, useLocatableTypes } from "@lifeline/core";
-import { cn, MapView, PageHeader, PhoneDock } from "@lifeline/ui";
-import { MapPin } from "lucide-react";
+import { EVENT_TYPE, PLACE_TYPE, documentType, openPin, useDocumentTypes, useDocuments, useLocatablePins, useLocatableTypes } from "@lifeline/core";
+import { cn, MapView, PageHeader, PhoneDock, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
+import { MapPin, Sparkles } from "lucide-react";
+import { mapPins } from "./mapFilter";
+
+const ANY = "__any__";
 
 /**
  * The Map Surface (ADR 0011): every Locatable Document as a pin, filtered
- * per Document type with session-only chips. `?focus=type/id` centres on one pin.
+ * per Document type with session-only chips. While Places are on, a Kind and
+ * To try narrow them and the Events At them (ADR 0135); the choice is kept
+ * while Places are off. `?focus=type/id` centres on one pin.
  */
 export function MapPage() {
   const navigate = useNavigate();
@@ -15,7 +20,17 @@ export function MapPage() {
   const providers = useLocatableTypes();
   const [hidden, setHidden] = useState<Set<string>>(() => new Set());
   const all = useLocatablePins();
-  const pins = useMemo(() => all.filter((p) => !hidden.has(p.type)), [all, hidden]);
+  const places = useDocuments(PLACE_TYPE);
+  // An Event At a Place follows its Place through Kind and To try (#505): its At is read from it.
+  const events = useDocuments(EVENT_TYPE);
+  const docs = useMemo(() => [...places, ...events], [places, events]);
+  useDocumentTypes();
+  const kinds = documentType(PLACE_TYPE)?.fields.find((f) => f.key === "kind")?.options ?? [];
+  const [kind, setKind] = useState("");
+  const [toTry, setToTry] = useState(false);
+  const hasPlaces = providers.some((p) => p.value === PLACE_TYPE);
+  const showPlaceFilters = hasPlaces && !hidden.has(PLACE_TYPE);
+  const pins = useMemo(() => mapPins(all, docs, { hidden: [...hidden], kind, toTry }), [all, docs, hidden, kind, toTry]);
   const counts = useMemo(() => {
     const m = new Map<string, number>();
     for (const p of all) m.set(p.type, (m.get(p.type) ?? 0) + 1);
@@ -39,7 +54,7 @@ export function MapPage() {
           {pins.length} {pins.length === 1 ? "pin" : "pins"}
         </span>
         <PhoneDock order={1}>
-          <div className="ml-auto flex flex-wrap gap-1 max-md:contents">
+          <div className="ml-auto flex min-w-0 flex-wrap items-center gap-1 max-md:w-full">
             {providers.map((p) => {
               const on = !hidden.has(p.value);
               const color = all.find((x) => x.type === p.value)?.color;
@@ -60,6 +75,34 @@ export function MapPage() {
                 </button>
               );
             })}
+            {showPlaceFilters && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setToTry((on) => !on)}
+                  aria-pressed={toTry}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs transition-colors max-md:h-8 max-md:justify-center max-md:px-3",
+                    toTry ? "bg-accent" : "text-muted-foreground",
+                  )}
+                >
+                  <Sparkles className="size-3" /> To try
+                </button>
+                <Select value={kind || ANY} onValueChange={(v) => setKind(v === ANY ? "" : v)}>
+                  <SelectTrigger size="sm" className="min-w-0 max-md:h-8 max-md:flex-1 md:w-40" aria-label="Kind">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ANY}>Any kind</SelectItem>
+                    {kinds.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </>
+            )}
           </div>
         </PhoneDock>
       </div>

@@ -3,7 +3,7 @@ import { inCore } from "./support/core";
 
 /**
  * To try and closed (#504, ADR 0128): the Places screen lists the Places To
- * try and the closed ones apart; World's map narrows to To try and a Kind
+ * try and the closed ones apart; the Map narrows to To try and a Kind
  * together; an Event At a To try Place that has happened clears the mark, a
  * future one leaves it; a closed Place leaves the map and the lists until it
  * is reopened.
@@ -55,7 +55,7 @@ async function showList(page: Page, name: "All" | "To try" | "Closed") {
   await page.getByRole("radio", { name, exact: true }).click();
 }
 
-test("To try has its own list, and filters World's map with a Kind; a past Event At it clears it, a future one does not", async ({ page }) => {
+test("To try has its own list, and filters the Map with a Kind; a past Event At it clears it, a future one does not", async ({ page }) => {
   await page.goto("/app/places");
   await workLocally(page);
   await onlyOurs(page);
@@ -67,7 +67,7 @@ test("To try has its own list, and filters World's map with a Kind; a past Event
   await expect(listed(page)).toHaveText([/^Café de Flore/, /^Chez Janou/]);
 
   // The map: three Places, two To try, one of them a café.
-  await page.goto("/module/people");
+  await page.goto("/map");
   await workLocally(page);
   await expect(page.getByText("3 pins")).toBeVisible();
   await page.getByRole("button", { name: "To try", exact: true }).click();
@@ -109,7 +109,7 @@ test("a closed Place leaves the map and the lists, shows under Closed with its b
   await showList(page, "Closed");
   await expect(listed(page)).toHaveText([/^Chez Janou/]);
 
-  await page.goto("/module/people");
+  await page.goto("/map");
   await workLocally(page);
   await expect(page.getByRole("button", { name: /^Places 1$/ })).toBeVisible();
 
@@ -118,7 +118,7 @@ test("a closed Place leaves the map and the lists, shows under Closed with its b
   await workLocally(page);
   await page.getByRole("region", { name: "Details" }).getByRole("checkbox", { name: "Closed" }).click();
   await expect(page.getByRole("region", { name: "On the map" })).toBeVisible();
-  await page.goto("/module/people");
+  await page.goto("/map");
   await workLocally(page);
   await expect(page.getByRole("button", { name: /^Places 2$/ })).toBeVisible();
 });
