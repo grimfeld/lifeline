@@ -10,7 +10,9 @@ museums visited, people's homes, places from your Journal.
 
 ## What you can do
 
-- **Pan and zoom** like any map.
+- **Pan and zoom** like any map. The map stays where you put it: it fits its pins when you open it,
+  then a chip, a Kind, To try or a pin added or removed never moves it. Leave and come back and it
+  fits again.
 - **Tap a pin** to see its name (and a line about it), then **Open →** to open the Document.
 - **Type chips** at the top — one per type that has places, with its count. Tap one to hide or
   show that type. On a phone the chips sit in the Phone dock. The choice is forgotten when you
@@ -45,7 +47,7 @@ museums visited, people's homes, places from your Journal.
 
 ## Tips
 
-- Use the chips to narrow down when the map gets crowded.
+- Use the chips to narrow down when the map gets crowded. The map keeps your view while you do.
 
 ## Related
 

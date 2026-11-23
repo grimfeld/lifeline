@@ -142,3 +142,54 @@ test("a Place with no coordinates is no Pin; editing its address finds them", as
   await workLocally(page);
   await expect(page.getByRole("button", { name: /^Places 1$/ })).toBeVisible();
 });
+
+test("the map stays where you put it: chips, a Kind and To try leave the Pin you were looking at in place", async ({ page }) => {
+  await page.goto("/app/places");
+  await workLocally(page);
+  await inCore(
+    page,
+    async (core, type: string) => {
+      for (const t of [type, "contacts_person"]) for (const d of await core.documentsOf(t)) await core.removeDocument(d.id);
+      const make = (title: string, kind: string, geo: [number, number]) => core.createDocument({ type, title, folder: "Places", fields: { aliases: [], address: "Paris", kind, geo } });
+      await make("Chez Janou", "restaurant", [48.8556, 2.3655]);
+      await make("Café de Flore", "cafe", [48.8576, 2.3675]);
+    },
+    PLACE,
+  );
+
+  await page.goto("/map");
+  await workLocally(page);
+  await expect(page.getByText("2 pins")).toBeVisible();
+  const markers = page.locator(".leaflet-marker-icon");
+  await expect(markers).toHaveCount(2);
+
+  // Zoom in on the map; the first Pin is where it is now.
+  await page.getByRole("button", { name: "Zoom in" }).click();
+  await page.waitForTimeout(600); // Leaflet's zoom animation
+  const box = async () => (await markers.first().boundingBox())!;
+  const before = await box();
+  const stays = async () => expect.poll(box).toEqual(before);
+
+  const places = page.getByRole("button", { name: /^Places \d/ });
+  await places.click(); // off: 0 pins
+  await expect(page.getByText("0 pins")).toBeVisible();
+  await places.click();
+  await expect(markers).toHaveCount(2);
+  await stays();
+
+  await page.getByRole("combobox", { name: "Kind" }).click();
+  await page.getByRole("option", { name: "Restaurant", exact: true }).click();
+  await expect(page.getByText("1 pin", { exact: true })).toBeVisible();
+  await stays();
+  await page.getByRole("combobox", { name: "Kind" }).click();
+  await page.getByRole("option", { name: "Any kind", exact: true }).click();
+  await expect(markers).toHaveCount(2);
+  await stays();
+
+  // To try on leaves 0 pins (neither Place is marked): the map stays where it was.
+  await page.getByRole("button", { name: "To try", exact: true }).click();
+  await expect(page.getByText("0 pins")).toBeVisible();
+  await page.getByRole("button", { name: "To try", exact: true }).click();
+  await expect(markers).toHaveCount(2);
+  await stays();
+});
