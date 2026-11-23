@@ -14,7 +14,7 @@ export const PW_BROWSERS = "/opt/pw-browsers";
 export const UI_CHECK_SPECS = ["screens.spec.ts", "a11y-names.spec.ts"];
 /**
  * Every spec the gate projects never run: the UI checks and the Demo. Read by
- * playwright.config.ts, scripts/e2e-widths.test.mjs and check.yml's e2e-plan.
+ * playwright.config.ts, scripts/e2e-widths.test.mjs and e2e-runners.yml's e2e-plan.
  */
 export const NIGHTLY_SPECS = [...UI_CHECK_SPECS, "demo.spec.ts"];
 

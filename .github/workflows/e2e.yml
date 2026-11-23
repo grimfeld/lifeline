@@ -16,7 +16,7 @@ permissions:
   contents: read
 jobs:
   # The Playwright version the runners' image carries: @playwright/test's exact version,
-  # read here as check.yml's e2e-plan reads it, so a Playwright bump moves both workflows.
+  # read here as e2e-runners.yml's e2e-plan reads it, so a Playwright bump moves both workflows.
   playwright:
     runs-on: ubuntu-latest
     timeout-minutes: 5
