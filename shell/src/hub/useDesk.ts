@@ -21,8 +21,23 @@ const fullPath = (l: { pathname: string; search: string; hash: string }) => l.pa
 
 type DeskAction = WindowAction | { type: "load"; layout: WindowLayout };
 
+const isPage = (target: string) => target.startsWith("page:");
+
+/**
+ * A page (Bases, Settings, the Guide, the Vault, a Handoff) is not a place
+ * kept on the desk: until it opens full screen over the Hub (#663), its Window
+ * goes the moment another one comes to the front, as leaving a page did.
+ */
+function dropPagesBehind(layout: WindowLayout): WindowLayout {
+  const front = frontWindow(layout);
+  const windows = layout.windows.filter((w) => w === front || !isPage(w.target));
+  return windows.length === layout.windows.length ? layout : { ...layout, windows };
+}
+
 function deskReducer(layout: WindowLayout, action: DeskAction): WindowLayout {
-  return action.type === "load" ? action.layout : windowsReducer(layout, action);
+  if (action.type === "load") return action.layout;
+  const next = windowsReducer(layout, action);
+  return action.type === "open" || action.type === "focus" ? dropPagesBehind(next) : next;
 }
 
 /**
@@ -52,6 +67,8 @@ export function useDesk(stage: Stage | null) {
   const location = useLocation();
   const navigate = useNavigate();
   const [layout, dispatch] = useReducer(deskReducer, workspaceId, (id) => initialLayout(id, fullPath(window.location)));
+  const layoutRef = useRef(layout);
+  layoutRef.current = layout;
   const stageRef = useRef(stage);
   stageRef.current = stage;
   const fallbackStage = { width: 1280, height: 720 };
@@ -65,7 +82,10 @@ export function useDesk(stage: Stage | null) {
     // The Workspace becomes known after the first paint (the first pull): the
     // desk on screen is already this Workspace's, so it is adopted, not replaced.
     if (first && !loadWindowLayout(workspaceId)) return;
-    const next = initialLayout(workspaceId);
+    let next = initialLayout(workspaceId);
+    // A page in front (a Handoff choosing its Workspace) stays where it is, in front of the new set.
+    const page = frontWindow(layoutRef.current);
+    if (page && isPage(page.target)) next = { ...next, windows: [...next.windows.filter((w) => w.target !== page.target), page] };
     dispatch({ type: "load", layout: next });
     const front = frontWindow(next);
     navigate(front ? front.route : "/", { replace: true });
@@ -82,14 +102,12 @@ export function useDesk(stage: Stage | null) {
     // An empty list is a Workspace not loaded yet, never one that took every Module away.
     if (modules.length === 0) return;
     const targets = [...modules, ...SURFACES.map((s) => s.id), "screens"];
-    dispatch({ type: "prune", targets: [...targets, ...layout.windows.filter((w) => w.target.startsWith("page:")).map((w) => w.target)] });
+    dispatch({ type: "prune", targets: [...targets, ...layout.windows.filter((w) => isPage(w.target)).map((w) => w.target)] });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- on a change of the Workspace's Modules only
   }, [moduleKey]);
 
   // The URL drives the front Window.
   const path = fullPath(location);
-  const layoutRef = useRef(layout);
-  layoutRef.current = layout;
   useEffect(() => {
     const front = frontWindow(layoutRef.current);
     if (location.pathname === "/") {
