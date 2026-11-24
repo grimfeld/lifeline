@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { EMPTY_LAYOUT, initApps, saveWindowLayout, windowsReducer, type WindowLayout } from "@lifeline/core";
+import { EMPTY_LAYOUT, initApps, saveWindowLayout, windowsReducer } from "@lifeline/core";
 import { deskReducer, initialLayout } from "./desk";
 
 initApps([]);
@@ -14,17 +14,9 @@ afterEach(() => vi.unstubAllGlobals());
 const lastPlace = () => "/calendar?view=week";
 
 describe("deskReducer", () => {
-  it("drops a page Window when another comes to the front, by opening or by focus", () => {
-    let l: WindowLayout = deskReducer(EMPTY_LAYOUT, { type: "open", target: "map", route: "/map", stage: STAGE });
-    l = deskReducer(l, { type: "open", target: "page:settings", route: "/settings", stage: STAGE });
-    expect(l.windows.map((w) => w.target)).toEqual(["map", "page:settings"]);
-    expect(deskReducer(l, { type: "focus", id: "map:1" }).windows.map((w) => w.target)).toEqual(["map"]);
-    expect(deskReducer(l, { type: "open", target: "graph", route: "/graph", stage: STAGE }).windows.map((w) => w.target)).toEqual(["map", "graph"]);
-  });
-
-  it("keeps the page through other actions, and loads a set whole", () => {
-    const l = deskReducer(deskReducer(EMPTY_LAYOUT, { type: "open", target: "map", route: "/map", stage: STAGE }), { type: "open", target: "page:base", route: "/base", stage: STAGE });
-    expect(deskReducer(l, { type: "route", id: "page:base:1", route: "/base/task" }).windows).toHaveLength(2);
+  it("loads a Workspace's set whole, and passes every other action to the window layout", () => {
+    const l = deskReducer(EMPTY_LAYOUT, { type: "open", target: "map", route: "/map", stage: STAGE });
+    expect(l.windows.map((w) => w.target)).toEqual(["map"]);
     const other = windowsReducer(EMPTY_LAYOUT, { type: "open", target: "graph", route: "/graph", stage: STAGE });
     expect(deskReducer(l, { type: "load", layout: other })).toBe(other);
   });
@@ -45,5 +37,10 @@ describe("initialLayout", () => {
 
   it("with none, `/` opens the last place", () => {
     expect(initialLayout("w", "/", lastPlace).windows[0]).toMatchObject({ target: "calendar", route: "/calendar?view=week", mode: "maximised" });
+  });
+
+  it("with none, a full-screen page opens over the last place, never in a Window", () => {
+    expect(initialLayout("w", "/settings", lastPlace).windows[0]).toMatchObject({ target: "calendar", route: "/calendar?view=week" });
+    expect(initialLayout("w", "/base/task", () => "/settings")).toEqual(EMPTY_LAYOUT);
   });
 });

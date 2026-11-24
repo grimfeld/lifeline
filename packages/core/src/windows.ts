@@ -37,7 +37,7 @@ export type WindowMode = "normal" | "snapped" | "maximised" | "full";
 export interface WindowState {
   /** The Window's own id, `<target>:<n>`: several Windows of one target can come later. */
   id: string;
-  /** What it shows: a Module id, a Surface id ("calendar", "map", "graph", "screens"), or a page key ("page:settings"). */
+  /** What it shows: a Module id or a Surface id ("calendar", "map", "graph", "screens"). Never a page (#663). */
   target: string;
   /** Its own place inside its target: a path with its search and hash. */
   route: string;
@@ -45,6 +45,8 @@ export interface WindowState {
   mode: WindowMode;
   /** The box to go back to when it leaves `snapped`, `maximised` or `full`. */
   restore?: Box;
+  /** In full screen: the mode it goes back to when it leaves (#663). */
+  was?: Exclude<WindowMode, "full">;
 }
 
 export interface WindowLayout {
@@ -89,6 +91,11 @@ export type WindowAction =
   | { type: "restore"; id: string; stage: Stage }
   /** The bar's double-click: maximise a normal Window; restore a maximised or snapped one. */
   | { type: "toggle"; id: string; stage: Stage }
+  /**
+   * Full screen (#663): the Window fills the display and the Hub hides; asked
+   * again (or Esc), it goes back to the mode and box it had.
+   */
+  | { type: "fullScreen"; id: string }
   /** Drop the Windows whose target is not in `targets` (a Module the Workspace no longer takes). */
   | { type: "prune"; targets: string[] };
 
@@ -202,16 +209,27 @@ export function windowsReducer(layout: WindowLayout, action: WindowAction): Wind
     case "snap":
       return update(layout, action.id, (w) => {
         const restore = w.mode === "normal" ? w.box : boxBeforeSnap(w);
-        return action.box === "max" ? { ...w, mode: "maximised", restore } : { ...w, mode: "snapped", box: action.box, restore };
+        // From full screen too: the Window leaves it for the snap.
+        const base = { id: w.id, target: w.target, route: w.route, box: w.box };
+        return action.box === "max" ? { ...base, mode: "maximised", restore } : { ...base, mode: "snapped", box: action.box, restore };
       });
     case "restore":
       return update(layout, action.id, (w) => restored(w, action.stage));
     case "toggle":
       return update(layout, action.id, (w) => (w.mode === "normal" ? { ...w, mode: "maximised", restore: w.box } : restored(w, action.stage)));
+    case "fullScreen":
+      return update(layout, action.id, (w) => {
+        if (w.mode === "full") {
+          const mode = w.was ?? "normal";
+          // The box and the box before a snap were kept as they were: only the mode comes back.
+          return { id: w.id, target: w.target, route: w.route, box: w.box, mode, ...(mode === "normal" ? {} : { restore: w.restore ?? w.box }) };
+        }
+        return { ...w, mode: "full", was: w.mode, restore: w.mode === "normal" ? w.box : boxBeforeSnap(w) };
+      });
     case "prune": {
-      // Pages belong to no Workspace: only Modules and Surfaces are pruned.
+      // A page is never a Window (#663): a layout saved before holds none after this.
       const keep = new Set(action.targets);
-      const windows = layout.windows.filter((w) => keep.has(w.target) || isPageTarget(w.target));
+      const windows = layout.windows.filter((w) => keep.has(w.target));
       return windows.length === layout.windows.length ? layout : { ...layout, windows };
     }
   }
@@ -246,7 +264,8 @@ function isWindow(v: unknown): v is WindowState {
     /^\/(?!\/)/.test(v.route) &&
     isBox(v.box) &&
     MODES.includes(v.mode) &&
-    (v.restore === undefined || isBox(v.restore))
+    (v.restore === undefined || isBox(v.restore)) &&
+    (v.was === undefined || (v.was !== "full" && MODES.includes(v.was)))
   );
 }
 
@@ -268,7 +287,10 @@ export function loadWindowLayout(workspaceId: string): WindowLayout | null {
     const raw = localStorage.getItem(storageKey(workspaceId));
     if (raw == null) return null;
     const parsed: unknown = JSON.parse(raw);
-    return isLayout(parsed) ? parsed : null;
+    if (!isLayout(parsed)) return null;
+    // A page is never a Window (#663): one a layout saved before still holds is dropped.
+    const windows = parsed.windows.filter((w) => !isPageTarget(w.target));
+    return windows.length === parsed.windows.length ? parsed : { ...parsed, windows };
   } catch {
     return null;
   }
@@ -285,9 +307,10 @@ export function saveWindowLayout(workspaceId: string, layout: WindowLayout): voi
 
 /**
  * Where a route opens on the desk: in the Window of a Module or Surface, or as
- * a page (Bases, the Vault, Settings, the Guide, a Module-less App screen),
- * keyed by its first path segment. A user Screen (`/screen/:id`) is the
- * Screens Surface's. Built on `moduleOfPath`.
+ * a full-screen page over the Hub (Bases, the Vault, Settings, the Guide, a
+ * Module-less App screen, and any other route: #663), keyed by its first path
+ * segment. A user Screen (`/screen/:id`) is the Screens Surface's. Built on
+ * `moduleOfPath`.
  */
 export type RouteTarget = { kind: "window"; target: string } | { kind: "page"; target: string };
 
@@ -322,17 +345,6 @@ export function isPageTarget(target: string): boolean {
 /** A route without its search and hash. */
 export function pathOnly(route: string): string {
   return route.split(/[?#]/)[0]!;
-}
-
-/**
- * A page (Bases, Settings, the Guide, the Vault, a Handoff) is not a place
- * kept on the desk: until it opens full screen over the Hub (#663), its Window
- * goes the moment another one comes to the front, as leaving a page did.
- */
-export function dropPagesBehind(layout: WindowLayout): WindowLayout {
-  const front = frontWindow(layout);
-  const windows = layout.windows.filter((w) => w === front || !isPageTarget(w.target));
-  return windows.length === layout.windows.length ? layout : { ...layout, windows };
 }
 
 /**

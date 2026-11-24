@@ -5,6 +5,7 @@ import { MODULES, SURFACES, type AppManifest } from "@lifeline/core";
 import { GUIDE_PAGES, guidePageOfModule, guidePageOfSurface } from "@lifeline/guide";
 import { guideBody } from "@lifeline/guide/pages";
 import { CORE_PAGES, guideSlugForPath } from "./guidePlace";
+import { WINDOW_COMMAND_TITLES } from "../hub/windowCommands";
 
 /**
  * The Guide keeps up with the app (ADR 0089): a Module or Surface with no page,
@@ -62,6 +63,12 @@ describe("the Guide", () => {
       }
     }
     expect(missing).toEqual([]);
+  });
+
+  it("names the Window Commands on the Hub page (they come from the Hub, not a manifest's list)", () => {
+    const body = (guideBody("hub") ?? "").toLowerCase();
+    expect(WINDOW_COMMAND_TITLES).toHaveLength(5);
+    expect(WINDOW_COMMAND_TITLES.filter((t) => !body.includes(named(t)))).toEqual([]);
   });
 
   it("has a page for every route: a new Core screen is not done until the Guide has its page", () => {

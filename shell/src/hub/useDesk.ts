@@ -3,7 +3,6 @@ import { useLocation, useNavigate, useNavigationType } from "react-router";
 import {
   DESK_SURFACES,
   frontWindow,
-  isPageTarget,
   loadWindowLayout,
   recordRoute,
   routeTarget,
@@ -22,6 +21,9 @@ import { deskReducer, initialLayout } from "./desk";
 /** The full path of a location: what a Window's route holds. */
 const fullPath = (l: { pathname: string; search: string; hash: string }) => l.pathname + l.search + l.hash;
 
+/** Whether an address opens as a full-screen page over the Hub (#663) rather than in a Window. `/` is the desk itself. */
+export const isPageRoute = (pathname: string) => pathname !== "/" && routeTarget(pathname).kind === "page";
+
 /** The stage before it is first measured. */
 const FALLBACK_STAGE: Stage = { width: 1280, height: 720 };
 
@@ -35,7 +37,8 @@ const historyIndex = (): number | null => {
  * The desk's state (ADR 0133): the window layout of the current Workspace,
  * saved on this device, and kept in step with the browser's URL.
  *
- * The URL is the front Window's route. Every navigation — inside a Window, from
+ * The URL is the front Window's route, or a full-screen page's over the Hub
+ * (#663), which opens no Window. Every navigation — inside a Window, from
  * the palette, a Peek, a Card, a typed URL — goes through the browser; when the
  * URL changes, the Window its route belongs to opens there, or comes to the
  * front on it. Focusing or closing a Window replaces the URL and adds no entry,
@@ -57,6 +60,8 @@ export function useDesk(stage: Stage | null) {
   /** Each Window's history, by target (one Window per target for now). */
   const histories = useRef(new Map<string, WindowHistory>());
   const lastIndex = useRef<number | null>(historyIndex());
+  /** Whether the address before this one was a full-screen page: leaving one is no step in a Window's history. */
+  const wasPage = useRef(false);
 
   // Each Workspace keeps its own Windows: switching swaps the set.
   const loadedFor = useRef(workspaceId);
@@ -67,12 +72,11 @@ export function useDesk(stage: Stage | null) {
     // The Workspace becomes known after the first paint (the first pull): the
     // desk on screen is already this Workspace's, so it is adopted, not replaced.
     if (first && !loadWindowLayout(workspaceId)) return;
-    let next = initialLayout(workspaceId, "/", lastPlace);
-    // A page in front (a Handoff choosing its Workspace) stays where it is, in front of the new set.
-    const page = frontWindow(layoutRef.current);
-    if (page && isPageTarget(page.target)) next = { ...next, windows: [...next.windows.filter((w) => w.target !== page.target), page] };
+    const next = initialLayout(workspaceId, "/", lastPlace);
     histories.current.clear();
     dispatch({ type: "load", layout: next });
+    // A full-screen page (a Handoff choosing its Workspace) stays open over the new set.
+    if (isPageRoute(window.location.pathname)) return;
     const front = frontWindow(next);
     navigate(front ? front.route : "/", { replace: true });
   }, [workspaceId, navigate]);
@@ -96,6 +100,10 @@ export function useDesk(stage: Stage | null) {
     const index = historyIndex();
     const previous = lastIndex.current;
     lastIndex.current = index;
+    const fromPage = wasPage.current;
+    wasPage.current = isPageRoute(location.pathname);
+    // A full-screen page opens over the Hub: no Window opens, and none moves.
+    if (wasPage.current) return;
     const front = frontWindow(layoutRef.current);
     if (location.pathname === "/") {
       // `/` is "the desk as it was": the front Window's route, or the empty stage.
@@ -103,7 +111,7 @@ export function useDesk(stage: Stage | null) {
       return;
     }
     // Back or Forward: the front Window steps through its own history.
-    if (navigationType === "POP" && front && index !== null && previous !== null && index !== previous) {
+    if (navigationType === "POP" && !fromPage && front && index !== null && previous !== null && index !== previous) {
       const step = stepRoute(histories.current.get(front.target), index - previous);
       if (step) {
         histories.current.set(front.target, step.history);
@@ -168,7 +176,13 @@ export function useDesk(stage: Stage | null) {
     [navigate],
   );
 
+  /** Close the full-screen page: the Hub as it was, its front Window's route in the URL. */
+  const closePage = useCallback(() => {
+    const front = frontWindow(layoutRef.current);
+    navigate(front ? front.route : "/", { replace: true });
+  }, [navigate]);
+
   const act = useCallback((action: WindowAction) => dispatch(action), []);
 
-  return { layout, focus, close, navigateFrom, act };
+  return { layout, focus, close, closePage, navigateFrom, act };
 }
