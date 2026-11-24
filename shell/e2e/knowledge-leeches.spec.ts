@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
+import { test } from "./support/test";
 import { inCore } from "./support/core";
 
 /** A Leech (#433): a Prompt with 4 fails among its last 8 Recalls, listed on the Topic with pause and edit. */

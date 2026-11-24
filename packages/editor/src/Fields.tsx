@@ -1,5 +1,5 @@
 import { Fragment, createContext, useContext, useEffect, useMemo, useRef, useState, type ClipboardEvent, type KeyboardEvent, type ReactNode } from "react";
-import { Button, Checkbox, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Sheet, SheetContent, SheetTitle, Tip, cn, usePhone } from "@lifeline/ui";
+import { Button, Checkbox, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Sheet, SheetContent, SheetTitle, Tip, cn, useNarrow } from "@lifeline/ui";
 import {
   ADD_FIELD_KINDS,
   FIELD_KINDS,
@@ -86,9 +86,9 @@ export function FieldRow({
     return () => clearTimeout(t);
   }, [focus]);
   return (
-    <div className="grid min-w-0 gap-1 rounded-md border p-1 md:border-0 md:p-0">
-      <div className="grid grid-cols-[minmax(0,1fr)_1.75rem_1.75rem] items-center gap-1 md:grid-cols-[minmax(0,1fr)_11.5rem_1.75rem_1.75rem]">
-        <div className="col-span-3 flex min-w-0 items-center gap-1 md:col-span-1">
+    <div className="grid min-w-0 gap-1 rounded-md border p-1 cq-md:border-0 cq-md:p-0">
+      <div className="grid grid-cols-[minmax(0,1fr)_1.75rem_1.75rem] items-center gap-1 cq-md:grid-cols-[minmax(0,1fr)_11.5rem_1.75rem_1.75rem]">
+        <div className="col-span-3 flex min-w-0 items-center gap-1 cq-md:col-span-1">
           {handle}
           <Input ref={labelRef} className="min-w-0 flex-1" placeholder="Label" aria-label="Field label" value={row.label} onChange={(e) => onChange(relabelField(row, e.target.value, known))} />
         </div>
@@ -171,7 +171,7 @@ function FieldSettings({ row, linkTypes, onChange }: { row: FieldDraft; linkType
         <div className="flex min-w-0 items-center gap-2">
           <Label className="shrink-0 text-xs">Key</Label>
           <Input className="min-w-0 flex-1" placeholder="key" aria-label="Field key" value={row.key} onChange={(e) => onChange(rekeyField(row, e.target.value))} />
-          <span className="text-muted-foreground hidden shrink-0 text-2xs md:inline">Fixed once saved</span>
+          <span className="text-muted-foreground hidden shrink-0 text-2xs cq-md:inline">Fixed once saved</span>
         </div>
       )}
       {isChoiceKind(row.kind) && <OptionList row={row} onChange={onChange} />}
@@ -193,7 +193,7 @@ interface AddFieldEntry {
  * the desk; on a phone a sheet from the bottom, its rows full width (ADR 0064).
  */
 export function AddFieldMenu({ known, onPick }: { known: KnownFieldChoice[]; onPick: (pick: FieldKind | KnownFieldChoice) => void }) {
-  const phone = usePhone();
+  const narrow = useNarrow();
   const [open, setOpen] = useState(false);
   const sections: { title: string; entries: AddFieldEntry[] }[] = [
     { title: "Known fields", entries: known.map((k) => ({ id: k.id, choice: k, pick: () => onPick(k) })) },
@@ -218,11 +218,11 @@ export function AddFieldMenu({ known, onPick }: { known: KnownFieldChoice[]; onP
       </Fragment>
     ));
   const trigger = (
-    <Button size="sm" variant="outline" className="justify-self-start" onClick={phone ? () => setOpen(true) : undefined}>
+    <Button size="sm" variant="outline" className="justify-self-start" onClick={narrow ? () => setOpen(true) : undefined}>
       <Plus /> Field
     </Button>
   );
-  if (phone)
+  if (narrow)
     return (
       <>
         {trigger}
@@ -333,7 +333,7 @@ function OptionList({ row, onChange }: { row: FieldDraft; onChange: (d: FieldDra
                     onPaste={(e) => onPaste(e, i)}
                   />
                   {/* The stored value, in a fixed column so the labels line up. */}
-                  <span className="text-muted-foreground w-16 shrink-0 truncate font-mono text-2xs md:w-32" title={o.value ? `Stored as “${o.value}”` : undefined}>
+                  <span className="text-muted-foreground w-16 shrink-0 truncate font-mono text-2xs cq-md:w-32" title={o.value ? `Stored as “${o.value}”` : undefined}>
                     {o.value}
                   </span>
                   {anyUsed && (
@@ -374,7 +374,7 @@ function LinkTargetPicker({ target, linkTypes, onChange }: { target: LinkTarget;
     <div className="grid min-w-0 gap-1">
       <Label className="text-xs">Links to</Label>
       <Select value={target.to} onValueChange={pickMode}>
-        <SelectTrigger className="w-full min-w-0 md:w-48" aria-label="Links to">
+        <SelectTrigger className="w-full min-w-0 cq-md:w-48" aria-label="Links to">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -384,7 +384,7 @@ function LinkTargetPicker({ target, linkTypes, onChange }: { target: LinkTarget;
         </SelectContent>
       </Select>
       {target.to === "types" && (
-        <div className="grid max-h-48 min-w-0 gap-1 overflow-y-auto py-1 md:grid-cols-2">
+        <div className="grid max-h-48 min-w-0 gap-1 overflow-y-auto py-1 cq-md:grid-cols-2">
           {offered.map((t) => (
             <label key={t.id} className="flex min-w-0 items-start gap-2 text-xs">
               <Checkbox className="mt-px shrink-0" checked={chosen.includes(t.id)} onCheckedChange={(c) => tick(t.id, c === true)} />
@@ -395,7 +395,7 @@ function LinkTargetPicker({ target, linkTypes, onChange }: { target: LinkTarget;
       )}
       {target.to === "role" && (
         <Select value={target.role} onValueChange={(role) => onChange({ to: "role", role })}>
-          <SelectTrigger className="w-full min-w-0 md:w-48" aria-label="Role">
+          <SelectTrigger className="w-full min-w-0 cq-md:w-48" aria-label="Role">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

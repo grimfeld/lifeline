@@ -11,7 +11,7 @@ export function ManuscriptPeek({ doc }: PeekProps) {
   const chapters = useChapters(m.id);
   return (
     <div className="grid gap-3">
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid gap-3 cq-md:grid-cols-2">
         <ChoiceField label="Form" value={m.form ?? ""} options={FORMS} onCommit={(form) => patchDocument(m.id, { form })} />
         <ChoiceField label="Status" value={m.status ?? ""} options={STATUSES} onCommit={(status) => patchDocument(m.id, { status })} />
       </div>

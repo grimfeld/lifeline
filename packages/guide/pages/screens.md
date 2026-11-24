@@ -9,7 +9,7 @@ open on.
 A Screen is a page of Cards you arrange, across Modules — a morning overview, say. The Modules
 remain the main way in; Screens are the side door.
 
-- **Open them** — **Screens** on the Rail, or **Go to Screens** in the palette. Each Screen is also
+- **Open them** — **Screens** in the Hub's index, or **Go to Screens** in the palette. Each Screen is also
   in the palette under Go to.
 - **New screen** — give it a name; it opens empty, ready for **Add your first card**.
 - **Edit** — then:

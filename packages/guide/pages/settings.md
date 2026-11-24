@@ -1,7 +1,7 @@
 # Settings
 
 **Settings** is where you set up Lifeline itself rather than anything in it. Open it from the foot
-of the Rail, from the Workspace menu (**Settings…**), or from the phone's ☰ drawer.
+of the Hub's index, from the Workspace menu (**Settings…**), or from the phone's ☰ drawer.
 
 Things that belong to something stay with it: a Card's settings are on the Card, a type's Fields
 on its Base. Settings holds the rest.
@@ -16,7 +16,7 @@ on its Base. Settings holds the rest.
 - **Erase local data…** — delete everything stored on this device and download your account's
   data again. Anything already synced comes back; changes that never reached the server are lost,
   and it says how many.
-- The same sync status sits at the foot of the Rail on the desk.
+- The same sync status sits in the Hub's top bar on the desk.
 
 ## Phone bar
 

@@ -33,7 +33,8 @@ export function JournalLinksButton({ docId, index, children }: { docId: string; 
   const unlinked = useUnlinkedIn(index, docId).length;
   return (
     <>
-      <Button size="icon" variant="ghost" className="relative size-7 shrink-0 lg:hidden" onClick={() => setOpen(true)} aria-label={unlinked ? `Links, ${unlinked} unlinked` : "Links"} title="Links">
+      {/* ui-allow: control-size — pre-existing; ui-allow: icon-title — pre-existing */}
+      <Button size="icon" variant="ghost" className="relative size-7 shrink-0 cq-lg:hidden" onClick={() => setOpen(true)} aria-label={unlinked ? `Links, ${unlinked} unlinked` : "Links"} title="Links">
         <Link2 />
         {unlinked > 0 && <span className="bg-primary text-primary-foreground absolute -top-1 -right-1 min-w-4 rounded-full px-1 text-[10px] leading-4 tabular-nums">{unlinked}</span>}
       </Button>

@@ -2,6 +2,7 @@
 status: accepted
 supersedes: ADR 0012, ADR 0041 (in part — the sidebar), ADR 0045 (in part — "the Dashboard operates"), ADR 0047 (in part — what a Module is), ADR 0048 (in part — "off by default"), ADR 0049 (in part — a Screen claims a Module), ADR 0053 (in part — a Module slot lands on the Module's home)
 amended-by: ADR 0066 (a Module's landing page of Cards), ADR 0085 (the Peek)
+superseded-by: ADR 0133 (in part — the Rail)
 ---
 
 > A Module's landing page of Cards is no longer fixed: ADR 0066 makes it an Overview, a hand-written default the user can rearrange. The rest stands.

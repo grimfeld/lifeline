@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
+import { test } from "./support/test";
 import { inCore } from "./support/core";
 import type { Document as StoredDoc } from "@lifeline/core";
 import { setTime } from "./support/time-field";

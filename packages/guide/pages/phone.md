@@ -7,8 +7,8 @@ controls just above it, capture always in the middle.
 
 - **☰** (top left) — opens the drawer.
   - Inside a Module it opens on that Module's own navigation; **All places** goes back to the
-    full Rail.
-  - Elsewhere it opens on the Rail: Modules, Surfaces, Bases, Screens, Settings, and the sync
+    full list of places.
+  - Elsewhere it opens on the list of places: Modules, Surfaces, Bases, Screens, Settings, and the sync
     status.
 - **The Workspace's name** — tap to switch Workspace, make a new one, or open Settings.
 - **?** — opens the Guide page for where you are.

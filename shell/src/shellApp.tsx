@@ -16,7 +16,9 @@ import { VaultHome } from "./vault/VaultHome";
  * (so they appear in the card picker), the generic Document Cards (ADR 0018),
  * and the Vault — Core's raw editor for bodies (ADR 0068), as the Bases are for fields.
  */
-export const hubApp: AppManifest = {
+export const shellApp: AppManifest = {
+  // "hub" predates the Hub (ADR 0133) and stays: it is stored in Macros' steps
+  // ("hub/hub.go-today") and in Screens' Card ids. Only the code name changed.
   id: "hub",
   title: "Lifeline",
   color: "var(--chart-yellow)",

@@ -16,7 +16,7 @@ import { CORE_PAGES, guideSlugForPath } from "./guidePlace";
 const UNLISTED: Record<string, string> = {};
 
 /**
- * Routes with no page of their own, by path as `App.tsx` declares it (params cut
+ * Routes with no page of their own, by path as `Places.tsx` declares it (params cut
  * off), with the reason. A route is a Core concept's screen: a new one needs a
  * page, so it lands in `CORE_PAGES` (guidePlace.ts) — or here.
  */
@@ -65,13 +65,13 @@ describe("the Guide", () => {
   });
 
   it("has a page for every route: a new Core screen is not done until the Guide has its page", () => {
-    // Routes declared in App.tsx as literals; redirects, frames and constants are not screens.
-    const source = readFileSync(new URL("../App.tsx", import.meta.url), "utf8");
+    // Routes declared in Places.tsx as literals; redirects, frames and constants are not screens.
+    const source = readFileSync(new URL("../Places.tsx", import.meta.url), "utf8");
     const routes = [...source.matchAll(/<Route\s+[^>]*?path="(\/[^"]*)"[^>]*?element=\{([^\n]*)\}/g)]
       .filter(([, , element]) => !/Redirect|Navigate/.test(element!))
       .map(([, path]) => path!.split("/").filter((s) => s && !s.startsWith(":") && s !== "*").map((s) => "/" + s).join(""))
       .filter((path) => path);
-    expect(routes.length, "found no routes in App.tsx: has this test's reading of it broken?").toBeGreaterThan(5);
+    expect(routes.length, "found no routes in Places.tsx: has this test's reading of it broken?").toBeGreaterThan(5);
 
     for (const [root, slug] of CORE_PAGES) expect(GUIDE_PAGES.map((p) => p.slug), `CORE_PAGES sends ${root} to a page that does not exist`).toContain(slug);
 

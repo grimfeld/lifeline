@@ -16,24 +16,23 @@ how it is laid out and lists every page of the Guide.
 - **Workspaces** — separate worlds of data, each with the Modules it needs. See
   [Workspaces](workspaces.md).
 
-## The Rail (on the desk)
+## The Hub (on the desk)
 
-The narrow column of icons at the far left. It is how you go *between* places.
+The bar along the top and the index down the left. It is how you go *between* places; each one
+opens in its own Window on the stage beside the index.
 
-- **Top** — the Workspace picker (its first letter). Click it to switch, or to make a new one.
-- **Then** — this Workspace's Modules.
-- **Then** — the Surfaces: Calendar, Map, Graph.
-- **Then** — Bases and Screens.
-- **Foot** — Settings, the sync status, and the Guide button, which opens the Guide page for
-  wherever you are.
+- **Top bar** — the Workspace picker, Bases, the sync status, and the date and time.
+- **Index** — this Workspace's Modules, then Calendar, Map, Graph and Screens.
+- **Foot of the index** — the Guide, which opens the page for wherever you are, and Settings.
 
-Everything to the right of the Rail belongs to the Module you opened.
+Everything inside a Window belongs to the Module or Surface you opened in it. See
+[The Hub and its Windows](hub.md).
 
 ## On a phone
 
 - **Header** — `☰` on the left, then the Workspace's name (tap it to switch).
 - **☰ drawer** — inside a Module it opens on that Module's own navigation; tap **All places** for
-  the full Rail. Elsewhere it opens on the Rail.
+  the full list of places. Elsewhere it opens on the list of places.
 - **?** in the header — opens the Guide page for where you are.
 - **Phone bar** — five slots at the foot: Calendar, one slot of yours, **Capture**, two more of
   yours.
@@ -83,6 +82,7 @@ More in [Using Lifeline on a phone](phone.md).
 - [Peek and selection](peek.md) — Peek, the Selection menu, Handoff
 - [Links](links.md) — wikilinks, backlinks, unlinked mentions, aliases
 - [The Vault](vault.md) — the raw editor for bodies
+- [The Hub and its Windows](hub.md) — the desk: the index, the stage, Windows
 - [Using Lifeline on a phone](phone.md)
 - [Macros](macros.md) — several Commands run as one
 - [Keys](keys.md) — a key of your own for any Command

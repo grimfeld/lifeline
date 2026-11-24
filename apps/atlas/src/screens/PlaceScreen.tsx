@@ -130,7 +130,7 @@ export function PlaceScreen() {
       </div>
       {place.closed && <p className="text-muted-foreground text-sm">Closed: off the map and the lists of places to go. Untick Closed to reopen it.</p>}
       {/* A grid track of 22rem: the fields' column, as the Person page's. */}
-      <div className="grid min-w-0 gap-6 md:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
+      <div className="grid min-w-0 gap-6 cq-md:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
         <section className="grid min-w-0 content-start gap-3" aria-label="Details">
           <NameField key={place.id} place={place} />
           <PlaceFields place={place} />
