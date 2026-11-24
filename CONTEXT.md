@@ -129,8 +129,16 @@ The page a Module lands on when that Module declares one: Card instances on a gr
 _Avoid_: home, home page, Module home (confused with Home Module), dashboard, Module screen (retired), Screen (an Overview belongs to its Module)
 
 ### Rail
-Core's only chrome on the desk: a narrow column of icons at the far left — the Workspace switcher on top, then the Workspace's Modules, then the general Surfaces, then the Bases, Screens and Settings at the foot. Everything to its right is the open Module's, laid out as that Module wants. The Rail is how you go *between* places; it never shows what is *inside* one.
-_Avoid_: sidebar (a Module may have one; the Rail is not it), dock, launcher, activity bar, nav
+_Retired_ (ADR 0133) — Core's narrow column of icons on the desk, which switched the whole screen from one Module to another. The **Hub** took its place and its contents. (The phone keeps its own **Rail** below until a later spec.)
+_Avoid_: Rail for the Hub's index
+
+### Hub
+Core's chrome on the desk (ADR 0133): a top bar (the Workspace switcher, Bases, the sync status, the date and time), an **index** of the Workspace's Modules then the general Surfaces (Calendar, Map, Graph, Screens) with the Guide and Settings at its foot, and the **stage** where each one opens in its own **Window**. The Hub is how you go *between* places and arrange them; it never shows what is *inside* one. The phone has no Hub yet: it keeps the ☰ drawer.
+_Avoid_: Rail (retired), desktop, launcher, dock, home
+
+### Window
+A Module or a general Surface open on the Hub's stage, with a bar to drag it, a corner to resize it, and a button to close it. A Window keeps its own navigation, and its content lays itself out for the Window's size, never the screen's: a narrow Window gets the narrow layout but never the phone's navigation. One Window per Module or Surface for now. There are no Windows on a phone.
+_Avoid_: pane, panel, tab, frame (the Vault's), place (the World's type)
 
 ### Home Module
 Where a Document opens when it is opened all the way: its type's owning App's Module — a Category in Money, a Chore in House. Every built-in type has exactly one; a user-defined type has the one Module the user homes it in, or none, and then opens in its Base; a type whose App has no Module (an Event) opens where it is shown. The body is the exception that holds everywhere: it is written in the Vault, or in a Peek wherever the Document is peeked.

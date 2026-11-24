@@ -6,7 +6,7 @@ everywhere.
 
 ## Opening it
 
-- **The Guide button** at the foot of the Rail (desk) — opens the page for where you are: the
+- **Guide** at the foot of the Hub's index (desk) — opens the page for where you are: the
   Module you are in, the Surface, Bases, Screens, Settings, the Vault. Anywhere else, its home page,
   [Getting around](index.md).
 - **?** in the phone's header — the same, on a phone.
