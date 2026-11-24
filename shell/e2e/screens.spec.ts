@@ -644,7 +644,7 @@ async function openHere(page: Page) {
   await expect(dialog.getByRole("group", { name: "Places here" }).getByRole("button", { name: "Just here" })).toBeVisible();
 }
 
-/** World's map with the long Place on it and its Kind's long name in the Kind filter. */
+/** The Map with the long Place on it and its Kind's long name in the Kind filter. */
 async function longWorld(page: Page) {
   await seedLongPlace(page);
   await expect(page.getByRole("button", { name: /^Places 1$/ })).toBeVisible();
@@ -1058,7 +1058,7 @@ const SCREENS: ScreenCase[] = [
   { name: "Hub · a Module in a 400px Window", path: "/calendar", afterOpen: inNarrowWindow },
   // The phone's Hub grid (#664): every Module and Surface as a tile, Find at the foot. On the desk, `/hub` is the desk.
   { name: "Hub · phone grid", path: "/hub", afterOpen: workLocally },
-  { name: "Map", path: "/map" },
+  { name: "Map", path: "/map", afterOpen: longWorld },
   { name: "Graph", path: "/graph" },
   { name: "Bases", path: "/base", afterOpen: workLocally },
   { name: "Base", path: "/base/task" },
@@ -1091,7 +1091,8 @@ const SCREENS: ScreenCase[] = [
   { name: "Progress", path: "/module/progress", afterOpen: workLocally },
   { name: "Knowledge module", path: "/module/languages" },
   { name: "Journal module", path: "/module/journal" },
-  { name: "World module", path: "/module/people", afterOpen: longWorld },
+  // World has no map (ADR 0135): its home lands on the People screen.
+  { name: "World module", path: "/module/people" },
   { name: "Notes module", path: "/module/notes" },
   { name: "Thoughts module", path: "/module/thoughts" },
   { name: "Research module", path: "/module/research" },

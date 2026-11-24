@@ -10,11 +10,19 @@ museums visited, people's homes, places from your Journal.
 
 ## What you can do
 
-- **Pan and zoom** like any map.
+- **Pan and zoom** like any map. The map stays where you put it: it fits its pins when you open it,
+  then a chip, a Kind, To try or a pin added or removed never moves it. Leave and come back and it
+  fits again.
 - **Tap a pin** to see its name (and a line about it), then **Open →** to open the Document.
 - **Type chips** at the top — one per type that has places, with its count. Tap one to hide or
   show that type. On a phone the chips sit in the Phone dock. The choice is forgotten when you
   leave.
+- **Kind** and **To try** show while the **Places** chip is on. **Kind** narrows the Places to one
+  Kind (cafés, museums…), and the Events At them; **To try** shows only the Places marked To try,
+  and goes with the Kind: a café near you that you haven't tried, and the Events At those Places.
+  People's pins, Events At a Person and every other type's pins stay. Turning Places off hides
+  both and they stop narrowing anything; turning it back on brings back your choice. It is
+  forgotten when you leave.
 - Pins are coloured by the Module that owns them.
 
 ## Getting things on the map
@@ -23,8 +31,11 @@ museums visited, people's homes, places from your Journal.
   [Bases](bases.md) (edit the type › add a Field › Coordinates).
 - Fill in the coordinates on a Document and it gets a pin. A Document with an address but no
   coordinates has no pin yet.
-- An **Event** that is **At** a Place or a Person stands at that Place, or at the Person's home
-  (see [World](world.md)), under the **Events** chip. Its **Open →** opens the Event in its Peek.
+- An **Event** that is **At** a Place or a Person stands at that Place, or at the Person's home,
+  under the **Events** chip: the Person's current Address labelled
+  **Home**, else their first. An Event At a closed or unfound Place, or at a Person whose chosen
+  Address has no spot, or with no Address, is not on the map. Its **Open →** opens the Event in its
+  Peek.
 - No such type yet? The Map says so: "No Document type is Locatable yet".
 
 ## Elsewhere
@@ -36,7 +47,7 @@ museums visited, people's homes, places from your Journal.
 
 ## Tips
 
-- Use the chips to narrow down when the map gets crowded.
+- Use the chips to narrow down when the map gets crowded. The map keeps your view while you do.
 
 ## Related
 

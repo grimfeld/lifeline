@@ -2,6 +2,7 @@
 status: accepted
 formerly: 0119
 amends: ADR 0113 (in part — the People Module becomes World, and a place is no longer a user-defined type of the Journal)
+amended-by: ADR 0135 (in part — World opens on People; its map moves to the Map Surface)
 ---
 
 # Places are Atlas's built-in type in the World Module, and a home is never a Place
