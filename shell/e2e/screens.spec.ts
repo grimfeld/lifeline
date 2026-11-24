@@ -1053,6 +1053,8 @@ const SCREENS: ScreenCase[] = [
   { name: "Calendar · Week · a subscription's read-only card", path: `/calendar?view=week&d=${PEEK_DAY}`, afterOpen: icalCardFromSchedule },
   { name: "Calendar · Month", path: "/calendar?view=month" },
   { name: "Calendar · Month · Peek of a Task from its chip", path: `/calendar?view=month&d=${PEEK_DAY}`, afterOpen: taskPeekFromMonthChip },
+  { name: "Hub · empty stage", path: "/calendar", afterOpen: closeAllWindows },
+  { name: "Hub · a Module in a 400px Window", path: "/calendar", afterOpen: inNarrowWindow },
   { name: "Map", path: "/map" },
   { name: "Graph", path: "/graph" },
   { name: "Bases", path: "/base", afterOpen: workLocally },
@@ -1477,6 +1479,35 @@ async function firstOfType(page: Page, type: string): Promise<string> {
     },
     { coreUrl: CORE_URL, type },
   );
+}
+
+/** The Hub's empty stage (ADR 0133): every Window closed. The desk only; a phone has no Windows. */
+async function closeAllWindows(page: Page) {
+  if ((page.viewportSize()?.width ?? 0) < 768) return;
+  await workLocally(page);
+  for (const close of await page.getByRole("button", { name: /^Close / }).all()) await close.click();
+  await expect(page.getByText("Nothing is open.")).toBeVisible();
+}
+
+/**
+ * A Module in a 400px Window on the desk (ADR 0133): its narrow layout over the
+ * long content, as a phone shows it, inside the Window. A phone has no Windows.
+ */
+async function inNarrowWindow(page: Page) {
+  if ((page.viewportSize()?.width ?? 0) < 768) return;
+  await workLocally(page);
+  // A second Module from the Hub's index opens at 60% of the stage, in front.
+  await page.getByRole("navigation", { name: "Hub" }).getByRole("link", { name: "World" }).click();
+  const win = page.getByRole("region", { name: "World", exact: true });
+  await expect(win).toBeVisible();
+  const corner = win.locator("[data-window-corner]");
+  const c = (await corner.boundingBox())!;
+  const now = (await win.boundingBox())!;
+  await page.mouse.move(c.x + 4, c.y + 4);
+  await page.mouse.down();
+  await page.mouse.move(c.x + 4 - (now.width - 400), c.y + 4, { steps: 3 });
+  await page.mouse.up();
+  await expect.poll(async () => Math.round((await win.boundingBox())!.width)).toBe(400);
 }
 
 async function open(page: Page, path: string): Promise<void> {

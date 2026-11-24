@@ -57,7 +57,7 @@ function LegacyTimeRedirect({ view }: { view: "week" | "schedule" }) {
   return <Navigate to={`/calendar?view=${to}${d ? `&d=${d}` : ""}`} replace />;
 }
 
-/** A Core destination — a general Surface, the Bases, Screens, Settings, the Guide: no chrome but the Rail's. A throw below shows the broken-page message, not a blank shell (#301). */
+/** A Core destination — a general Surface, the Bases, Screens, Settings, the Guide: no chrome of its own. A throw below shows the broken-page message, not a blank shell (#301). */
 function CorePage({ children }: { children: ReactNode }) {
   return (
     <main className="min-w-0 flex-1 overflow-y-auto">
@@ -97,8 +97,9 @@ function moduleOfFrame(frame: FrameDef): string | undefined {
 }
 
 /**
- * Every place, beside the Rail (ADR 0057): Modules, each in its own layout,
- * and Core's destinations with no chrome but the Rail. An App screen is shown
+ * Every place (ADR 0057): Modules, each in its own layout, and Core's
+ * destinations with no chrome of their own. On the desk each Window renders
+ * these routes under its own router (ADR 0133); on a phone, the page does. An App screen is shown
  * inside its App's Module; one whose App names no Module (the Calendar App's
  * Events) is shown bare, reached from the palette.
  */
