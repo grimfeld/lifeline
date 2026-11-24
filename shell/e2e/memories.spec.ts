@@ -60,8 +60,10 @@ test("New memory from the palette keeps a photo in the Memory's body, opens it, 
 });
 
 test("from a past Event's Peek, Add a memory keeps a Memory about it, and its thumbnail shows in the panel", async ({ page }) => {
+  // Every signed-out load greets with the "You're signed out" notice, which comes
+  // once the bound Account is read: a Peek opened before it is hidden under it.
   await page.goto("/vault");
-  await workLocally(page);
+  await page.getByRole("button", { name: "Work locally" }).click();
   const event = await inCore(page, async (core) => (await core.putDocument({ type: "event", title: "Midsummer lunch", date: "2026-03-02", endDate: null, start: null, end: null, notes: "", tags: [] })).id as string, undefined);
   const future = await inCore(page, async (core) => (await core.putDocument({ type: "event", title: "Far away", date: "2099-03-02", endDate: null, start: null, end: null, notes: "", tags: [] })).id as string, undefined);
 
@@ -82,6 +84,7 @@ test("from a past Event's Peek, Add a memory keeps a Memory about it, and its th
   await expect(page).toHaveURL(/\/app\/journal\/memories\/.+/);
 
   await page.goto("/vault");
+  await page.getByRole("button", { name: "Work locally" }).click();
   await inCore(page, async (core, id: string) => core.openPeek(id), event);
   const panel = page.getByRole("dialog", { name: "Midsummer lunch" }).getByRole("region", { name: "Memories" });
   await expect(panel.locator("a img")).toHaveCount(1);
