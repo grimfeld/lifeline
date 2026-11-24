@@ -29,6 +29,7 @@ import screens from "../pages/screens.md?raw";
 import peek from "../pages/peek.md?raw";
 import links from "../pages/links.md?raw";
 import vault from "../pages/vault.md?raw";
+import hub from "../pages/hub.md?raw";
 import phone from "../pages/phone.md?raw";
 import settings from "../pages/settings.md?raw";
 import macros from "../pages/macros.md?raw";
@@ -69,6 +70,7 @@ const BODIES: Record<string, string> = {
   peek,
   links,
   vault,
+  hub,
   phone,
   settings,
   macros,

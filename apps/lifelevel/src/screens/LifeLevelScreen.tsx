@@ -32,7 +32,7 @@ export function LifeLevelScreen() {
   const habitById = useMemo(() => new Map(habits.map((h) => [h.id, h])), [habits]);
 
   return (
-    <div className="mx-auto grid w-full max-w-5xl gap-4 p-4 sm:gap-6 sm:p-6">
+    <div className="mx-auto grid w-full max-w-5xl gap-4 p-4 cq-sm:gap-6 cq-sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-semibold tracking-tight">Life Level</h1>
         <PhoneDock>
@@ -65,7 +65,7 @@ export function LifeLevelScreen() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 cq-sm:grid-cols-2 cq-lg:grid-cols-3">
           {progression.habits.map((s) => (
             <HabitCard key={s.habitId} state={s} now={now} onOpen={() => navigate(habitHref(s.habitId))} />
           ))}
@@ -77,7 +77,7 @@ export function LifeLevelScreen() {
         {negatives.length === 0 ? (
           <p className="text-muted-foreground text-sm">No negative activities. Name your vices — logging them is the deal you made with yourself.</p>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 cq-sm:grid-cols-2 cq-lg:grid-cols-3">
             {progression.negatives.map((s) => {
               const rival = s.affectsHabitId ? habitById.get(s.affectsHabitId) : undefined;
               return (

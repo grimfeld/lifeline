@@ -1,0 +1,167 @@
+name: E2E runners
+# The e2e plan and its runners (ADR 0129, ADR 0132, ADR 0134), shared by Check (a PR's
+# changed specs, or the whole gate on an approved PR or a manual gate run) and E2E gate
+# (the whole gate on a PR labelled e2e:gate). Called with `full`; the caller's own job
+# carries the result (Check's required `e2e`, E2E gate's `e2e-gate`).
+on:
+  workflow_call:
+    inputs:
+      full:
+        description: Run the whole gate (four runners) rather than the specs the PR changed
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  # Which e2e cases this PR runs, and on how many runners. A PR runs the specs it adds or
+  # changes, three times each so a flaky one shows here rather than in the nightly run.
+  # A PR carrying `ship` runs the whole gate once (ADR 0132): it is the gate before master,
+  # and /ship:land merges master into the PR first, so it runs on what lands. Either way
+  # only the gate projects (ADR 0129): the UI checks (screens, a11y-names) and the Demo
+  # run nightly (e2e.yml), and a gate run never builds the Demo. A manual run with `gate`
+  # runs the whole gate on its branch, to time the runners before a change to them lands.
+  e2e-plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      run: ${{ steps.plan.outputs.run }}
+      projects: ${{ steps.plan.outputs.projects }}
+      repeat: ${{ steps.plan.outputs.repeat }}
+      retries: ${{ steps.plan.outputs.retries }}
+      matrix: ${{ steps.plan.outputs.matrix }}
+      playwright: ${{ steps.plan.outputs.playwright }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      # The spec files this PR adds or edits, and nothing else: --only-changed would also
+      # pull in every spec importing a changed support file or the config, which can be
+      # the whole suite; the nightly run and the approved PR's run cover that. The nightly-only
+      # specs are left out: the agent runs the rows it touched locally.
+      - id: specs
+        env:
+          BASE: origin/${{ github.base_ref }}
+          FULL: ${{ inputs.full }}
+        run: |
+          echo "projects=--project=desktop --project=mobile" >> "$GITHUB_OUTPUT"
+          if [ "$FULL" = true ]; then
+            echo "The whole gate (an approved PR, an e2e:gate label or a manual gate run)."
+            echo "files=" >> "$GITHUB_OUTPUT"
+            echo "full=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          base=$(git merge-base "$BASE" HEAD)
+          # NIGHTLY_SPECS in scripts/e2e-env.mjs, one per line, matched whole.
+          node --input-type=module -e 'import { NIGHTLY_SPECS } from "./scripts/e2e-env.mjs"; console.log(NIGHTLY_SPECS.join("\n"))' > "$RUNNER_TEMP/nightly"
+          files=$(git diff --name-only --diff-filter=AMR "$base" HEAD -- 'shell/e2e/*.spec.ts' \
+            | sed 's#^shell/e2e/##' | grep -vxFf "$RUNNER_TEMP/nightly" | tr '\n' ' ' || true)
+          echo "$files"
+          if [ -z "${files// }" ]; then
+            echo "No gate spec changed; nothing to run."
+            echo "none=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "files=$files" >> "$GITHUB_OUTPUT"
+      - if: steps.specs.outputs.none != 'true'
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - if: steps.specs.outputs.none != 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - if: steps.specs.outputs.none != 'true'
+        run: pnpm install --frozen-lockfile
+      # Each changed case three times, no retries: a case that needs one is the flake this
+      # job is here to catch. Past 150 cases once, on four runners; below that one runner,
+      # since each pays a minute or two of setup. The whole gate (approved PR) runs
+      # once on four runners, with the config's retry. Four runners split the spec files by
+      # running time (shell/e2e/durations.json, scripts/e2e-shards.mjs), not Playwright's
+      # --shard, which splits by count and leaves the slow files together on one runner.
+      - id: plan
+        if: steps.specs.outputs.none != 'true'
+        working-directory: shell
+        env:
+          FILES: ${{ steps.specs.outputs.files }}
+          PROJECTS: ${{ steps.specs.outputs.projects }}
+          FULL: ${{ steps.specs.outputs.full }}
+        run: |
+          cases=$(pnpm exec playwright test --list $FILES $PROJECTS | sed -n 's/^Total: \([0-9]*\) test.*/\1/p')
+          if [ "$FULL" = true ]; then repeat=1; retries=; runners=4
+          elif [ "$cases" -gt 150 ]; then repeat=1; retries=--retries=0; runners=4
+          else repeat=3; retries=--retries=0; runners=1
+          fi
+          # Even on one runner: the plan names each file so that it matches no other.
+          pnpm exec playwright test --list --reporter=json $FILES $PROJECTS > "$RUNNER_TEMP/list.json"
+          matrix=$(node ../scripts/e2e-shards.mjs plan "$runners" "$RUNNER_TEMP/list.json" e2e/durations.json)
+          echo "$cases cases, each run $repeat time(s), on $runners runner(s): $matrix"
+          {
+            echo "run=true"
+            echo "projects=$PROJECTS"
+            echo "repeat=$repeat"
+            echo "retries=$retries"
+            echo "matrix=$matrix"
+            # The runners' image, which holds this Playwright's Chromium and the libraries it needs.
+            echo "playwright=$(node -p "require('./package.json').devDependencies['@playwright/test'].replace(/^[\\^~]/, '')")"
+          } >> "$GITHUB_OUTPUT"
+
+  e2e-changed:
+    needs: e2e-plan
+    if: needs.e2e-plan.outputs.run == 'true'
+    name: e2e-changed (${{ matrix.shard }})
+    runs-on: ubuntu-latest
+    # Playwright's own image: its Chromium and system libraries come with it, where
+    # `playwright install --with-deps` spent anywhere from 15 s to 6 min in apt, and that
+    # spread alone kept the runners from finishing together.
+    container:
+      image: mcr.microsoft.com/playwright:v${{ needs.e2e-plan.outputs.playwright }}-noble
+      options: --ipc=host
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.e2e-plan.outputs.matrix) }}
+    steps:
+      # The runner's start, for its time in the summary below.
+      - run: echo "STARTED=$(date +%s)" >> "$GITHUB_ENV"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Each runner runs the setup project (seed) its cases depend on.
+      - working-directory: shell
+        run: pnpm exec playwright test $FILES $PROJECTS --repeat-each=$REPEAT $RETRIES
+        env:
+          FILES: ${{ matrix.files }}
+          PROJECTS: ${{ needs.e2e-plan.outputs.projects }}
+          REPEAT: ${{ needs.e2e-plan.outputs.repeat }}
+          RETRIES: ${{ needs.e2e-plan.outputs.retries }}
+      # This runner's line in the run's summary: its cases and time, to compare the runners.
+      - name: Summary
+        if: always()
+        working-directory: shell
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          minutes=$(( ($(date +%s) - STARTED + 30) / 60 ))
+          if [ -f e2e-results.json ]; then
+            cases=$(node -p 'const s = require("./e2e-results.json").stats; `${s.expected + s.unexpected + s.flaky} cases: ${s.expected} passed, ${s.unexpected} failed, ${s.flaky} flaky`')
+          else
+            cases="no report (the run stopped before its cases)"
+          fi
+          echo "Runner $SHARD: $cases, $minutes min." | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: playwright-report-changed-${{ matrix.shard }}
+          path: shell/playwright-report
+          retention-days: 14
+      # Each case's time, to refresh shell/e2e/durations.json from (shell/e2e/README.md).
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: e2e-results-${{ matrix.shard }}
+          path: shell/e2e-results.json
+          retention-days: 14
+          if-no-files-found: ignore

@@ -70,7 +70,7 @@ export function TypesScreen() {
   const editingRecord = editing && editing !== "new" ? (records.find((r) => r.typeId === editing.id) ?? null) : null;
 
   return (
-    <div className="mx-auto grid w-full max-w-3xl gap-6 p-4 md:p-6">
+    <div className="mx-auto grid w-full max-w-3xl gap-6 p-4 cq-md:p-6">
       <div className="flex min-w-0 items-center gap-2">
         <h1 className="min-w-0 flex-1 truncate text-xl font-semibold tracking-tight">{only && shown[0] ? shown[0].label : "Types"}</h1>
         {only ? (

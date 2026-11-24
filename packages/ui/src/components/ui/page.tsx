@@ -17,7 +17,7 @@ function Page({
       data-slot="page"
       data-width={width}
       className={cn(
-        "mx-auto grid w-full min-w-0 grid-cols-1 gap-4 p-4 md:p-6",
+        "mx-auto grid w-full min-w-0 grid-cols-1 gap-4 p-4 cq-md:p-6",
         width === "wide" ? "max-w-6xl" : "max-w-3xl",
         className,
       )}
@@ -46,7 +46,7 @@ function PageHeader({
   return (
     <div data-slot="page-header" className={cn("flex min-w-0 items-center gap-2", className)} {...props}>
       <h1 className="min-w-0 flex-1 text-xl font-semibold tracking-tight">{title}</h1>
-      {children && <div className="flex shrink-0 items-center gap-2 max-md:empty:hidden">{children}</div>}
+      {children && <div className="flex shrink-0 items-center gap-2 cq-max-md:empty:hidden">{children}</div>}
     </div>
   );
 }

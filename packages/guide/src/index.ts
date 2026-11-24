@@ -58,6 +58,7 @@ const ENTRIES: Entry[] = [
   { slug: "peek", title: "Peek and selection", kind: "core" },
   { slug: "links", title: "Links", kind: "core" },
   { slug: "vault", title: "The Vault", kind: "core" },
+  { slug: "hub", title: "The Hub and its Windows", kind: "core" },
   { slug: "phone", title: "Using Lifeline on a phone", kind: "core" },
   { slug: "settings", title: "Settings", kind: "core" },
   { slug: "macros", title: "Macros", kind: "core" },

@@ -28,7 +28,7 @@ export function StatsScreen() {
           <CardContent className="text-muted-foreground p-8 text-center text-sm">No stats yet. Carve your first notch.</CardContent>
         </Card>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 cq-sm:grid-cols-2 cq-lg:grid-cols-3">
           {stats.map((s) => (
             <StatCard key={s.id} stat={s} entries={byStat.get(s.id) ?? []} onOpen={() => navigate(`/app/stats/${s.id}`)} />
           ))}

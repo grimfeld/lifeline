@@ -126,7 +126,7 @@ function DayCell({ date, inMonth, today, children, onOpen }: { date: DateStr; in
     <div
       ref={setNodeRef}
       onClick={onOpen}
-      className={cn("bg-background flex min-h-0 cursor-pointer flex-col gap-0.5 p-1 max-md:p-0.5", !inMonth && "bg-muted/40 text-muted-foreground", isOver && "bg-accent/50")}
+      className={cn("bg-background flex min-h-0 cursor-pointer flex-col gap-0.5 p-1 cq-max-md:p-0.5", !inMonth && "bg-muted/40 text-muted-foreground", isOver && "bg-accent/50")}
     >
       <button
         type="button"
@@ -190,7 +190,7 @@ function Pool({ items, overdue, collapsible, chip }: { items: DayWork[]; overdue
  * owns moves). Tapping a day opens it in Day view.
  */
 export function MonthView({ ctx }: { ctx: CalendarCtx }) {
-  const { anchor, today, days, tags, isMobile, openDay } = ctx;
+  const { anchor, today, days, tags, isMobile, narrow, openDay } = ctx;
   const { y, m } = parts(anchor);
   const monthStart = fromParts(y, m, 1);
   const monthEnd = fromParts(y, m, daysInMonth(y, m));
@@ -276,10 +276,10 @@ export function MonthView({ ctx }: { ctx: CalendarCtx }) {
         drag.mark();
       }}
     >
-      <div className="flex h-full flex-col gap-3 p-4 max-md:gap-2 max-md:p-3">
+      <div className="flex h-full flex-col gap-3 p-4 cq-max-md:gap-2 cq-max-md:p-3">
         {ctx.header()}
-        <div className="grid min-h-0 flex-1 grid-cols-[13rem_1fr] gap-2 max-md:flex max-md:flex-col">
-          <Pool items={pool} overdue={overdue} collapsible={isMobile} chip={chip} />
+        <div className="grid min-h-0 flex-1 grid-cols-[13rem_1fr] gap-2 cq-max-md:flex cq-max-md:flex-col">
+          <Pool items={pool} overdue={overdue} collapsible={narrow} chip={chip} />
           <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-1">
             <div className="text-muted-foreground grid grid-cols-7 gap-px text-center text-xs font-medium">
               {DAY_NAMES.map((d) => (

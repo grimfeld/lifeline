@@ -14,7 +14,7 @@ import {
   Input,
   Label,
   cn,
-  usePhone,
+  useNarrow,
 } from "@lifeline/ui";
 import { appById, cardById, cardSchema, isConfigured, moveStacked, newId, normalizeLayout, resolveSettings, settingsTags, stackOrder, TagFilterProvider, useCardInstanceTitle, type CardDef, type CardSettings, type ScreenLayoutItem } from "@lifeline/core";
 import { ChevronDown, ChevronUp, Minus, Plus, Settings2, Trash2 } from "lucide-react";
@@ -231,7 +231,7 @@ export function CardGrid({
   const [configuring, setConfiguring] = useState<string | null>(null);
   const [draft, setDraft] = useState<CardSettings>({});
   const [draftTitle, setDraftTitle] = useState("");
-  const isMobile = usePhone();
+  const narrow = useNarrow();
 
   /** Layout with instance ids and resolved settings (backfills pre-instance layouts, ADR 0008). */
   const items = useMemo(() => normalizeLayout(raw), [raw]);
@@ -311,7 +311,7 @@ export function CardGrid({
 
   return (
     <>
-      {isMobile ? (
+      {narrow ? (
         <StackedItems
           items={items}
           editing={editing}

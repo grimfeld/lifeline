@@ -48,13 +48,14 @@ export function MemoriesScreen() {
   );
   return (
     <Page width="wide">
+      {/* ui-allow: viewport-breakpoint — New memory moves to the PhoneDock on a phone; which copy shows follows the device, as the dock does. */}
       <PageHeader title="Memories">{shown.length > 0 ? add("max-md:hidden") : null}</PageHeader>
       {shown.length === 0 ? (
         <EmptyState action={add()}>
           <Images className="mx-auto mb-2 size-5" /> The moments worth keeping: a photo, a few words, what it was about. Keep the first one.
         </EmptyState>
       ) : (
-        <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        <ul className="grid grid-cols-2 gap-3 cq-md:grid-cols-3 cq-lg:grid-cols-4 cq-xl:grid-cols-5">
           {shown.map((m) => (
             <li key={m.id} className="min-w-0">
               <MemoryTile memory={m} />
@@ -62,6 +63,7 @@ export function MemoriesScreen() {
           ))}
         </ul>
       )}
+      {/* ui-allow: viewport-breakpoint — New memory moves to the PhoneDock on a phone; which copy shows follows the device, as the dock does. */}
       {shown.length > 0 && <PhoneDock>{add("md:hidden")}</PhoneDock>}
       <NewMemoryDialog open={adding} onOpenChange={setAdding} />
     </Page>
