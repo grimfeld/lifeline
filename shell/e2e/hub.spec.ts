@@ -153,4 +153,91 @@ test.describe("The Hub", () => {
     await expect.poll(async () => Math.round((await map.boundingBox())!.x - before.x)).toBe(100);
     await expect(hub(page).getByRole("link", { name: "Map" })).toHaveAttribute("aria-current", "page");
   });
+
+  test.describe("snapping", () => {
+    const stageBox = async (page: Page) => (await page.locator("[data-hub-stage]").boundingBox())!;
+    const near = (a: number, b: number) => Math.abs(a - b) <= 2;
+
+    test("dragging to the left edge shows the outline and fills the left half; dragging away restores the size", async ({ page }) => {
+      await emptyDesk(page);
+      await hub(page).getByRole("link", { name: "Map" }).click();
+      const map = win(page, "Map");
+      await expect(map).toBeVisible();
+      const before = (await map.boundingBox())!;
+      const stage = await stageBox(page);
+      const bar = (await map.locator("[data-window-bar]").boundingBox())!;
+      await page.mouse.move(bar.x + 30, bar.y + 18);
+      await page.mouse.down();
+      await page.mouse.move(stage.x + 5, stage.y + stage.height / 2, { steps: 8 });
+      await expect(page.locator("[data-snap-outline]")).toBeVisible();
+      await page.mouse.up();
+      await expect(page.locator("[data-snap-outline]")).toHaveCount(0);
+      await expect.poll(async () => {
+        const b = (await map.boundingBox())!;
+        return near(b.x, stage.x) && near(b.y, stage.y) && near(b.width, stage.width / 2) && near(b.height, stage.height);
+      }).toBe(true);
+
+      // Away from the edge: the size it had before the snap.
+      const snapped = (await map.locator("[data-window-bar]").boundingBox())!;
+      await page.mouse.move(snapped.x + 30, snapped.y + 18);
+      await page.mouse.down();
+      await page.mouse.move(stage.x + stage.width / 2, stage.y + stage.height / 2, { steps: 8 });
+      await page.mouse.up();
+      await expect.poll(async () => Math.round((await map.boundingBox())!.width)).toBe(Math.round(before.width));
+      expect(Math.round((await map.boundingBox())!.height)).toBe(Math.round(before.height));
+    });
+
+    test("the bar's snap buttons fill a half, a double-click maximises and restores, and a reload keeps the snap", async ({ page }) => {
+      await emptyDesk(page);
+      await hub(page).getByRole("link", { name: "Graph" }).click();
+      const graph = win(page, "Graph");
+      await expect(graph).toBeVisible();
+      const stage = await stageBox(page);
+      const before = (await graph.boundingBox())!;
+      await graph.getByRole("button", { name: "Snap right half" }).click();
+      const isRightHalf = async () => {
+        const b = (await graph.boundingBox())!;
+        return near(b.x, stage.x + stage.width / 2) && near(b.width, stage.width / 2) && near(b.height, stage.height);
+      };
+      await expect.poll(isRightHalf).toBe(true);
+
+      // A double-click restores a snapped Window to the box it had; on a normal one it maximises, then restores.
+      const title = graph.locator("[data-window-bar] > span");
+      await title.dblclick();
+      await expect.poll(async () => Math.round((await graph.boundingBox())!.width)).toBe(Math.round(before.width));
+      await title.dblclick();
+      await expect.poll(async () => near((await graph.boundingBox())!.width, stage.width)).toBe(true);
+      await title.dblclick();
+      await expect.poll(async () => Math.round((await graph.boundingBox())!.width)).toBe(Math.round(before.width));
+
+      await graph.getByRole("button", { name: "Snap left half" }).click();
+      await page.reload();
+      await workLocally(page);
+      await expect.poll(async () => {
+        const b = (await win(page, "Graph").boundingBox())!;
+        return near(b.x, stage.x) && near(b.width, stage.width / 2);
+      }).toBe(true);
+    });
+
+    test("a click or a small wobble on a maximised Window's bar leaves it maximised", async ({ page }) => {
+      await page.goto("/calendar");
+      await workLocally(page);
+      const calendar = win(page, "Calendar");
+      const stage = await stageBox(page);
+      await expect.poll(async () => near((await calendar.boundingBox())!.width, stage.width)).toBe(true);
+      const bar = (await calendar.locator("[data-window-bar]").boundingBox())!;
+      await page.mouse.move(bar.x + 40, bar.y + 18);
+      await page.mouse.down();
+      await page.mouse.move(bar.x + 42, bar.y + 19, { steps: 2 });
+      await page.mouse.up();
+      await page.mouse.move(bar.x + 40, bar.y + 18);
+      await page.mouse.down();
+      await page.mouse.move(bar.x + 52, bar.y + 20, { steps: 3 });
+      await page.mouse.up();
+      await expect(page.locator("[data-snap-outline]")).toHaveCount(0);
+      const after = (await calendar.boundingBox())!;
+      expect(near(after.width, stage.width) || after.width < stage.width).toBe(true);
+      expect(near(after.width, stage.width / 2)).toBe(false);
+    });
+  });
 });

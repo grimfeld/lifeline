@@ -79,6 +79,16 @@ export type WindowAction =
   | { type: "place"; id: string; box: Box; stage: Stage }
   /** Maximise, or restore a maximised Window to its `restore` box. */
   | { type: "maximise"; id: string }
+  /**
+   * Snap to `box` (a half or a quarter, fractions), or maximise when `box` is
+   * "max". The box it had before the first snap is kept in `restore` while it
+   * snaps from one zone to another.
+   */
+  | { type: "snap"; id: string; box: Box | "max" }
+  /** A snapped or maximised Window back to the box it had before, within the limits. */
+  | { type: "restore"; id: string; stage: Stage }
+  /** The bar's double-click: maximise a normal Window; restore a maximised or snapped one. */
+  | { type: "toggle"; id: string; stage: Stage }
   /** Drop the Windows whose target is not in `targets` (a Module the Workspace no longer takes). */
   | { type: "prune"; targets: string[] };
 
@@ -148,6 +158,15 @@ function update(layout: WindowLayout, id: string, f: (w: WindowState) => WindowS
 }
 
 /** Every change to the layout: a pure step from one layout to the next. */
+/** The box a Window had before it was snapped or maximised: kept in `restore`, or its own when it never left. */
+const boxBeforeSnap = (w: WindowState): Box => w.restore ?? w.box;
+
+/** A snapped or maximised Window back at the box it had before, clamped to the limits on this stage. */
+function restored(w: WindowState, stage: Stage): WindowState {
+  if (w.mode !== "snapped" && w.mode !== "maximised") return w;
+  return { ...w, mode: "normal", box: clampBox(boxBeforeSnap(w), stage), restore: undefined };
+}
+
 export function windowsReducer(layout: WindowLayout, action: WindowAction): WindowLayout {
   switch (action.type) {
     case "open": {
@@ -175,9 +194,20 @@ export function windowsReducer(layout: WindowLayout, action: WindowAction): Wind
     case "maximise":
       return update(layout, action.id, (w) => {
         if (w.mode === "maximised") return { ...w, mode: "normal", box: w.restore ?? w.box, restore: undefined };
-        if (w.mode === "normal" || w.mode === "snapped") return { ...w, mode: "maximised", restore: w.box };
+        if (w.mode === "normal") return { ...w, mode: "maximised", restore: w.box };
+        // From a snap: back to the box it had before the snap, not the snapped one.
+        if (w.mode === "snapped") return { ...w, mode: "maximised", restore: boxBeforeSnap(w) };
         return w;
       });
+    case "snap":
+      return update(layout, action.id, (w) => {
+        const restore = w.mode === "normal" ? w.box : boxBeforeSnap(w);
+        return action.box === "max" ? { ...w, mode: "maximised", restore } : { ...w, mode: "snapped", box: action.box, restore };
+      });
+    case "restore":
+      return update(layout, action.id, (w) => restored(w, action.stage));
+    case "toggle":
+      return update(layout, action.id, (w) => (w.mode === "normal" ? { ...w, mode: "maximised", restore: w.box } : restored(w, action.stage)));
     case "prune": {
       // Pages belong to no Workspace: only Modules and Surfaces are pruned.
       const keep = new Set(action.targets);
@@ -329,4 +359,53 @@ export function stepRoute(h: WindowHistory | undefined, delta: number): { histor
   const index = h.index + Math.sign(delta);
   if (index < 0 || index >= h.entries.length) return undefined;
   return { history: { ...h, index }, route: h.entries[index]! };
+}
+
+/** The two halves the bar's snap buttons fill, and the whole stage a top-middle drop fills. */
+export const LEFT_HALF: Box = { x: 0, y: 0, w: 0.5, h: 1 };
+export const RIGHT_HALF: Box = { x: 0.5, y: 0, w: 0.5, h: 1 };
+export const WHOLE_STAGE: Box = { x: 0, y: 0, w: 1, h: 1 };
+
+/** How close to a stage edge (CSS px) a drop snaps. */
+export const SNAP_EDGE = 28;
+/** The outer part of an edge, at each end, that snaps to a quarter rather than a half. */
+export const SNAP_CORNER = 0.3;
+
+/**
+ * What a drop at `pointer` (CSS px, relative to the stage) snaps to: a half on
+ * the left or right edge, a quarter on the outer 30% of the left, right or top
+ * edge, the whole stage ("max") on the top edge's middle — or nothing.
+ */
+export function snapZone(pointer: { x: number; y: number }, stage: Stage): Box | "max" | null {
+  const { width, height } = stage;
+  if (width <= 0 || height <= 0) return null;
+  const { x, y } = pointer;
+  const left = x < SNAP_EDGE;
+  const right = x > width - SNAP_EDGE;
+  const top = y < SNAP_EDGE;
+  const quarter = (l: boolean, t: boolean): Box => ({ x: l ? 0 : 0.5, y: t ? 0 : 0.5, w: 0.5, h: 0.5 });
+  if (left || right) {
+    if (y < height * SNAP_CORNER) return quarter(left, true);
+    if (y > height * (1 - SNAP_CORNER)) return quarter(left, false);
+    return left ? LEFT_HALF : RIGHT_HALF;
+  }
+  if (top) {
+    if (x < width * SNAP_CORNER) return quarter(true, true);
+    if (x > width * (1 - SNAP_CORNER)) return quarter(false, true);
+    return "max";
+  }
+  return null;
+}
+
+/**
+ * Where a snapped or maximised Window being dragged away goes: the size it had
+ * before, placed so the point of the bar the pointer took stays under it.
+ * `drawn` is its box on screen and `pointerX` the pointer, both in stage px.
+ */
+export function restoredUnderPointer(win: WindowState, drawn: Box, pointerX: number, stage: Stage): Box {
+  if (win.mode === "normal" || !win.restore) return drawn;
+  const w = win.restore.w * stage.width;
+  const h = win.restore.h * stage.height;
+  const at = drawn.w > 0 ? (pointerX - drawn.x) / drawn.w : 0;
+  return { x: pointerX - at * w, y: drawn.y, w, h };
 }

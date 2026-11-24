@@ -3,6 +3,11 @@ import { Link, useLocation } from "react-router";
 import { Button, ContentContainer, cn, Tip } from "@lifeline/ui";
 import {
   BAR_HEIGHT,
+  LEFT_HALF,
+  RIGHT_HALF,
+  WHOLE_STAGE,
+  restoredUnderPointer,
+  snapZone,
   DESK_SURFACES,
   pageTarget,
   pathOnly,
@@ -15,7 +20,7 @@ import {
   type Stage,
   type WindowState,
 } from "@lifeline/core";
-import { CircleHelp, LayoutDashboard, Settings, Table2, X } from "lucide-react";
+import { CircleHelp, LayoutDashboard, PanelLeft, PanelRight, Settings, Table2, X } from "lucide-react";
 import { MODULE_ICONS, SURFACE_ICONS } from "../navIcons";
 import { guideHref, guideSlugForPath } from "../guide/guidePlace";
 import { placeTitle } from "../nav/placeTitle";
@@ -55,6 +60,7 @@ export function Hub() {
     return () => ro.disconnect();
   }, []);
   const desk = useDesk(stage);
+  const [outline, setOutline] = useState<Box | null>(null);
   const front = frontWindow(desk.layout);
 
   // Opening a Window moves focus into it; closing one returns focus to its index row.
@@ -74,6 +80,8 @@ export function Hub() {
       row?.focus();
     }
     closedTarget.current = null;
+    // A Window gone mid-drag (closed, or a Workspace switch) takes its outline with it.
+    setOutline(null);
   }, [ids]);
   // Windows render in a fixed order — stacking is z-index alone — so bringing one
   // to the front never moves its node (which would drop focus and pointer capture).
@@ -91,6 +99,15 @@ export function Hub() {
         />
         <div ref={stageRef} data-hub-stage="" className="bg-muted/40 relative isolate min-w-0 flex-1 overflow-hidden">
           {desk.layout.windows.length === 0 && <EmptyStage />}
+          {/* What a drop would fill, while a Window is dragged over a snap zone. Above every Window. */}
+          {outline && stage && (
+            <div
+              aria-hidden
+              data-snap-outline=""
+              className="border-primary bg-primary/15 pointer-events-none absolute rounded-lg border-2 transition-all duration-100 motion-reduce:transition-none"
+              style={{ left: outline.x * stage.width, top: outline.y * stage.height, width: outline.w * stage.width, height: outline.h * stage.height, zIndex: desk.layout.windows.length + 1 }}
+            />
+          )}
           {stage &&
             byId.map((win) => (
               <WindowFrame
@@ -106,6 +123,10 @@ export function Hub() {
                   desk.close(win.id);
                 }}
                 onPlace={(box) => desk.act({ type: "place", id: win.id, box, stage })}
+                onSnap={(box) => desk.act({ type: "snap", id: win.id, box })}
+                onToggleMaximise={() => desk.act({ type: "toggle", id: win.id, stage })}
+                // The same zone keeps the same state: no re-render of every Window on each pointer move.
+                onZone={(next) => setOutline((prev) => (sameBox(prev, next) ? prev : next))}
                 onNavigate={(to, replace) => desk.navigateFrom(win.id, to, replace)}
               />
             ))}
@@ -115,12 +136,21 @@ export function Hub() {
   );
 }
 
+/** Below this many CSS px of travel, a press on the bar is a click, not a drag. */
+const DRAG_THRESHOLD = 4;
+/** Whether an event started on one of the bar's buttons (they are clicked, never dragged). */
+const onButton = (e: { target: EventTarget }) => !!(e.target as HTMLElement).closest("button");
+const sameBox = (a: Box | null, b: Box | null) => a === b || (!!a && !!b && a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h);
+const sameZone = (a: Box | "max" | null, b: Box | "max" | null) => (a === "max" || b === "max" ? a === b : sameBox(a, b));
+
 const windowDomId = (id: string) => `window-${id.replace(/[^\w-]/g, "-")}`;
 
 function EmptyStage() {
   return (
     <div className="text-muted-foreground absolute inset-0 flex items-center justify-center p-8 text-center text-sm">
-      <p className="max-w-sm">Nothing is open. Pick a Module on the left: each opens in its own Window.</p>
+      <p className="max-w-sm">
+        Nothing is open. Pick a Module on the left: each opens in its own Window. Drag a Window to an edge to snap it to a half, or near a corner for a quarter.
+      </p>
     </div>
   );
 }
@@ -242,6 +272,9 @@ function WindowFrame({
   onFocus,
   onClose,
   onPlace,
+  onSnap,
+  onToggleMaximise,
+  onZone,
   onNavigate,
 }: {
   win: WindowState;
@@ -253,6 +286,12 @@ function WindowFrame({
   onFocus: () => void;
   onClose: () => void;
   onPlace: (box: Box) => void;
+  /** Snap to a half or a quarter, or maximise ("max"). */
+  onSnap: (box: Box | "max") => void;
+  /** The bar's double-click: maximise, or restore a maximised or snapped Window. */
+  onToggleMaximise: () => void;
+  /** The zone a drop would fill while the bar is dragged over one (fractions), for the stage's outline. */
+  onZone: (zone: Box | null) => void;
   onNavigate: (to: string, replace: boolean) => void;
 }) {
   const title = windowTitle(win);
@@ -263,29 +302,52 @@ function WindowFrame({
 
   const startDrag = (e: ReactPointerEvent, kind: "move" | "size") => {
     if (e.button !== 0) return;
-    if (kind === "move" && (e.target as HTMLElement).closest("button")) return;
+    if (kind === "move" && onButton(e)) return;
     e.preventDefault();
     const start = { x: e.clientX, y: e.clientY };
-    const from = px;
     const el = e.currentTarget as HTMLElement;
+    const rect = el.closest("[data-hub-stage]")?.getBoundingClientRect() ?? { left: 0, top: 0 };
+    const inStage = (ev: { clientX: number; clientY: number }) => ({ x: ev.clientX - rect.left, y: ev.clientY - rect.top });
+    // Dragged away, a snapped or maximised Window takes back the size it had,
+    // under the point of the bar the pointer took.
+    const from = kind === "move" ? restoredUnderPointer(win, px, start.x - rect.left, stage) : px;
+    // A bar at the top of the stage is pressed inside a snap zone: snapping arms
+    // only once the pointer has left the zone it was pressed in, so a click
+    // (or a wobble) on a maximised or snapped Window's bar never re-snaps it.
+    const pressedIn = snapZone(inStage(e), stage);
+    let armed = false;
     el.setPointerCapture(e.pointerId);
-    let last: Box = from;
+    let last: Box | null = null;
+    let zone: Box | "max" | null = null;
     const moveTo = (ev: PointerEvent) => {
       const dx = ev.clientX - start.x;
       const dy = ev.clientY - start.y;
+      if (!last && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
       last = kind === "move" ? { ...from, x: from.x + dx, y: from.y + dy } : { ...from, w: from.w + dx, h: from.h + dy };
       setDrag(last);
+      if (kind !== "move") return;
+      const over = snapZone(inStage(ev), stage);
+      if (!armed && !sameZone(over, pressedIn)) armed = true;
+      zone = armed ? over : null;
+      onZone(zone === "max" ? WHOLE_STAGE : zone);
     };
-    const end = () => {
+    const stop = () => {
       el.removeEventListener("pointermove", moveTo);
-      el.removeEventListener("pointerup", end);
-      el.removeEventListener("pointercancel", end);
+      el.removeEventListener("pointerup", drop);
+      el.removeEventListener("pointercancel", stop);
       setDrag(null);
-      if (last !== from) onPlace({ x: last.x / stage.width, y: last.y / stage.height, w: last.w / stage.width, h: last.h / stage.height });
+      onZone(null);
+    };
+    // A drag the system cancels is abandoned: nothing is placed or snapped.
+    const drop = () => {
+      stop();
+      if (!last) return;
+      if (zone) onSnap(zone);
+      else onPlace({ x: last.x / stage.width, y: last.y / stage.height, w: last.w / stage.width, h: last.h / stage.height });
     };
     el.addEventListener("pointermove", moveTo);
-    el.addEventListener("pointerup", end);
-    el.addEventListener("pointercancel", end);
+    el.addEventListener("pointerup", drop);
+    el.addEventListener("pointercancel", stop);
   };
 
   return (
@@ -308,11 +370,24 @@ function WindowFrame({
       <div
         data-window-bar=""
         onPointerDown={(e) => startDrag(e, "move")}
+        onDoubleClick={(e) => {
+          if (!onButton(e)) onToggleMaximise();
+        }}
         // The bar's height is core's BAR_HEIGHT: the part of a Window always kept on the stage.
         style={{ height: BAR_HEIGHT }}
         className={cn("bg-sidebar flex shrink-0 cursor-default touch-none items-center gap-2 border-b pr-1 pl-3 select-none", front && "border-t-primary border-t-2")}
       >
         <span className="min-w-0 flex-1 truncate text-sm font-medium">{title}</span>
+        <Tip label="Snap left half">
+          <Button size="icon-sm" variant="ghost" onClick={() => onSnap(LEFT_HALF)}>
+            <PanelLeft />
+          </Button>
+        </Tip>
+        <Tip label="Snap right half">
+          <Button size="icon-sm" variant="ghost" onClick={() => onSnap(RIGHT_HALF)}>
+            <PanelRight />
+          </Button>
+        </Tip>
         <Tip label={`Close ${title}`}>
           <Button size="icon-sm" variant="ghost" onClick={onClose}>
             <X />
