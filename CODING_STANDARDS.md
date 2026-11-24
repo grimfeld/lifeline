@@ -16,6 +16,12 @@ decision in `docs/adr/` outranks anything here.
   becomes one named predicate (`takesDocument`, not `kind === "link" || kind === "links"`).
 - **A result speaks its field's words.** A Command's result and refusal read in the words of
   the Field they name: "with" for With, "for" for For, "recommended by" for Recommended by.
+- **Reads go through Core's gates.** Outside Core, Documents are read with `getDocument`,
+  `documentsOf`, `documentsWhere` or `useDocuments`, which hide the Private folder while
+  locked and other Workspaces (ADR 0038, 0048); `documentsOfUngated` is for a check that
+  must see past them. `pnpm lint` flags the raw table (`documentsTable`, `DOCUMENTS`,
+  `db().documents`, `get`/`all("documents")`); a read that must go around the gates says
+  why on the line above, with `// eslint-disable-next-line <the rule> -- <why>`.
 - **ADRs.** A diff that contradicts an ADR is a finding, even when the code works: change
   the code, or the ADR in the same change.
 
