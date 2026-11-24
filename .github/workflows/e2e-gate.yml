@@ -1,0 +1,56 @@
+name: E2E gate
+# Labelling a PR `e2e:gate` runs the whole e2e gate on its head, as an approved PR does
+# (ADR 0132, ADR 0134): the desktop and mobile projects on four runners split by recorded
+# time, with the config's retry. It shows as its own `e2e-gate` check, never a required one,
+# and takes the label off when it ends, so the next push runs only what it changed; add the
+# label again to rerun the gate. Agents can add a label where a workflow dispatch is refused.
+# Its own workflow, not a condition in check.yml: Check runs on every label already, and its
+# required `e2e` should carry only the PR's own run.
+on:
+  pull_request:
+    types: [labeled]
+permissions:
+  contents: read
+# Adding the label again restarts the gate on the current head. Any other label starts a
+# run of its own whose jobs all skip: it gets a group of its own, so it cancels nothing.
+concurrency:
+  group: e2e-gate-${{ github.event.label.name == 'e2e:gate' && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+jobs:
+  runners:
+    if: github.event.label.name == 'e2e:gate'
+    uses: ./.github/workflows/e2e-runners.yml
+    with:
+      full: true
+
+  # The result, and the label off, green or red. Each runner's line (cases, minutes) is in
+  # this run's summary. Not after a cancel: a run cancelled by the label added again would
+  # take off the label its successor runs for. Another label's run names this job apart, so
+  # its skipped job never hides the gate's result on the PR.
+  e2e-gate:
+    name: ${{ github.event.label.name == 'e2e:gate' && 'e2e-gate' || 'e2e-gate (another label)' }}
+    needs: runners
+    if: "!cancelled() && github.event.label.name == 'e2e:gate'"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Take the e2e:gate label off
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        # A 404 means someone already took it off; anything else fails the check, loudly.
+        run: |
+          if ! out=$(gh api -X DELETE "repos/$REPO/issues/$PR/labels/e2e%3Agate" 2>&1); then
+            if grep -q "HTTP 404" <<<"$out"; then echo "The label was already off."
+            else echo "::error::Could not take e2e:gate off: $out"; exit 1
+            fi
+          fi
+      - name: Every runner passed
+        env:
+          RUNNERS: ${{ needs.runners.result }}
+        run: |
+          echo "runners: $RUNNERS"
+          [ "$RUNNERS" = success ]
