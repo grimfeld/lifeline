@@ -17,7 +17,6 @@ import { FALLBACK_PLACE, lastPlace } from "./nav/resume";
 import { HandoffPage, HandoffSaved } from "./handoff/HandoffPage";
 import { RouteBoundary } from "./components/ErrorBoundary";
 import { PhoneHub } from "./mobile/PhoneHub";
-import { PHONE_HUB_PATH } from "./nav/phoneHub";
 
 // The heavier Surfaces load when first visited, not with the shell (CR-23).
 const MapPage = lazyChunk(() => import("./surfaces/MapPage").then((m) => ({ default: m.MapPage })));
@@ -147,7 +146,8 @@ export function Places() {
       <Route path="/base/:type" element={<CorePage><BasePage /></CorePage>} />
       <Route path="/screens" element={<CorePage><ScreensIndex /></CorePage>} />
       <Route path="/screen/:id" element={<CorePage><UserScreenPage /></CorePage>} />
-      <Route path={PHONE_HUB_PATH} element={<HubPlace />} />
+      {/* PHONE_HUB_PATH, written out so the Guide's route check sees it. */}
+      <Route path="/hub" element={<HubPlace />} />
       <Route path="/settings" element={<CorePage><SettingsPage /></CorePage>} />
       <Route path="/settings/macros" element={<CorePage><MacrosPage /></CorePage>} />
       <Route path="/settings/keys" element={<CorePage><KeysPage /></CorePage>} />

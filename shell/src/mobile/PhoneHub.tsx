@@ -22,6 +22,7 @@ export function PhoneHub() {
   const workspaceId = useCurrentWorkspaceId();
   const [query, setQuery] = useState("");
   const ref = useRef<HTMLDivElement>(null);
+  const find = useRef<HTMLInputElement>(null);
   // Opening the grid moves focus into it (not into Find: that would raise the keyboard).
   useEffect(() => ref.current?.focus({ preventScroll: true }), []);
 
@@ -58,7 +59,15 @@ export function PhoneHub() {
         <EmptyState
           data-hub-no-match=""
           action={
-            <Button variant="outline" size="sm" onClick={() => setQuery("")}>
+            // The button goes with the message: focus goes back to Find, cleared.
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setQuery("");
+                find.current?.focus();
+              }}
+            >
               Clear the search
             </Button>
           }
@@ -87,7 +96,7 @@ export function PhoneHub() {
       <PhoneDock>
         <div className="relative px-2 py-1.5">
           <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2" />
-          <Input type="search" aria-label="Find a place" placeholder="Find…" className="pl-8" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <Input ref={find} type="search" aria-label="Find a place" placeholder="Find…" className="pl-8" value={query} onChange={(e) => setQuery(e.target.value)} />
         </div>
       </PhoneDock>
     </div>

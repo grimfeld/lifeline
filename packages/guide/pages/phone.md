@@ -28,9 +28,10 @@ Tap **Hub** for every place at once:
 
 - **Tiles** — this Workspace's Modules in their order, then Calendar, Map, Graph and Screens.
   Tap one to go there.
-- **Bases**, **Settings** and **Guide** — in a row below the tiles. The Guide opens on this page.
+- **Bases**, **Settings** and **Guide** — in a row below the tiles. The Guide opens the page for
+  where you were before you opened the Hub.
 - **The Workspace switcher** — switch Workspace, make a new one, or open Settings; the sync status
-  sits beside it.
+  sits below it.
 - **Find…** — at the foot, right above the bar: type to narrow the tiles to the places whose
   name holds what you typed. When none does, it says so; **Clear the search** brings them back.
 
@@ -45,8 +46,9 @@ In [Settings](settings.md) › **Phone bar**:
 - Type a short label for it — what the slot says on the bar.
 - **×** empties a slot.
 - Each Workspace has its own bar; a new one starts from its Modules.
-- A bar arranged when it had three slots keeps its first two: the first is now left of the
-  middle, the second right of it.
+- A bar arranged when it had three slots keeps the two that were right of the middle: the nearer
+  one moves left of the middle and the far one stays right of it. The slot that was left of the
+  middle is dropped; set it again in Settings › Phone bar.
 - If what a slot points at is gone (a Screen deleted, a Module removed), the slot stays empty —
   shown as **Set** — rather than being refilled. Tap it to choose again.
 

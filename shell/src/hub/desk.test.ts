@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EMPTY_LAYOUT, initApps, saveWindowLayout, windowsReducer } from "@lifeline/core";
-import { deskReducer, initialLayout } from "./desk";
+import { deskReducer, initialLayout, nextHistoryIndex } from "./desk";
 
 initApps([]);
 const STAGE = { width: 1000, height: 800 };
@@ -42,5 +42,22 @@ describe("initialLayout", () => {
   it("with none, a full-screen page opens over the last place, never in a Window", () => {
     expect(initialLayout("w", "/settings", lastPlace).windows[0]).toMatchObject({ target: "calendar", route: "/calendar?view=week" });
     expect(initialLayout("w", "/base/task", () => "/settings")).toEqual(EMPTY_LAYOUT);
+  });
+});
+
+describe("nextHistoryIndex", () => {
+  it("reads the browser's index only for Back and Forward", () => {
+    expect(nextHistoryIndex("POP", 3, 2)).toBe(2);
+  });
+
+  /** The race it exists for: a focus's replace at 3, Back to 2 before its effect runs. */
+  it("keeps the index through a replace and adds one for a push, whatever the browser says by then", () => {
+    expect(nextHistoryIndex("REPLACE", 3, 2)).toBe(3);
+    expect(nextHistoryIndex("PUSH", 2, 1)).toBe(3);
+  });
+
+  it("starts from the browser's index when it has none of its own", () => {
+    expect(nextHistoryIndex("PUSH", null, 4)).toBe(4);
+    expect(nextHistoryIndex("REPLACE", null, null)).toBeNull();
   });
 });
