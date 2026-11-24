@@ -20,15 +20,6 @@ export function quoteMarkdown(q: Quote, item: SourceItem | undefined): string {
   return `${lines.join("\n")}\n> — ${tail}`.trimEnd() + "\n";
 }
 
-/** Deterministic daily pick: the same quote all day, different tomorrow. */
-export function quoteOfTheDay<T extends { id: string }>(pool: T[], date: DateStr): T | undefined {
-  if (pool.length === 0) return undefined;
-  const sorted = [...pool].sort((a, b) => a.id.localeCompare(b.id));
-  let h = 0;
-  for (const ch of date) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  return sorted[h % sorted.length];
-}
-
 export function quotesOn(quotes: Quote[], day: DateStr): Quote[] {
   return quotes.filter((q) => q.capturedOn === day);
 }
