@@ -38,7 +38,8 @@ blocker bands.
   With and Tags — written as you change it. A piece of an Event that runs across days opens the
   whole Event. On a phone the Peek is a sheet from the bottom, and the Event (or whatever you tapped, from any view) is scrolled above it.
   Closing the Peek after changing the day or times leaves one **Undo** that puts them back.
-  **Delete event** deletes it at once, with its own Undo.
+  **Delete event** deletes it at once, with its own Undo. Below the form, a **Memories** panel shows the
+  Memories about the Event and, once it has begun (a past or ongoing Event), **Add a memory**.
 - **A Task's or a Chore's block or chip** — tap (or click) a Task's Time block and the Task's [Peek](peek.md)
   opens (a Chore's opens the Chore's, the same way), with a **Time block** section above its fields: the block's day (**Tomorrow** is one
   tap), start (15-minute nudges) and length, **Complete** (for one that isn't done — it ticks off that

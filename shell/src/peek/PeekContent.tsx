@@ -14,6 +14,7 @@ import {
   schedulablePeekId,
   timedPeekId,
   timedTimingInPeek,
+  documentPanels,
   usePeekStack,
   templateStartsFor,
   useAllDocuments,
@@ -82,8 +83,25 @@ export function PeekContent({ doc, def, writing = false, onWrite }: { doc: Docum
             <Body doc={doc} />
           </>
         ))}
+      <PeekPanels doc={doc} />
     </div>
   );
+}
+
+/**
+ * The document panels that opted into the Peek (ADR 0137), below the body, in registry App order.
+ * Each answers for the Documents it cares about; one with nothing to say leaves nothing, not even a gap.
+ */
+function PeekPanels({ doc }: { doc: Document }) {
+  const index = useLinkIndex();
+  return documentPanels({ peek: true }).map((p) => {
+    const Panel = p.component;
+    return (
+      <div key={`${p.appId}/${p.id}`} data-peek-panel className="min-w-0 empty:hidden">
+        <Panel doc={doc} index={index} />
+      </div>
+    );
+  });
 }
 
 /** One visit per tap: opening the same Document from another block (or the same one again) starts the timing afresh. */

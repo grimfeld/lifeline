@@ -146,6 +146,14 @@ of its own (the day it happened, today unless you say otherwise), its words and 
   **Undo** in the toast brings it back. Photos go in its text as any image does, pasted or dropped in.
 - A Memory about an Event, a Person or a Place shows in that page's **Backlinks**, as "via
   About".
+- **On an Event's Peek** — a **Memories** panel below the Event's form lists the Memories about it
+  as thumbnails (the photo, or the title alone), each opening its Memory. Once the Event has
+  begun, **Add a memory** opens New memory with About set to the Event, the date to its first
+  day and the title to its title. An Event that has not begun offers no **Add a memory**, and
+  one with no Memories shows no panel until it has.
+- **On a Day** — a **Memories** panel in the Day's side column (in the Journal and the Vault) lists
+  the Memories dated that day as tiles, each opening its Memory. A Day with none dated it shows no
+  panel.
 - A Memory dated a day shows in that day's **Daylog** as a "Memory" row linking to it.
 - Deleting a Memory leaves its photos behind as unused attachments; **Clean up unused
   attachments…** removes them.

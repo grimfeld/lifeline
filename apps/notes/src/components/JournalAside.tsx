@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Link, useNavigate } from "react-router";
-import { excerpt, formatHuman, todayStr, useLinkIndex, type DateStr } from "@lifeline/core";
+import { excerpt, formatHuman, todayStr, useLinkIndex, type DateStr, type Document } from "@lifeline/core";
 import { useNotes } from "../data/repo";
 import { onThisDay } from "../domain/journalStats";
 import { writtenDates } from "../domain/written";
@@ -18,11 +18,11 @@ const ASIDE = "flex w-64 shrink-0 flex-col gap-5 overflow-y-auto border-l p-3 cq
  * sections (`JournalSections`). On a date with no Day it stays, less the
  * links: there is no Document to link from.
  */
-export function JournalAside({ date, docId }: { date: DateStr; docId?: string }) {
+export function JournalAside({ date, doc }: { date: DateStr; doc?: Document }) {
   const index = useLinkIndex();
   return (
     <aside className={ASIDE} aria-label="Journal">
-      {docId && <JournalLinks docId={docId} index={index} />}
+      {doc && <JournalLinks docId={doc.id} doc={doc} index={index} />}
       <JournalSections date={date} open={date} />
     </aside>
   );

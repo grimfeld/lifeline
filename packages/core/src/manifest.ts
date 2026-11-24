@@ -19,6 +19,8 @@ import type { RoleDef } from "./documents/roles";
 export interface DocumentPanelDef {
   id: string;
   component: React.ComponentType<{ doc: Document; index: LinkIndex }>;
+  /** Also drawn by Core's Peek, below the body (ADR 0137). Left out, the panel stays editor-only. */
+  peek?: boolean;
 }
 
 /**

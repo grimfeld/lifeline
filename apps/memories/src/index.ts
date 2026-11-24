@@ -4,6 +4,7 @@ import { Images } from "lucide-react";
 import { memoriesCommands } from "./commands";
 import { memoryTypeDef } from "./types";
 import { memoriesDaylog } from "./daylog";
+import { MemoriesPanel } from "./components/MemoriesPanel";
 
 // Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
 const MemoriesScreen = lazyChunk(() => import("./screens/MemoriesScreen").then((m) => ({ default: m.MemoriesScreen })));
@@ -30,4 +31,6 @@ export const memoriesApp: AppManifest = {
   cards: [],
   commands: memoriesCommands,
   daylog: memoriesDaylog,
+  // On an Event's Peek (ADR 0137): its Memories, and Add a memory once it has begun.
+  documentPanels: [{ id: "memories.memories", component: MemoriesPanel, peek: true }],
 };

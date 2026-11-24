@@ -97,8 +97,9 @@ export function backgroundApps(): AppManifest[] {
   return apps.filter((a) => !!a.useBackground);
 }
 
-export function documentPanels(): (DocumentPanelDef & { appId: string })[] {
-  return apps.flatMap((a) => (a.documentPanels ?? []).map((p) => ({ ...p, appId: a.id })));
+/** Every App's document panels in registry order; `{ peek: true }` keeps those that opt into the Peek (ADR 0137). */
+export function documentPanels(where?: { peek?: boolean }): (DocumentPanelDef & { appId: string })[] {
+  return apps.flatMap((a) => (a.documentPanels ?? []).filter((p) => !where?.peek || p.peek).map((p) => ({ ...p, appId: a.id })));
 }
 
 /** Effective settings schema of a Card: its own plus the auto-added Tag filter when tagFilterable. */

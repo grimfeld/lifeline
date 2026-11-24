@@ -20,6 +20,7 @@ sheet from the bottom on a phone. The page behind stays in view.
   to the item. A subscription's event has no Peek: it shows a small read-only card.
 - **What it shows** — the Document's type and Module, its fields and its main actions, drawn by
   the App that owns it; your own Fields beneath.
+  Another App's panel may show below the body when it has something to say about the Document (an Event's Memories, for one).
 - **Edit** — change its fields right there.
 - **Write** (✎, or **⌘E / Ctrl+E**) — write its body with the Vault's editor. A Peek always opens
   to read; writing widens it.

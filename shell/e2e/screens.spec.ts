@@ -1014,6 +1014,22 @@ async function seedWrittenNeighbours(page: Page) {
   await expect(page.getByRole("link", { name: /^Next written Day/ })).toBeVisible();
 }
 
+/** A Memory dated today with the longest title, so today's Day shows it in the Memories panel. */
+async function seedDayMemory(page: Page) {
+  await workLocally(page);
+  await page.evaluate(
+    async ({ coreUrl, long }: { coreUrl: string; long: string }) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      await core.createDocument({ type: "memories_memory", title: long, folder: "Memories", fields: { date: core.todayStr(), about: [] } });
+    },
+    { coreUrl: CORE_URL, long: longText("memory") },
+  );
+  // Below `lg` the Day's side column is the Links sheet.
+  const links = page.getByRole("button", { name: /^Links/ });
+  if (await links.isVisible()) await links.click();
+  await expect(page.getByRole("region", { name: "Memories" })).toBeVisible();
+}
+
 /** The Journal sidebar's calendar zoomed out `levels` times (1: a year's months, 2: the years list) — desk only, the sidebar is hidden below `lg`. */
 const zoomCalendar = (levels: number) => async (page: Page) => {
   await workLocally(page);
@@ -1168,6 +1184,8 @@ const SCREENS: ScreenCase[] = [
     },
   },
   { name: "Journal · Today", path: "/app/journal" },
+  // A Day whose Memories panel holds a long-titled Memory dated that day (ADR 0137).
+  { name: "Journal · Day with a Memory", path: "/app/journal", afterOpen: seedDayMemory },
   { name: "Journal · Week", path: "/app/journal/p/:key", params: { key: "2026-W42" } },
   { name: "Journal · Year", path: "/app/journal/p/2026" },
   // A date with no Day and a period with no review keep the sidebar (#206).
