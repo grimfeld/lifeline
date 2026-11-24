@@ -1,6 +1,6 @@
 import { Suspense, useEffect, type ReactNode } from "react";
 import { Navigate, Route, Routes, useLocation, useParams, useSearchParams } from "react-router";
-import { lazyChunk, preloadLazyChunks, ScreenLoading, Toaster, useDocumentTitle } from "@lifeline/ui";
+import { ContentContainer, lazyChunk, preloadLazyChunks, ScreenLoading, Toaster, useDocumentTitle } from "@lifeline/ui";
 import { HANDOFF_DONE_PATH, HANDOFF_PATH } from "@lifeline/handoff";
 import {
   MODULES,
@@ -230,7 +230,9 @@ export default function App() {
   }, [syncState]);
   return (
     <PushProvider>
-      <div className="bg-background text-foreground flex h-dvh flex-col overflow-hidden">
+      {/* The page root is the content container until Windows exist: content's
+          `cq-` classes and useNarrow() measure it, not the viewport. */}
+      <ContentContainer className="bg-background text-foreground flex h-dvh flex-col overflow-hidden">
         {backgroundApps().map((a) => (
           <AppBackground key={a.id} app={a} />
         ))}
@@ -255,7 +257,7 @@ export default function App() {
         {/* The Demo never signs in (ADR 0077): no sign-in, no signed-out notice, no account switch. */}
         {!isDemo() && <AccountDialogs />}
         <Toaster position="bottom-right" />
-      </div>
+      </ContentContainer>
     </PushProvider>
   );
 }

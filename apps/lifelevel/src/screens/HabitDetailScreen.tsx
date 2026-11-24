@@ -103,7 +103,7 @@ export function HabitDetailScreen() {
   const debt = state.rawXp < 0;
 
   return (
-    <div className="mx-auto grid w-full max-w-3xl gap-4 p-4 sm:gap-6 sm:p-6">
+    <div className="mx-auto grid w-full max-w-3xl gap-4 p-4 cq-sm:gap-6 cq-sm:p-6">
       <div className="grid gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <Tip label="Back">
@@ -111,7 +111,8 @@ export function HabitDetailScreen() {
               <ArrowLeft />
             </Button>
           </Tip>
-          <h1 className="min-w-0 flex-1 truncate text-xl font-semibold tracking-tight sm:text-2xl">{habit.title}</h1>
+          {/* ui-allow: page-title — the title sits in the toolbar beside Back and Edit */}
+          <h1 className="min-w-0 flex-1 truncate text-xl font-semibold tracking-tight cq-sm:text-2xl">{habit.title}</h1>
           <Tip label="Edit">
             <Button size="icon" variant="ghost" className="shrink-0" onClick={() => setEditOpen(true)}>
               <Pencil />
@@ -135,7 +136,8 @@ export function HabitDetailScreen() {
 
       <div className="flex min-w-0 flex-wrap items-end gap-x-4 gap-y-1">
         <div className="flex items-baseline gap-1">
-          <span className={`text-3xl font-semibold tabular-nums sm:text-4xl ${debt ? "text-rose-500" : ""}`}>{Math.round(state.rawXp)}</span>
+          {/* ui-allow: raw-colour — the debt state keeps its rose; ui-allow: class-template — one conditional colour */}
+          <span className={`text-3xl font-semibold tabular-nums cq-sm:text-4xl ${debt ? "text-rose-500" : ""}`}>{Math.round(state.rawXp)}</span>
           <span className="text-muted-foreground text-sm">raw XP</span>
         </div>
         <span className="text-muted-foreground text-sm tabular-nums">
@@ -152,14 +154,14 @@ export function HabitDetailScreen() {
         {ledger.length === 0 && <p className="text-muted-foreground text-sm">Nothing logged yet. The clock is already running.</p>}
         <ul className="grid gap-1">
           {ledger.slice(0, 200).map((r) => (
-            <li key={r.id} className="bg-card flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm sm:gap-3">
+            <li key={r.id} className="bg-card flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm cq-sm:gap-3">
               {r.kind === "completion" ? <Check className="size-4 shrink-0 text-emerald-600" /> : <Skull className="size-4 shrink-0 text-rose-500" />}
-              <div className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-3">
+              <div className="flex min-w-0 flex-1 flex-col gap-0.5 cq-sm:flex-row cq-sm:items-center cq-sm:gap-3">
                 <span className="min-w-0 flex-1 truncate">
                   {r.label}
                   {r.note && <span className="text-muted-foreground ml-2 text-xs">{r.note}</span>}
                 </span>
-                <span className="flex shrink-0 items-center gap-2 text-xs sm:gap-3">
+                <span className="flex shrink-0 items-center gap-2 text-xs cq-sm:gap-3">
                   <span className={`tabular-nums ${r.delta < 0 ? "text-rose-500" : "text-emerald-600"}`}>
                     {r.delta < 0 ? "−" : "+"}
                     {Math.round(Math.abs(r.delta))} XP

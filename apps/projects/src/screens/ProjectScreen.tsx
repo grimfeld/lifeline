@@ -44,7 +44,7 @@ export function ProjectScreen() {
   const own = milestones.filter((m) => m.project === project.id).sort(byRank);
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 p-4 md:p-6">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 p-4 cq-md:p-6">
       <Link to={PROJECTS_HOME} className="text-muted-foreground hover:text-foreground flex items-center gap-1 text-sm">
         <ArrowLeft className="size-4" /> Projects
       </Link>

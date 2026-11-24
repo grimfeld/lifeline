@@ -138,7 +138,7 @@ export function QuickAdd<M extends string, H extends LookupHit>({
 
   return (
     <div className={cn("grid", compact ? "gap-1.5" : "gap-2")}>
-      <div className={cn("flex items-center gap-2", !compact && "flex-col items-stretch md:flex-row")}>
+      <div className={cn("flex items-center gap-2", !compact && "flex-col items-stretch cq-md:flex-row")}>
         <QuickPick<H>
           medium={medium}
           search={search}

@@ -108,7 +108,7 @@ export function ReportBudget({ data }: { data: ReportData }) {
 
   return (
     <div className="grid gap-4">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 cq-sm:grid-cols-4">
         <StatTile label="Targets" value={formatCents(totalTarget)} hint={`${budgeted.length} categor${budgeted.length === 1 ? "y" : "ies"} over ${months.length} month${months.length === 1 ? "" : "s"}`} />
         <StatTile label="Spent" value={formatCents(totalSpent)} hint={totalTarget > 0 ? `${formatPercent(totalSpent / totalTarget)} of targets` : "no targets in the window"} />
         <StatTile label="Left" value={formatSigned(totalTarget - totalSpent)} tone={totalTarget - totalSpent < 0 ? "bad" : "good"} hint="targets minus everything spent" />

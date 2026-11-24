@@ -60,7 +60,7 @@ export function WorkRow({ item, all, compact = false }: { item: Work; all: Work[
       </div>
 
       {!compact && slotted && (
-        <div className="hidden shrink-0 gap-1 sm:flex">
+        <div className="hidden shrink-0 gap-1 cq-sm:flex">
           {buy && (
             <Button size="sm" variant="outline" onClick={act("Got it", acquire("OWNED"))}>
               Got it
