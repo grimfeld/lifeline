@@ -41,6 +41,7 @@ export * from "./components/ui/tag-input";
 export * from "./components/ui/length-picker";
 export * from "./components/ui/quick-timing";
 export * from "./components/ui/phone-dock";
+export * from "./components/ui/content-container";
 export * from "./components/ui/page";
 export * from "./typeIcons";
 export * from "./colorSlots";

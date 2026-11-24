@@ -114,16 +114,32 @@ nearest existing pattern and don't hand-roll a new one.
 
 ### Layout
 
-- **(check)** The layout switches at `md` (768px) — the phone line (ADR 0064). `sm:` is
-  only for dialog widths (`sm:max-w-md`).
-- **(check)** The phone hook is `usePhone()` from `@lifeline/ui`; `useIsMobile` is
-  deprecated.
-- A page is `Page`: `mx-auto grid w-full gap-4 p-4 md:p-6`, `width="reading"`
+- **(check)** **Content follows its container, not the viewport** (ADR 0133). Content
+  shapes itself with the container variants, `cq-md:` and `cq-max-md:` (also `cq-sm:`,
+  `cq-lg:`, `cq-xl:`), which measure the nearest `ContentContainer` (the page root today,
+  each Window with the Hub) at the breakpoints' widths. Never the viewport's `md:`,
+  `max-md:`, `lg:` in content: a Module in a narrow Window on a wide screen must get its
+  narrow layout. Tailwind's own `@md:` is another scale; don't use it.
+- Content portalled into `<body>` (a dialog, a Sheet, the Peek) uses the same `cq-`
+  classes: `<body>` is a `content` container too, so there they measure the viewport.
+  Where it must follow its opener's Window, it asks `useNarrow()` (context crosses the
+  portal), as `AlertDialog` does.
+- The viewport's `md:` is kept only for phone navigation (the Phone bar, the Phone dock
+  and what moves into it, `max-md:contents` wrappers). Mark such a line
+  `ui-allow: viewport-breakpoint`. `sm:` is only for dialog widths (`sm:max-w-md`).
+- **(check)** Two questions, two hooks, both from `@lifeline/ui`. **Is this a phone?**
+  `usePhone()`, the device: for navigation only (the Phone bar, the Phone dock's move to
+  the bottom, `PhoneFilters`). **Is my container narrow?** `useNarrow()`, below 768px of
+  container width: for layout (a split that stacks, an aside that becomes a sheet, a
+  select for tabs, thumb-sized buttons). Portalled content asks `useNarrow()` too: it gets
+  its opener's container through context. `useIsMobile` is gone.
+- A page is `Page`: `mx-auto grid w-full gap-4 p-4 cq-md:p-6`, `width="reading"`
   (max-w-3xl, default) or `"wide"` (max-w-6xl). Its title row is `PageHeader` (title +
   actions), an empty list `EmptyState` (message + optional `action`).
 - **(check, padded div/li boxes only)** Boxes are `rounded-lg border`; a Card is `Card`. Hover is `hover:bg-accent`.
 
-On the phone (below `md`; on the desk none of this applies), every page you touch:
+On the phone (a phone device, below 768px; on the desk none of this applies, not even in a
+narrow Window), every page you touch:
 
 - **Controls sit at the bottom**, in the Phone dock right above the Phone bar: tabs, view
   switches, date paging, search, the main add. Wrap them in `PhoneDock` (renders in place
@@ -134,8 +150,8 @@ On the phone (below `md`; on the desk none of this applies), every page you touc
 - **Alone on a line → full width.** Dock items grow to fill their line (icon buttons
   excepted), so pass controls, not wrapper divs; a grouping div gets `max-md:contents`.
 - **Selectors, not tabs.** `TabsList` and `ToggleGroup` become a select on a phone by
-  themselves (§ Components); any other single-choice switch renders a `Select` when
-  `usePhone()`.
+  themselves in a narrow container (§ Components); any other single-choice switch renders
+  a `Select` when `useNarrow()`.
 - `order={1}` for tabs and view switches (nearest the thumb); actions, search and Filters
   at the default 0.
 
@@ -149,6 +165,10 @@ or makes a box scroll sideways that was not meant to. It runs nightly, not at de
 (ADR 0129), so run the rows of the screens you touch before pushing. How to run it, and the rules for writing a spec (what a wait targets, what to wait for
 before a read, what the seed holds): `shell/e2e/README.md`.
 
+- **Narrow is the container's, not the screen's.** A Module can sit in a 320px Window on a
+  wide screen, so a layout that only survives long content at the phone width must survive
+  it in any narrow container: shape it with `cq-` variants and `useNarrow()`, never the
+  viewport (§ Layout).
 - **A new screen gets a row in `SCREENS`** (App screen, Module page, Core page, Calendar
   view, detail page with `:id` + `type`). The test "every screen has a row in this file"
   fails until it does. New Document types, Fields, headless Commands and Cards are seeded

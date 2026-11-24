@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
+import { test } from "./support/test";
 import AxeBuilder from "@axe-core/playwright";
 import { encodeHandoff } from "@lifeline/handoff";
 import { CORE_URL, LONG_WORD, longText } from "./support/seed";
@@ -1053,6 +1054,10 @@ const SCREENS: ScreenCase[] = [
   { name: "Calendar · Week · a subscription's read-only card", path: `/calendar?view=week&d=${PEEK_DAY}`, afterOpen: icalCardFromSchedule },
   { name: "Calendar · Month", path: "/calendar?view=month" },
   { name: "Calendar · Month · Peek of a Task from its chip", path: `/calendar?view=month&d=${PEEK_DAY}`, afterOpen: taskPeekFromMonthChip },
+  { name: "Hub · empty stage", path: "/calendar", afterOpen: closeAllWindows },
+  { name: "Hub · a Module in a 400px Window", path: "/calendar", afterOpen: inNarrowWindow },
+  // The phone's Hub grid (#664): every Module and Surface as a tile, Find at the foot. On the desk, `/hub` is the desk.
+  { name: "Hub · phone grid", path: "/hub", afterOpen: workLocally },
   { name: "Map", path: "/map" },
   { name: "Graph", path: "/graph" },
   { name: "Bases", path: "/base", afterOpen: workLocally },
@@ -1477,6 +1482,39 @@ async function firstOfType(page: Page, type: string): Promise<string> {
     },
     { coreUrl: CORE_URL, type },
   );
+}
+
+/** The Hub's empty stage (ADR 0133): every Window closed. The desk only; a phone has no Windows. */
+async function closeAllWindows(page: Page) {
+  if ((page.viewportSize()?.width ?? 0) < 768) return;
+  await workLocally(page);
+  // The Window may render after the first look, and the signed-out notice can land late: close until the stage is empty.
+  await expect(async () => {
+    await workLocally(page);
+    for (const close of await page.getByRole("button", { name: /^Close / }).all()) await close.click({ timeout: 2000 });
+    await expect(page.getByText("Nothing is open.")).toBeVisible({ timeout: 1000 });
+  }).toPass({ timeout: 20_000 });
+}
+
+/**
+ * A Module in a 400px Window on the desk (ADR 0133): its narrow layout over the
+ * long content, as a phone shows it, inside the Window. A phone has no Windows.
+ */
+async function inNarrowWindow(page: Page) {
+  if ((page.viewportSize()?.width ?? 0) < 768) return;
+  await workLocally(page);
+  // A second Module from the Hub's index opens at 60% of the stage, in front.
+  await page.getByRole("navigation", { name: "Hub" }).getByRole("link", { name: "World" }).click();
+  const win = page.getByRole("region", { name: "World", exact: true });
+  await expect(win).toBeVisible();
+  const corner = win.locator("[data-window-corner]");
+  const c = (await corner.boundingBox())!;
+  const now = (await win.boundingBox())!;
+  await page.mouse.move(c.x + 4, c.y + 4);
+  await page.mouse.down();
+  await page.mouse.move(c.x + 4 - (now.width - 400), c.y + 4, { steps: 3 });
+  await page.mouse.up();
+  await expect.poll(async () => Math.round((await win.boundingBox())!.width)).toBe(400);
 }
 
 async function open(page: Page, path: string): Promise<void> {

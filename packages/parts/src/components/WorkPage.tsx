@@ -86,9 +86,9 @@ export function WorkPage({
   return (
     <Page>
       <div className="min-w-0">{back}</div>
-      <header className="grid min-w-0 gap-4 md:grid-cols-[10rem_minmax(0,1fr)]">
+      <header className="grid min-w-0 gap-4 cq-md:grid-cols-[10rem_minmax(0,1fr)]">
         {/* A cover's width: a phone shows it smaller, above the title. */}
-        <div className="w-32 self-start md:w-full">{cover}</div>
+        <div className="w-32 self-start cq-md:w-full">{cover}</div>
         <div className="grid min-w-0 content-start gap-2">
           <PageHeader title={work.title} />
           {byline && <div className="text-muted-foreground min-w-0 text-sm">{byline}</div>}
@@ -117,7 +117,7 @@ export function WorkPage({
 
       {history.length > 0 && (
         <Section title="History">
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-2 md:grid-cols-3">
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-2 cq-md:grid-cols-3">
             {history.map((d) => (
               <div key={d.label} className="grid min-w-0 gap-0.5">
                 <dt className="text-muted-foreground text-xs">{d.label}</dt>

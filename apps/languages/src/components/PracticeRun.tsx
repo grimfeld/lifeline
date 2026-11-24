@@ -185,7 +185,7 @@ export function PracticeRun({ label, items, recalls, newCap, onDone }: {
               <Eye /> Show answer
             </Button>
           )}
-          <p className="text-muted-foreground hidden text-center text-xs md:block">Space to reveal · 1 or F to fail · 2 or J to pass</p>
+          <p className="text-muted-foreground hidden text-center text-xs cq-md:block">Space to reveal · 1 or F to fail · 2 or J to pass</p>
         </>
       ) : (
         <Card className="py-0">

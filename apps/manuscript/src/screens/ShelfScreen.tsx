@@ -41,7 +41,7 @@ export function ShelfScreen() {
   }
 
   return (
-    <div className="mx-auto grid w-full max-w-5xl gap-5 p-4 md:p-6">
+    <div className="mx-auto grid w-full max-w-5xl gap-5 p-4 cq-md:p-6">
       <div className="flex items-center gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">Manuscripts</h1>
         <Button size="sm" className="ml-auto" onClick={() => setOpen(true)}>

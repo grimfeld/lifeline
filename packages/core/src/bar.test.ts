@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { BAR_CUSTOM_SLOTS, BAR_LEFT_SLOT, BAR_PINNED, barToStore, sameSlot, seedBar } from "./bar";
+import { BAR_CUSTOM_SLOTS, BAR_PINNED, barToStore, resolveBar, sameSlot, seedBar } from "./bar";
 import { SURFACES } from "./manifest";
+import type { UserScreen } from "./data/db";
 
 describe("the Phone bar's pinned slots", () => {
   it("is the Calendar Surface alone (ADR 0063: Calendar and Schedule are one)", () => {
@@ -43,11 +44,11 @@ describe("seeding a new Workspace's bar", () => {
     ]);
   });
 
-  /** ADR 0063: the cell left of capture is the user's to fill — nothing is guessed into it. */
-  it("seeds only the two right of capture, leaving the left one empty", () => {
+  /** #664: two slots, both seeded — left of capture, then right of it. */
+  it("seeds both of the user's slots", () => {
     const bar = seedBar(["house", "tasks", "schedules", "culture", "money", "notes", "progress"]);
-    expect(bar).toHaveLength(2);
-    expect(barToStore(bar)[BAR_LEFT_SLOT]).toBeNull();
+    expect(bar).toHaveLength(BAR_CUSTOM_SLOTS);
+    expect(barToStore(bar)).toEqual(bar);
   });
 
   it("gives a Workspace holding nothing an empty bar rather than inventing one", () => {
@@ -72,6 +73,11 @@ describe("comparing slots", () => {
 
 describe("storing an arrangement", () => {
   const tasks = { kind: "module" as const, id: "tasks" };
+  const notes = { kind: "module" as const, id: "notes" };
+
+  it("is two slots the user arranges, beside the fixed Calendar, capture and Hub (#664)", () => {
+    expect(BAR_CUSTOM_SLOTS).toBe(2);
+  });
 
   /**
    * The decision this test exists to pin (ADR 0053): a slot whose destination
@@ -81,27 +87,43 @@ describe("storing an arrangement", () => {
    * forbids.
    */
   it("keeps a hole rather than closing it up", () => {
-    expect(barToStore([null, tasks, null])).toEqual([null, tasks, null]);
+    expect(barToStore([null, tasks])).toEqual([null, tasks]);
   });
 
   it("pads a short arrangement to the bar's length", () => {
-    expect(barToStore([])).toEqual([null, null, null]);
-    expect(barToStore([tasks])).toEqual([tasks, null, null]);
+    expect(barToStore([])).toEqual([null, null]);
+    expect(barToStore([tasks])).toEqual([tasks, null]);
   });
 
-  it("never stores more slots than the bar has", () => {
-    const over = [tasks, tasks, tasks, tasks];
-    expect(barToStore(over)).toHaveLength(BAR_CUSTOM_SLOTS);
-  });
-
-  /** ADR 0063: a bar stored with two slots keeps them on the right and reads its new cell as empty. */
-  it("reads a two-slot bar from before ADR 0063 with the left cell empty", () => {
-    const old = [tasks, { kind: "module" as const, id: "notes" }];
-    expect(barToStore(old)).toEqual([...old, null]);
+  /** #664: a bar stored with three slots keeps its first two, and saving it drops the third. */
+  it("drops a third slot stored before #664 the next time the bar is saved", () => {
+    const old = [tasks, notes, { kind: "screen" as const, id: "s1" }];
+    expect(barToStore(old)).toEqual([tasks, notes]);
   });
 
   it("round-trips: what is stored reads back in the same positions", () => {
-    const arrangement = [null, { kind: "screen" as const, id: "s1", label: "Morning" }, null];
+    const arrangement = [null, { kind: "screen" as const, id: "s1", label: "Morning" }];
     expect(barToStore(barToStore(arrangement))).toEqual(arrangement);
+  });
+});
+
+describe("resolving the bar", () => {
+  const tasks = { kind: "module" as const, id: "tasks" };
+  const notes = { kind: "module" as const, id: "notes" };
+  const screen = (id: string): UserScreen => ({ id, name: `Screen ${id}`, layout: [], sort: 0, workspace: "w", updatedAt: "", deleted: 0 });
+
+  it("reads two slots, left of capture then right of it, and ignores a stored third", () => {
+    const bar = resolveBar([tasks, notes, { kind: "screen", id: "s1" }], ["tasks", "notes"], [screen("s1")]);
+    expect(bar).toHaveLength(2);
+    expect(bar.map((s) => s?.slot.id)).toEqual(["tasks", "notes"]);
+  });
+
+  /** ADR 0053, kept: gone is empty, never refilled by what comes after it. */
+  it("leaves a slot whose destination is gone empty, in place", () => {
+    const bar = resolveBar([{ kind: "screen", id: "deleted" }, notes], ["tasks", "notes"], []);
+    expect(bar[0]).toBeNull();
+    expect(bar[1]?.slot).toEqual(notes);
+    // A Module the Workspace no longer holds is gone too.
+    expect(resolveBar([tasks, notes], ["notes"], [])[0]).toBeNull();
   });
 });

@@ -1,5 +1,5 @@
 // Helpers for shell/playwright.config.ts, kept apart so node --test can reach them.
-import { existsSync, linkSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, linkSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir, totalmem } from "node:os";
 import { join } from "node:path";
@@ -96,24 +96,70 @@ const readSlot = (file) => {
 /** A run's worktree as the waiting line shows it: printable characters only. */
 const printable = (text) => text.replace(/[\u0000-\u001f\u007f-\u009f]/g, "?");
 
+/** How long a reclaim lock with no readable pid is given: its run writes the pid right after making it. */
+const RECLAIM_GRACE_MS = 5_000;
+
+/** The pid in reclaim lock `mutex`, or undefined when there is none (or no such lock). */
+const reclaimOwner = (mutex) => {
+  try {
+    const pid = Number(readFileSync(join(mutex, "pid"), "utf8"));
+    return Number.isInteger(pid) && pid > 0 ? pid : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+/**
+ * Clears reclaim lock `mutex` when the run that made it is gone (#648): its pid isn't running,
+ * or it has no readable pid after `RECLAIM_GRACE_MS`. Its age alone never counts. The lock is
+ * first moved aside under a name of this run's own, so of two runs that judged it stale only
+ * one moves it; then the moved lock is checked to be the one judged, and put back if it is
+ * another run's, made since. Returns whether `mutex` is now free to make.
+ */
+function clearStaleReclaim(mutex, pid, isAlive) {
+  const made = statSync(mutex, { throwIfNoEntry: false });
+  if (!made) return true;
+  const owner = reclaimOwner(mutex);
+  const stale = owner === undefined ? Date.now() - made.mtimeMs > RECLAIM_GRACE_MS : !isAlive(owner);
+  if (!stale) return false; // Another run is clearing this slot.
+  const aside = `${mutex}.gone-${pid}`;
+  try {
+    renameSync(mutex, aside);
+  } catch {
+    return false; // Another run moved it first: the slot waits for the next poll.
+  }
+  // The very lock judged (same directory, same pid), not one made since by a run that cleared it.
+  if (statSync(aside, { throwIfNoEntry: false })?.ino !== made.ino || reclaimOwner(aside) !== owner) {
+    try {
+      renameSync(aside, mutex); // Another run's fresh lock: back it goes.
+    } catch {
+      // A third run made one in the meantime; it is the holder now.
+    }
+    return false;
+  }
+  rmSync(aside, { recursive: true, force: true });
+  return true;
+}
+
 /**
  * Clears slot file `file` when the run in it is gone, or it isn't a lock at all (another
  * program's file, or one a crash left unreadable). Done under `<file>.reclaim`, a directory
- * only one run can create, so two runs that find the same dead lock can't both clear it and
- * then each take the slot; the lock is read again under it, in case a live run took the slot
- * since. A `.reclaim` older than a minute was left by a run killed mid-clear, and goes.
+ * only one run can create, holding that run's pid, so two runs that find the same dead lock
+ * can't both clear it and then each take the slot; the lock is read again under it, in case a
+ * live run took the slot since. A `.reclaim` whose run is gone is cleared (`clearStaleReclaim`).
  */
-function clearIfDead(file, isAlive) {
+function clearIfDead(file, pid, isAlive) {
   const mutex = `${file}.reclaim`;
-  try {
-    if (Date.now() - statSync(mutex).mtimeMs > 60_000) rmSync(mutex, { recursive: true, force: true });
-  } catch {
-    // No mutex: the usual case.
-  }
+  if (!clearStaleReclaim(mutex, pid, isAlive)) return;
   try {
     mkdirSync(mutex);
   } catch {
     return; // Another run is clearing it.
+  }
+  try {
+    writeFileSync(join(mutex, "pid"), String(pid));
+  } catch {
+    return; // Moved aside before the pid was in: no longer this run's to clear under.
   }
   try {
     const inode = statSync(file, { throwIfNoEntry: false })?.ino;
@@ -121,7 +167,8 @@ function clearIfDead(file, isAlive) {
     // Only the lock just read: never one a live run has linked in since.
     if (inode !== undefined && (!held || !isAlive(held.pid)) && statSync(file, { throwIfNoEntry: false })?.ino === inode) rmSync(file, { force: true });
   } finally {
-    rmSync(mutex, { recursive: true, force: true });
+    // Only this run's own reclaim lock: never one another run made after judging this one stale.
+    if (reclaimOwner(mutex) === pid) rmSync(mutex, { recursive: true, force: true });
   }
 }
 
@@ -140,7 +187,7 @@ export function tryTakeSlot({ dir, count, pid = process.pid, worktree, isAlive =
   try {
     for (let i = 0; i < count; i++) {
       const file = slotFile(dir, i);
-      if (existsSync(file)) clearIfDead(file, isAlive);
+      if (existsSync(file)) clearIfDead(file, pid, isAlive);
       try {
         linkSync(mine, file);
         return {

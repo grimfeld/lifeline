@@ -1,30 +1,33 @@
-import { test, expect } from "@playwright/test";
+import { expect } from "@playwright/test";
+import { test } from "./support/test";
 import { workLocally } from "./support/journal";
 
-/** On a phone, ☰ on /vault opens the Vault's sidebar, with a way back to the Rail (#319, ADR 0068). */
-test.describe("Vault · the phone drawer (#319)", { tag: "@phone" }, () => {
-  test("☰ shows Files / Search / Tags, a pick closes it, All places goes to the Rail", async ({ page }) => {
+/**
+ * On a phone the Vault's tree, search and tags open from **Browse** in its
+ * Phone dock (#319, ADR 0068): the ☰ drawer that held them is gone (#664), and
+ * the Hub's grid goes between places.
+ */
+test.describe("Vault · the phone's Browse sheet (#319, #664)", { tag: "@phone" }, () => {
+  test("Browse shows Files / Search / Tags and a pick closes it; there is no ☰", async ({ page }) => {
     await page.goto("/vault");
     await workLocally(page);
-    const drawer = page.getByRole("dialog", { name: "Navigation" });
+    await expect(page.getByRole("button", { name: "Menu" })).toHaveCount(0);
+    const sheet = page.getByRole("dialog", { name: "Vault" });
+    // The Folder tabs stay in the dock beside Browse, each on its own route.
+    await expect(page.getByRole("link", { name: "Thoughts" })).toBeVisible();
 
-    await page.getByRole("button", { name: "Menu" }).click();
-    await expect(drawer.getByRole("button", { name: "Files" })).toBeVisible();
-    await expect(drawer.getByRole("button", { name: "Search" })).toBeVisible();
-    await expect(drawer.getByRole("button", { name: "Tags" })).toBeVisible();
+    await page.getByRole("button", { name: "Browse" }).click();
+    await expect(sheet.getByRole("button", { name: "Files" })).toBeVisible();
+    await expect(sheet.getByRole("button", { name: "Search" })).toBeVisible();
+    await expect(sheet.getByRole("button", { name: "Tags" })).toBeVisible();
 
-    // A file in the tree: picking it closes the drawer and opens it.
-    const file = drawer.locator("button[draggable=true]").first();
+    // A file in the tree: picking it closes the sheet and opens it.
+    const file = sheet.locator("button[draggable=true]").first();
     await expect(file).toBeVisible();
     const title = await file.getAttribute("title");
     await file.click();
-    await expect(drawer).toBeHidden();
+    await expect(sheet).toBeHidden();
     await expect(page).not.toHaveURL(/\/vault\/?$/);
     if (title) await expect(page.getByText(title).first()).toBeVisible();
-
-    await page.getByRole("button", { name: "Menu" }).click();
-    await drawer.getByRole("button", { name: "All places" }).click();
-    await expect(drawer.getByRole("button", { name: "Files" })).toHaveCount(0);
-    await expect(drawer.getByRole("button", { name: "All places" })).toHaveCount(0);
   });
 });

@@ -23,8 +23,10 @@ const add = async (args: Record<string, unknown>) => {
  * one: an answer's `updatedAt` ("…:32.384Z") holds "2.38" by chance about once in a
  * thousand stamps, which is not the Event's place.
  */
+// A number counts only standing on its own: not inside a longer one, and not as the seconds of a
+// time ("…T12:28:48.871Z" would give "48.87" whenever an answer was stamped at that second).
 const gives = (answer: string, value: string): boolean =>
-  /^-?\d+(\.\d+)?$/.test(value) ? new RegExp(`(?<![\\d.])${value.replace(".", "\\.")}`).test(answer) : answer.includes(value);
+  /^-?\d+(\.\d+)?$/.test(value) ? new RegExp(`(?<![\\d.])(?<!\\d\\d:)${value.replace(".", "\\.")}`).test(answer) : answer.includes(value);
 
 const agendaOn = async (day: string) => ((await runTool("agenda", { start: day, end: day })) as { days: Record<string, { title: string; at?: unknown }[]> }).days[day] ?? [];
 

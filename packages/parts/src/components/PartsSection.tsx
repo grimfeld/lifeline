@@ -1,4 +1,4 @@
-import { Button, cn, Input, Label, Popover, PopoverContent, PopoverTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, usePhone } from "@lifeline/ui";
+import { Button, cn, Input, Label, Popover, PopoverContent, PopoverTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, useNarrow } from "@lifeline/ui";
 import { ChevronDown, ChevronRight, FastForward, ListOrdered, Plus, StepForward } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
@@ -152,7 +152,7 @@ function RunLength<W extends PartsWork>({ kit, work, medium, total }: { kit: Par
 export function PartsSection<W extends PartsWork>({ kit, work }: { kit: PartsKit<W>; work: W }) {
   const medium = kit.config.mediumOf(work);
   const { parts, groups } = kit.useWorkParts(work.id);
-  const phone = usePhone();
+  const narrow = useNarrow();
   const [tap, setTap] = useState<Tap>("read");
   const [openPart, setOpenPart] = useState<Pos | null>(null);
   const [openGroup, setOpenGroup] = useState<number | null>(null);
@@ -194,7 +194,7 @@ export function PartsSection<W extends PartsWork>({ kit, work }: { kit: PartsKit
     else void attempt(async () => announceRead(kit, work, medium, await kit.markRead(work, pos)));
   }
 
-  const tapSwitch = phone ? (
+  const tapSwitch = narrow ? (
     <Select value={tap} onValueChange={(v) => setTap(v as Tap)}>
       <SelectTrigger size="sm" className="h-7 w-auto text-xs" aria-label="A tap">
         <SelectValue />
