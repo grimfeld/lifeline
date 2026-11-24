@@ -4,7 +4,8 @@ On a desk or a large tablet, the **Hub** is how you go between places and arrang
 of what you can open, and a stage where each one opens in its own **Window**. Open the Money
 Module beside the Calendar and see both at once.
 
-(On a phone there are no Windows: see [Using Lifeline on a phone](phone.md).)
+(On a phone there are no Windows: the Phone bar's **Hub** slot opens a grid of every place
+instead. See [Using Lifeline on a phone](phone.md).)
 
 ## The Hub
 

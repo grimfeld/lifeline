@@ -419,3 +419,92 @@ test.describe("The Hub", () => {
     });
   });
 });
+
+/** On a phone there are no Windows: the Phone bar's Hub slot opens a grid of every place (#664). */
+test.describe("The phone's Hub", { tag: "@phone" }, () => {
+  const bar = (page: Page) => page.locator("nav").filter({ has: page.getByRole("button", { name: "Capture" }) });
+  const hubSlot = (page: Page) => bar(page).getByRole("button", { name: "Hub", exact: true });
+  const grid = (page: Page) => page.getByRole("region", { name: "Hub" });
+
+  test("the bar reads Calendar · slot · Capture · slot · Hub, and there is no ☰ and no Window", async ({ page }) => {
+    await page.goto("/calendar");
+    await workLocally(page);
+    const cells = bar(page).getByRole("button");
+    await expect(cells).toHaveCount(5);
+    await expect(cells.nth(0)).toContainText("Calendar");
+    await expect(cells.nth(2)).toContainText("Capture");
+    await expect(cells.nth(4)).toContainText("Hub");
+    await expect(page.getByRole("button", { name: "Menu" })).toHaveCount(0);
+    await expect(page.locator("[data-window]")).toHaveCount(0);
+    await expect(page.getByRole("navigation", { name: "Hub" })).toHaveCount(0);
+  });
+
+  test("the Hub slot opens the grid, marked; a tile opens its place full screen and the mark goes", async ({ page }) => {
+    await page.goto("/calendar");
+    await workLocally(page);
+    await hubSlot(page).click();
+    await expect(page).toHaveURL(/\/hub$/);
+    await expect(grid(page)).toBeVisible();
+    await expect(hubSlot(page)).toHaveAttribute("aria-current", "page");
+    await expect(grid(page)).toBeFocused();
+    const places = grid(page).getByRole("list", { name: "Places" });
+    await expect(places.getByRole("link", { name: "Map" })).toBeVisible();
+    await expect(grid(page).getByRole("link", { name: "Settings" })).toBeVisible();
+    await expect(grid(page).getByRole("link", { name: "Bases" })).toBeVisible();
+    await expect(grid(page).getByRole("link", { name: "Guide" })).toBeVisible();
+
+    await places.getByRole("link", { name: "Map" }).click();
+    await expect(page).toHaveURL(/\/map/);
+    await expect(hubSlot(page)).not.toHaveAttribute("aria-current", "page");
+
+    // From the Map, the Hub's Guide opens the Map's page, and `/` resumes to the Map, not the Hub.
+    await hubSlot(page).click();
+    await expect(grid(page).getByRole("link", { name: "Guide" })).toHaveAttribute("href", /\/guide\/(?!phone)/);
+    await page.goto("/");
+    await expect(page).toHaveURL(/\/map/);
+  });
+
+  test("Find narrows the tiles, and a search with no match says so", async ({ page }) => {
+    await page.goto("/hub");
+    await workLocally(page);
+    const places = grid(page).getByRole("list", { name: "Places" });
+    await expect(places.getByRole("link", { name: "Graph" })).toBeVisible();
+    const find = page.getByRole("searchbox", { name: "Find a place" });
+    await find.fill("gra");
+    await expect(places.getByRole("link", { name: "Graph" })).toBeVisible();
+    await expect(places.getByRole("link", { name: "Map" })).toHaveCount(0);
+    await find.fill("zzzz nothing");
+    await expect(grid(page).locator("[data-hub-no-match]")).toContainText("“zzzz nothing”");
+    await expect(grid(page).getByRole("status")).toHaveText("0 places");
+    await grid(page).getByRole("button", { name: "Clear the search" }).click();
+    await expect(places.getByRole("link", { name: "Map" })).toBeVisible();
+  });
+
+  test("a bar stored with three slots shows its first two, and Settings arranges two; saving drops the third", async ({ page }) => {
+    await page.goto("/settings");
+    await workLocally(page);
+    await inCore(page, async (core) => {
+      const ws = (await core.currentWorkspace())!;
+      await core.saveWorkspace({ ...ws, bar: [{ kind: "surface", id: "map" }, { kind: "surface", id: "graph" }, { kind: "surface", id: "calendar" }] });
+    }, null);
+    const cells = bar(page).getByRole("button");
+    await expect(cells.nth(1)).toContainText("Map");
+    await expect(cells.nth(3)).toContainText("Graph");
+    await expect(cells).toHaveCount(5);
+
+    // Settings › Phone bar: two slots to arrange, the Hub fixed beside them.
+    await expect(page.getByRole("textbox", { name: /^Label for / })).toHaveCount(2);
+    await page.getByRole("button", { name: "Empty this slot" }).first().click();
+    await expect.poll(() => inCore(page, async (core) => (await core.currentWorkspace())!.bar, null)).toEqual([null, { kind: "surface", id: "graph" }]);
+    await expect(cells.nth(1)).toContainText("Set");
+  });
+});
+
+test("on the desk, /hub is the desk: the phone's grid never opens there", async ({ page }) => {
+  await page.goto("/hub");
+  const local = page.getByRole("button", { name: "Work locally" });
+  await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
+  await expect(page).not.toHaveURL(/\/hub$/);
+  await expect(page.getByRole("navigation", { name: "Hub" })).toBeVisible();
+  await expect(page.getByRole("searchbox", { name: "Find a place" })).toHaveCount(0);
+});

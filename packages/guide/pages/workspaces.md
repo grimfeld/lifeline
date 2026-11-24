@@ -18,7 +18,7 @@ your life, "Work" for work's Tasks and Research, with no Money in sight.
 
 ## What you can do
 
-- **Switch Workspace** — the Hub's top bar on the desk, or the name in the phone's header.
+- **Switch Workspace** — the Hub's top bar on the desk, or the Workspace switcher in the phone's Hub.
   Switching takes you to where you last were in that Workspace.
 - **New workspace** — from the same menu, or in [Settings](settings.md). Give it a name and tick
   its Modules.

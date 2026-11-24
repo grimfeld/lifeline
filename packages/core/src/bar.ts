@@ -15,12 +15,13 @@ import { WORKSPACES, type UserScreen } from "./data/db";
 import { useCurrentWorkspace, useWorkspaceModules, type WorkspaceRecord } from "./workspaces";
 
 /**
- * The **Phone bar** (ADR 0053, ADR 0063): `Calendar · [slot] · ✛ · [slot] · [slot]`.
+ * The **Phone bar** (ADR 0053, ADR 0063, ADR 0133): `Calendar · [slot] · ✛ · [slot] · Hub`.
  *
- * The far left and the centre are Core's and are not configurable — time is
- * what a phone is taken out of a pocket for, and capture is a verb where the
- * other slots are places, so it is the one control that must be at thumb
- * height on every page. The other three are the user's.
+ * The far left, the centre and the far right are Core's and are not
+ * configurable — time is what a phone is taken out of a pocket for, capture is
+ * a verb where the other slots are places, so it is the one control that must
+ * be at thumb height on every page, and the Hub is how the phone goes between
+ * places (#664). The other two are the user's.
  *
  * This supersedes ADR 0049's derivation of the bar from the Workspace's
  * Modules. A Module list says what a Workspace *shelves*, which is not where
@@ -33,21 +34,15 @@ import { useCurrentWorkspace, useWorkspaceModules, type WorkspaceRecord } from "
 export const BAR_PINNED: SurfaceDef[] = ["calendar"].map((id) => surfaceById(id)!);
 
 /**
- * How many slots the user arranges. Stored in this order: the two right of
- * capture first, then the one left of it — the cell ADR 0063 freed. A bar
- * stored before then holds the right two and reads its new cell as empty,
- * never filled for it.
+ * How many slots the user arranges, stored in the order the bar shows them:
+ * left of capture, then right of it (#664). A bar stored with three (ADR 0063's
+ * left cell third) keeps its first two; the third is ignored, and dropped the
+ * next time the bar is saved — no migration.
  */
-export const BAR_CUSTOM_SLOTS = 3;
+export const BAR_CUSTOM_SLOTS = 2;
 
-/** The stored index of the slot left of capture. */
-export const BAR_LEFT_SLOT = 2;
-
-/** The custom slots' stored indices in the order the bar shows them, left to right. */
-export const BAR_SLOT_ORDER = [BAR_LEFT_SLOT, 0, 1];
-
-/** How many slots a new Workspace is seeded with: the right two, as before ADR 0063. */
-const BAR_SEEDED_SLOTS = 2;
+/** How many slots a new Workspace is seeded with: all of them. */
+const BAR_SEEDED_SLOTS = BAR_CUSTOM_SLOTS;
 
 /**
  * A new Workspace's starting bar, from its own Modules: Tasks and Note-taking
@@ -83,7 +78,8 @@ export interface ResolvedSlot {
  * whose Module this Workspace no longer holds, empties in place rather than
  * being refilled. The bar keeps five cells either way, so the pinned three
  * never move under the thumb because of something that happened on the right,
- * and nothing silently overwrites an arrangement the user made.
+ * and nothing silently overwrites an arrangement the user made. A third slot a
+ * bar stored before #664 is not read.
  *
  * Always returns exactly `BAR_CUSTOM_SLOTS` entries.
  */
@@ -95,11 +91,18 @@ export function useBarSlots(): (ResolvedSlot | null)[] {
   // than in a migration — one code path for old rows and new.
   const slots = ws?.bar ?? seedBar(ws?.modules ?? []);
 
-  return useMemo(() => {
-    const out: (ResolvedSlot | null)[] = [];
-    for (let i = 0; i < BAR_CUSTOM_SLOTS; i++) out.push(resolveSlot(slots[i], modules, screens));
-    return out;
-  }, [slots, modules, screens]);
+  return useMemo(() => resolveBar(slots, modules, screens), [slots, modules, screens]);
+}
+
+/**
+ * A stored bar, resolved against what the Workspace holds: exactly
+ * `BAR_CUSTOM_SLOTS` entries, `null` where a slot is unset or its destination
+ * is gone, and anything stored past them not read.
+ */
+export function resolveBar(stored: readonly (BarSlot | null)[], modules: string[], screens: UserScreen[]): (ResolvedSlot | null)[] {
+  const out: (ResolvedSlot | null)[] = [];
+  for (let i = 0; i < BAR_CUSTOM_SLOTS; i++) out.push(resolveSlot(stored[i], modules, screens));
+  return out;
 }
 
 /** The raw slots as stored, padded to length — what Settings edits. */

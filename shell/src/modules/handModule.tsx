@@ -93,7 +93,7 @@ export function handModule(opts: {
     );
   }
 
-  return { Layout, Nav, pages: opts.pages };
+  return { Layout, pages: opts.pages };
 }
 
 /** An App screen's route; undefined when that App is not registered, so its place is skipped. */

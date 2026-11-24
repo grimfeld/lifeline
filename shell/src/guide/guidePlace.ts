@@ -1,5 +1,6 @@
 import { SURFACES, moduleOfPath } from "@lifeline/core";
 import { guidePageOfModule, guidePageOfSurface } from "@lifeline/guide";
+import { PHONE_HUB_PATH } from "../nav/phoneHub";
 
 /** Core destinations whose Guide page is their own, by route. */
 export const CORE_PAGES: [root: string, slug: string][] = [
@@ -11,6 +12,8 @@ export const CORE_PAGES: [root: string, slug: string][] = [
   ["/settings", "settings"],
   ["/vault", "vault"],
   ["/handoff", "peek"],
+  // The phone's Hub grid (#664): what the phone page tells.
+  [PHONE_HUB_PATH, "phone"],
 ];
 
 /**

@@ -16,7 +16,7 @@ import {
   type WindowHistory,
 } from "@lifeline/core";
 import { lastPlace } from "../nav/resume";
-import { deskReducer, initialLayout, isPageRoute } from "./desk";
+import { deskReducer, initialLayout, isPageRoute, nextHistoryIndex } from "./desk";
 
 /** The full path of a location: what a Window's route holds. */
 const fullPath = (l: { pathname: string; search: string; hash: string }) => l.pathname + l.search + l.hash;
@@ -94,8 +94,8 @@ export function useDesk(stage: Stage | null) {
   // The URL drives the front Window.
   const path = fullPath(location);
   useEffect(() => {
-    const index = historyIndex();
     const previous = lastIndex.current;
+    const index = nextHistoryIndex(navigationType, previous, historyIndex());
     lastIndex.current = index;
     const fromPage = wasPage.current;
     wasPage.current = isPageRoute(location.pathname);

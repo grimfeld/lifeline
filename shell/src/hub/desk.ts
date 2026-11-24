@@ -6,6 +6,18 @@ export function isPageRoute(route: string): boolean {
   return path !== "/" && routeTarget(path).kind === "page";
 }
 
+/**
+ * Where in the browser's history a navigation leaves the desk, as an index.
+ * Read from `history.state` only for Back and Forward: the effect that sees a
+ * push or a replace can run after a Back has already moved the browser (a
+ * focus's replace, then an instant Back), and would read the entry Back landed
+ * on. A push is one further; a replace stays where it was.
+ */
+export function nextHistoryIndex(type: "POP" | "PUSH" | "REPLACE", previous: number | null, read: number | null): number | null {
+  if (type === "POP" || previous === null) return read;
+  return type === "PUSH" ? previous + 1 : previous;
+}
+
 /** The desk's own actions on top of the window layout's: loading a Workspace's set. */
 export type DeskAction = WindowAction | { type: "load"; layout: WindowLayout };
 

@@ -1056,6 +1056,8 @@ const SCREENS: ScreenCase[] = [
   { name: "Calendar · Month · Peek of a Task from its chip", path: `/calendar?view=month&d=${PEEK_DAY}`, afterOpen: taskPeekFromMonthChip },
   { name: "Hub · empty stage", path: "/calendar", afterOpen: closeAllWindows },
   { name: "Hub · a Module in a 400px Window", path: "/calendar", afterOpen: inNarrowWindow },
+  // The phone's Hub grid (#664): every Module and Surface as a tile, Find at the foot. On the desk, `/hub` is the desk.
+  { name: "Hub · phone grid", path: "/hub", afterOpen: workLocally },
   { name: "Map", path: "/map" },
   { name: "Graph", path: "/graph" },
   { name: "Bases", path: "/base", afterOpen: workLocally },

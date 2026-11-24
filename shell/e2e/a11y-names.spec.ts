@@ -92,3 +92,13 @@ test("a Window bar's maximise and full-screen buttons are named, and a full-scre
   await workLocally(page);
   await expect(page.getByRole("region", { name: "Settings", exact: true }).getByRole("button", { name: "Close Settings" })).toBeVisible();
 });
+
+test("the Phone bar's Hub slot and the phone Hub's tiles and Find are named", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "The Phone bar and its Hub are the phone's (#664)");
+  await page.goto("/hub");
+  await workLocally(page);
+  await expect(page.getByRole("button", { name: "Hub", exact: true })).toHaveAttribute("aria-current", "page");
+  const hub = page.getByRole("region", { name: "Hub" });
+  await expect(hub.getByRole("list", { name: "Places" }).getByRole("link").first()).toHaveAccessibleName(/\S/);
+  await expect(page.getByRole("searchbox", { name: "Find a place" })).toBeVisible();
+});
