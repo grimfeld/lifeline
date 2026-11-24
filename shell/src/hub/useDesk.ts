@@ -79,6 +79,8 @@ export function useDesk(stage: Stage | null) {
   // A Window whose Module the Workspace no longer takes is dropped.
   const moduleKey = modules.join(",");
   useEffect(() => {
+    // An empty list is a Workspace not loaded yet, never one that took every Module away.
+    if (modules.length === 0) return;
     const targets = [...modules, ...SURFACES.map((s) => s.id), "screens"];
     dispatch({ type: "prune", targets: [...targets, ...layout.windows.filter((w) => w.target.startsWith("page:")).map((w) => w.target)] });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- on a change of the Workspace's Modules only
