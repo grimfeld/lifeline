@@ -1,7 +1,7 @@
 ---
 status: accepted
-supersedes: ADR 0057 (in part — the Rail is Core's only chrome), ADR 0053 (in part — three user slots on the Phone bar), ADR 0021 (in part — the ☰ menu)
-amends: ADR 0064 (in part — the phone/desk switch inside content follows the Window, while the Phone dock's move to the bottom stays the device's)
+supersedes: ADR 0057 (in part — the Rail is Core's only chrome), ADR 0053 (in part — three user slots on the Phone bar), ADR 0021 (in part — the ☰ menu), ADR 0063 (in part — the cell left of capture left empty, and the slots' stored order)
+amends: ADR 0064 (in part — the phone/desk switch inside content follows the Window, while the Phone dock's move to the bottom stays the device's), ADR 0089 (in part — on a phone the Guide is reached from the Hub, not a "?" in the header)
 ---
 
 # The Rail becomes the Hub, a stage of Windows, and content follows its Window

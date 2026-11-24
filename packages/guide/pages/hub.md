@@ -4,7 +4,8 @@ On a desk or a large tablet, the **Hub** is how you go between places and arrang
 of what you can open, and a stage where each one opens in its own **Window**. Open the Money
 Module beside the Calendar and see both at once.
 
-(On a phone there are no Windows: see [Using Lifeline on a phone](phone.md).)
+(On a phone there are no Windows: the Phone bar's **Hub** slot opens a grid of every place
+instead. See [Using Lifeline on a phone](phone.md).)
 
 ## The Hub
 
@@ -24,14 +25,28 @@ Module beside the Calendar and see both at once.
   front.
 - **Move** — drag its bar. At least 80px of the bar always stays on the stage.
 - **Resize** — drag its bottom-right corner. A Window is never smaller than 320 × 240.
+- **Maximise** — the **Maximise** button on its bar fills the stage and keeps the Hub around it.
+  **Restore** puts it back at the box it had.
+- **Full screen** — the **Full screen** button on its bar fills the whole display and hides the
+  Hub. **Hub · Esc**, on its bar, or the Esc key, brings the Hub back and puts the Window back as
+  it was. A Window in full screen is still in full screen after a reload.
 - **Close** — the button on its bar.
 - Each Window keeps its own place in its Module: the Money Window stays on its Budget while you
   use the Calendar's.
 - There is one Window for each Module or Surface. A link to a Module's page (from a Peek, a
   link, the palette) opens that Module's Window, or brings it to the front.
 - The address of the page is the front Window's.
-- Bases, Settings, the Guide and the Vault open in a Window too, but they are pages, not places kept on the desk: their Window closes when another Window comes to the front.
 - Back and Forward move within the Window in front: each Window keeps its own history. Coming to the front or closing a Window adds no step of its own.
+
+## Full-screen pages
+
+Bases, the Vault, Settings, the Guide, and an App's screen that belongs to no Module (the
+Calendar App's Events) are pages, not places to keep beside others. They never open in a Window:
+they open full screen over the Hub, from the top bar, the index, a link, a Peek or the palette.
+
+- Close one with the close button on its bar, or the Esc key. The Hub is back as it was.
+- Reloading one opens it again over the Hub.
+- Peek, Capture and the palette open above it, as they do above every Window.
 
 ## Snapping
 
@@ -46,6 +61,19 @@ Module beside the Calendar and see both at once.
   had before. A click on its bar, or a small wobble, leaves it where it is.
 - A snapped Window stays snapped through a reload, a resize of the browser and a Workspace
   switch. A quarter can be narrow: the Module then shows its narrow layout.
+
+## Window Commands
+
+Five Commands act on the Window in front, from the palette (**Ctrl+K**, ⌘K on a Mac):
+
+- **Snap Window left** and **Snap Window right** — fill that half of the stage.
+- **Maximise or restore Window** — fill the stage, or put it back.
+- **Full screen Window** — fill the display and hide the Hub; run it again to come back.
+- **Close Window**.
+
+None has a key of its own: give each one a key in [Settings › Keys](settings.md). With no Window
+open, the palette doesn't offer them. Esc is the only key the Hub keeps: it leaves full screen
+and closes a full-screen page. While you type in a field, Esc stays the field's.
 
 ## Narrow Windows
 

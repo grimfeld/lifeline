@@ -13,18 +13,17 @@ const LABELS: Record<string, string> = {
 };
 
 /**
- * Sync state, sign-in, sign-out and erase (the sign-in itself is AccountDialogs's). `compact` is the Rail's cell: the
- * state as one icon that syncs (or asks to sign in) on click — the account
- * rows live in Settings, where the full badge is.
+ * Sync state, sign-in, sign-out and erase (the sign-in itself is AccountDialogs's): on the
+ * Hub's top bar, in the phone's Hub grid and in Settings.
  *
  * The Demo has nothing to sync and no one to sign in (ADR 0077): the badge is
  * not there at all, wherever it is placed.
  */
-export function SyncBadge({ compact = false }: { compact?: boolean } = {}) {
-  return isDemo() ? null : <LiveSyncBadge compact={compact} />;
+export function SyncBadge() {
+  return isDemo() ? null : <LiveSyncBadge />;
 }
 
-function LiveSyncBadge({ compact }: { compact: boolean }) {
+function LiveSyncBadge() {
   const { state, pending, error } = useSyncState();
   const { loggedIn, email } = useAuth();
   const [busy, setBusy] = useState(false);
@@ -79,26 +78,21 @@ function LiveSyncBadge({ compact }: { compact: boolean }) {
     <>
       <button
         type="button"
-        className={
-          compact
-            ? "hover:bg-accent/50 text-muted-foreground relative flex size-9 items-center justify-center rounded-md"
-            : "hover:bg-accent/50 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs"
-        }
+        className="hover:bg-accent/50 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs"
         onClick={() => (loggedIn ? void syncNow() : openSignIn())}
         title={
           (loggedIn ? (state === "error" && error ? `Sync error: ${error}\nClick to retry` : `${LABELS[state] ?? state} — sync now`) : "Sign in to sync") +
           (pending > 0 ? ` (${pending} pending)` : "")
         }
       >
-        <Icon className={cn(compact ? "size-4" : "size-3.5", state === "syncing" && "animate-spin", state === "error" && "text-destructive")} />
-        {compact && pending > 0 && <span className="bg-primary absolute top-1.5 right-1.5 size-1.5 rounded-full" />}
-        <span className={compact ? "sr-only" : "truncate"}>
+        <Icon className={cn("size-3.5", state === "syncing" && "animate-spin", state === "error" && "text-destructive")} />
+        <span className="truncate">
           {loggedIn ? (LABELS[state] ?? state) : "Sign in to sync"}
           {pending > 0 && ` · ${pending} pending`}
         </span>
-        {loggedIn && !compact && <RefreshCw className="text-muted-foreground ml-auto size-3" />}
+        {loggedIn && <RefreshCw className="text-muted-foreground ml-auto size-3" />}
       </button>
-      {loggedIn && !compact && (
+      {loggedIn && (
         <button
           type="button"
           className="hover:bg-accent/50 text-muted-foreground flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-xs"
@@ -108,17 +102,15 @@ function LiveSyncBadge({ compact }: { compact: boolean }) {
           <span className="truncate">{email} · sign out</span>
         </button>
       )}
-      {!compact && (
-        <button
-          type="button"
-          className="hover:bg-accent/50 text-muted-foreground flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-xs"
-          onClick={() => void askErase()}
-          title="Delete everything stored on this device and download this account's data again"
-        >
-          <Trash2 className="size-3" />
-          <span className="truncate">Erase local data…</span>
-        </button>
-      )}
+      <button
+        type="button"
+        className="hover:bg-accent/50 text-muted-foreground flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-xs"
+        onClick={() => void askErase()}
+        title="Delete everything stored on this device and download this account's data again"
+      >
+        <Trash2 className="size-3" />
+        <span className="truncate">Erase local data…</span>
+      </button>
 
       <Dialog open={!!erase} onOpenChange={(o) => !o && setErase(null)}>
         <DialogContent className="sm:max-w-sm">

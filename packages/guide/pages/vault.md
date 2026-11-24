@@ -45,7 +45,8 @@ always there beside them, and any body with no place of its own opens here.
 
 - Folder tabs in the Phone dock: **Thoughts**, **Quotes**, **Writings**. Each remembers the
   Document you last had open in it.
-- The tree, search and tags are in the ☰ drawer.
+- **Browse**, beside the Folder tabs, opens the tree, search and tags in a sheet. Picking a
+  Document closes it.
 - A Document opens to read, so the keyboard does not cover it uninvited.
 
 ## Tips

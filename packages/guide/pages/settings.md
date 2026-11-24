@@ -1,7 +1,7 @@
 # Settings
 
 **Settings** is where you set up Lifeline itself rather than anything in it. Open it from the foot
-of the Hub's index, from the Workspace menu (**Settings…**), or from the phone's ☰ drawer.
+of the Hub's index, from the Workspace menu (**Settings…**), or from the phone's Hub.
 
 Things that belong to something stay with it: a Card's settings are on the Card, a type's Fields
 on its Base. Settings holds the rest.
@@ -20,7 +20,7 @@ on its Base. Settings holds the rest.
 
 ## Phone bar
 
-The five slots at the foot of the phone. Calendar and Capture are fixed; the other three are
+The five slots at the foot of the phone. Calendar, Capture and Hub are fixed; the other two are
 yours, per Workspace.
 
 - Tap a slot to choose what it opens: a Module, a Surface, a Screen, or a page inside a Module.

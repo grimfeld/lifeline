@@ -30,12 +30,11 @@ Everything inside a Window belongs to the Module or Surface you opened in it. Se
 
 ## On a phone
 
-- **Header** — `☰` on the left, then the Workspace's name (tap it to switch).
-- **☰ drawer** — inside a Module it opens on that Module's own navigation; tap **All places** for
-  the full list of places. Elsewhere it opens on the list of places.
-- **?** in the header — opens the Guide page for where you are.
-- **Phone bar** — five slots at the foot: Calendar, one slot of yours, **Capture**, two more of
-  yours.
+- **Header** — the time and where you are; nothing in it is tapped.
+- **Phone bar** — five slots at the foot: Calendar, a slot of yours, **Capture**, another slot of
+  yours, and **Hub**.
+- **Hub** — every place as a tile, then Bases, Settings and the Guide, the Workspace switcher,
+  and **Find…** to narrow the tiles.
 - **Phone dock** — just above the bar: the page's own controls, under your thumb.
 
 More in [Using Lifeline on a phone](phone.md).
