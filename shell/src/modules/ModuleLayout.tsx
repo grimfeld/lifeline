@@ -16,7 +16,7 @@ import { MODULE_SHELLS } from "./shells";
 import { navRowClass, RawDataLinks } from "./RawDataLinks";
 
 /**
- * Everything to the right of the Rail when a Module is open (ADR 0057). A
+ * A Module's chrome: inside its Window on the desk, the page on a phone (ADR 0057, 0133). A
  * hand-written Module brings its own layout (`MODULE_SHELLS`), and Note-taking
  * brings the Vault. Every other Module gets the **stand-in** until its turn
  * comes: its Apps' screens in a plain list, the old sidebar cut down to one
@@ -44,7 +44,7 @@ function ModuleChrome({ moduleId, bare, children }: { moduleId: string; bare: bo
   if (layout) return <FrameModuleLayout moduleId={moduleId} frame={layout} bare={bare}>{children}</FrameModuleLayout>;
   // A Module of one screen (Tasks) wears no chrome of its own: a sidebar
   // holding one link is chrome for nothing, so the App's screen takes the
-  // whole width, and its Bases stay one tap away on the Rail.
+  // whole width, and its Bases stay one click away in the Hub's top bar.
   if (isSingleScreen(moduleId)) return <main className={cn("min-w-0 flex-1", bare ? "overflow-hidden" : "overflow-y-auto")}>{children}</main>;
   return (
     <>

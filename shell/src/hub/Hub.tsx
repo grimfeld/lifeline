@@ -2,7 +2,10 @@ import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as Reac
 import { Link, useLocation } from "react-router";
 import { Button, ContentContainer, cn, Tip } from "@lifeline/ui";
 import {
-  SURFACES,
+  BAR_HEIGHT,
+  DESK_SURFACES,
+  pageTarget,
+  pathOnly,
   boxInPixels,
   frontWindow,
   moduleById,
@@ -27,12 +30,11 @@ type Icon = React.ComponentType<{ className?: string }>;
 
 /** A Window's title: its Module's or Surface's, or the page's. Fixed in code, never user text. */
 export function windowTitle(win: Pick<WindowState, "target" | "route">): string {
-  if (win.target === "screens") return "Screens";
   const m = moduleById(win.target);
   if (m) return m.title;
-  const s = SURFACES.find((x) => x.id === win.target);
+  const s = DESK_SURFACES.find((x) => x.id === win.target);
   if (s) return s.title;
-  return placeTitle(win.route.split(/[?#]/)[0]!) ?? "Lifeline";
+  return placeTitle(pathOnly(win.route)) ?? "Lifeline";
 }
 
 /**
@@ -56,14 +58,27 @@ export function Hub() {
   const front = frontWindow(desk.layout);
 
   // Opening a Window moves focus into it; closing one returns focus to its index row.
-  const lastCount = useRef(desk.layout.windows.length);
+  // Keyed on what happened — a Window id new since the last render, a close asked
+  // for — never on the count: a page leaving as another opens keeps it level.
+  const known = useRef<Set<string> | null>(null);
   const closedTarget = useRef<string | null>(null);
+  const ids = desk.layout.windows.map((w) => w.id).join(" ");
   useEffect(() => {
-    const count = desk.layout.windows.length;
-    if (count > lastCount.current && front) document.getElementById(windowDomId(front.id))?.focus({ preventScroll: true });
-    if (count < lastCount.current && closedTarget.current) document.querySelector<HTMLElement>(`[data-hub-row="${closedTarget.current}"]`)?.focus();
-    lastCount.current = count;
-  }, [desk.layout.windows.length, front]);
+    const now = new Set(ids ? ids.split(" ") : []);
+    // The first layout (a reload, a restored desk) moves nothing: the person did not open it.
+    const opened = known.current ? [...now].find((id) => !known.current!.has(id)) : undefined;
+    known.current = now;
+    if (opened) document.getElementById(windowDomId(opened))?.focus({ preventScroll: true });
+    else if (closedTarget.current) {
+      const row = document.querySelector<HTMLElement>(`[data-hub-row="${closedTarget.current}"]`) ?? document.querySelector<HTMLElement>("[data-hub-row]");
+      row?.focus();
+    }
+    closedTarget.current = null;
+  }, [ids]);
+  // Windows render in a fixed order — stacking is z-index alone — so bringing one
+  // to the front never moves its node (which would drop focus and pointer capture).
+  const byId = [...desk.layout.windows].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  const maximisedFront = front?.mode === "maximised" || front?.mode === "full";
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -77,12 +92,13 @@ export function Hub() {
         <div ref={stageRef} data-hub-stage="" className="bg-muted/40 relative isolate min-w-0 flex-1 overflow-hidden">
           {desk.layout.windows.length === 0 && <EmptyStage />}
           {stage &&
-            desk.layout.windows.map((win, i) => (
+            byId.map((win) => (
               <WindowFrame
                 key={win.id}
                 win={win}
-                z={i + 1}
+                z={desk.layout.windows.indexOf(win) + 1}
                 front={win.id === front?.id}
+                covered={maximisedFront && win.id !== front?.id}
                 stage={stage}
                 onFocus={() => desk.focus(win.id)}
                 onClose={() => {
@@ -160,13 +176,10 @@ function HubIndex({ windows, frontId, onFocus }: { windows: WindowState[]; front
     const m = moduleById(id);
     return m ? [{ key: m.id, title: m.title, to: moduleHome(m), icon: MODULE_ICONS[m.id] ?? LayoutDashboard }] : [];
   });
-  const surfaceRows: IndexRow[] = [
-    ...SURFACES.map((s) => ({ key: s.id, title: s.title, to: s.path, icon: SURFACE_ICONS[s.id] ?? LayoutDashboard })),
-    { key: "screens", title: "Screens", to: "/screens", icon: LayoutDashboard },
-  ];
+  const surfaceRows: IndexRow[] = DESK_SURFACES.map((s) => ({ key: s.id, title: s.title, to: s.path, icon: SURFACE_ICONS[s.id] ?? LayoutDashboard }));
   const footRows: IndexRow[] = [
-    { key: "page:guide", title: "Guide", to: guideHref(guideSlugForPath(pathname)), icon: CircleHelp },
-    { key: "page:settings", title: "Settings", to: "/settings", icon: Settings },
+    { key: pageTarget("guide"), title: "Guide", to: guideHref(guideSlugForPath(pathname)), icon: CircleHelp },
+    { key: pageTarget("settings"), title: "Settings", to: "/settings", icon: Settings },
   ];
   const row = (r: IndexRow) => {
     const win = windows.find((w) => w.target === r.key);
@@ -205,7 +218,12 @@ function IndexLink({ row, open, front, onFocus }: { row: IndexRow; open: boolean
     >
       <Icon className="size-4 shrink-0" />
       <span className="min-w-0 flex-1 truncate">{row.title}</span>
-      {open && <span aria-label="Open" className={cn("size-1.5 shrink-0 rounded-full", front ? "bg-primary" : "bg-muted-foreground/60")} />}
+      {open && (
+        <>
+          <span aria-hidden className={cn("size-1.5 shrink-0 rounded-full", front ? "bg-primary" : "bg-muted-foreground/60")} />
+          <span className="sr-only">, open</span>
+        </>
+      )}
     </Link>
   );
 }
@@ -219,6 +237,7 @@ function WindowFrame({
   win,
   z,
   front,
+  covered,
   stage,
   onFocus,
   onClose,
@@ -228,6 +247,8 @@ function WindowFrame({
   win: WindowState;
   z: number;
   front: boolean;
+  /** Wholly hidden behind a maximised front Window: out of the tab order and the reading order. */
+  covered: boolean;
   stage: Stage;
   onFocus: () => void;
   onClose: () => void;
@@ -274,6 +295,7 @@ function WindowFrame({
       tabIndex={-1}
       data-window={win.target}
       data-front={front ? "" : undefined}
+      inert={covered || undefined}
       onPointerDownCapture={() => !front && onFocus()}
       onFocusCapture={() => !front && onFocus()}
       style={{ left: shown.x, top: shown.y, width: shown.w, height: shown.h, zIndex: z }}
@@ -286,7 +308,9 @@ function WindowFrame({
       <div
         data-window-bar=""
         onPointerDown={(e) => startDrag(e, "move")}
-        className={cn("bg-sidebar flex h-9 shrink-0 cursor-default touch-none items-center gap-2 border-b pr-1 pl-3 select-none", front && "border-t-primary border-t-2")}
+        // The bar's height is core's BAR_HEIGHT: the part of a Window always kept on the stage.
+        style={{ height: BAR_HEIGHT }}
+        className={cn("bg-sidebar flex shrink-0 cursor-default touch-none items-center gap-2 border-b pr-1 pl-3 select-none", front && "border-t-primary border-t-2")}
       >
         <span className="min-w-0 flex-1 truncate text-sm font-medium">{title}</span>
         <Tip label={`Close ${title}`}>

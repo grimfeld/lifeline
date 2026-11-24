@@ -88,7 +88,6 @@ export const EMPTY_LAYOUT: WindowLayout = { windows: [], remembered: {} };
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), Math.max(lo, hi));
 
 /** Where the first Window of an empty stage, and a wrapped cascade, start. */
-const CASCADE_START = CASCADE_STEP;
 
 /** Clamp a box (fractions) to the limits on a stage of this size; returns fractions. */
 export function clampBox(box: Box, stage: Stage): Box {
@@ -125,8 +124,8 @@ function openBox(layout: WindowLayout, target: string, stage: Stage): Box {
     x = from.x + CASCADE_STEP;
     y = from.y + CASCADE_STEP;
     if (x + w > 1 || y + h > 1) {
-      x = CASCADE_START;
-      y = CASCADE_START;
+      x = CASCADE_STEP;
+      y = CASCADE_STEP;
     }
   }
   return clampBox({ x, y, w, h }, stage);
@@ -180,8 +179,9 @@ export function windowsReducer(layout: WindowLayout, action: WindowAction): Wind
         return w;
       });
     case "prune": {
+      // Pages belong to no Workspace: only Modules and Surfaces are pruned.
       const keep = new Set(action.targets);
-      const windows = layout.windows.filter((w) => keep.has(w.target));
+      const windows = layout.windows.filter((w) => keep.has(w.target) || isPageTarget(w.target));
       return windows.length === layout.windows.length ? layout : { ...layout, windows };
     }
   }
@@ -212,6 +212,8 @@ function isWindow(v: unknown): v is WindowState {
     typeof v.id === "string" &&
     typeof v.target === "string" &&
     typeof v.route === "string" &&
+    // An address inside the app, never another origin's (`//host`, `https://…`).
+    /^\/(?!\/)/.test(v.route) &&
     isBox(v.box) &&
     MODES.includes(v.mode) &&
     (v.restore === undefined || isBox(v.restore))
@@ -265,6 +267,66 @@ export function routeTarget(pathname: string): RouteTarget {
   const under = (root: string) => pathname === root || pathname.startsWith(root + "/");
   const surface = SURFACES.find((s) => under(s.path));
   if (surface) return { kind: "window", target: surface.id };
-  if (under("/screens") || under("/screen")) return { kind: "window", target: "screens" };
-  return { kind: "page", target: "page:" + (pathname.split("/")[1] ?? "") };
+  if (under("/screens") || under("/screen")) return { kind: "window", target: SCREENS_TARGET };
+  return { kind: "page", target: pageTarget(pathname.split("/")[1] ?? "") };
+}
+
+/** The Screens Surface's Window: it holds `/screens` and every user Screen (`/screen/:id`). */
+export const SCREENS_TARGET = "screens";
+
+/** The general Surfaces a desk opens as Windows, in the Hub's order: SURFACES, then Screens. */
+export const DESK_SURFACES: readonly { id: string; title: string; path: string }[] = [
+  ...SURFACES,
+  { id: SCREENS_TARGET, title: "Screens", path: "/screens" },
+];
+
+/** A page's target, by the first segment of its path: "page:settings". */
+export function pageTarget(segment: string): string {
+  return "page:" + segment;
+}
+
+export function isPageTarget(target: string): boolean {
+  return target.startsWith("page:");
+}
+
+/** A route without its search and hash. */
+export function pathOnly(route: string): string {
+  return route.split(/[?#]/)[0]!;
+}
+
+/**
+ * A page (Bases, Settings, the Guide, the Vault, a Handoff) is not a place
+ * kept on the desk: until it opens full screen over the Hub (#663), its Window
+ * goes the moment another one comes to the front, as leaving a page did.
+ */
+export function dropPagesBehind(layout: WindowLayout): WindowLayout {
+  const front = frontWindow(layout);
+  const windows = layout.windows.filter((w) => w === front || !isPageTarget(w.target));
+  return windows.length === layout.windows.length ? layout : { ...layout, windows };
+}
+
+/**
+ * A Window's own history (ADR 0133: Back and Forward act on the front Window).
+ * Held in memory beside the layout, not saved: a reload starts each Window's
+ * history at its route.
+ */
+export interface WindowHistory {
+  entries: string[];
+  index: number;
+}
+
+/** A navigation inside a Window: a new entry after the current one (the forward ones go), or the current one replaced. */
+export function recordRoute(h: WindowHistory | undefined, route: string, replace: boolean): WindowHistory {
+  if (!h) return { entries: [route], index: 0 };
+  if (h.entries[h.index] === route) return h;
+  if (replace) return { entries: h.entries.map((e, i) => (i === h.index ? route : e)), index: h.index };
+  return { entries: [...h.entries.slice(0, h.index + 1), route], index: h.index + 1 };
+}
+
+/** Back (-1) or Forward (+1) within a Window's history; undefined when it has nowhere to go that way. */
+export function stepRoute(h: WindowHistory | undefined, delta: number): { history: WindowHistory; route: string } | undefined {
+  if (!h || delta === 0) return undefined;
+  const index = h.index + Math.sign(delta);
+  if (index < 0 || index >= h.entries.length) return undefined;
+  return { history: { ...h, index }, route: h.entries[index]! };
 }

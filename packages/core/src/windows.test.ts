@@ -9,7 +9,14 @@ import {
   OPEN_SIZE,
   boxInPixels,
   clampBox,
+  dropPagesBehind,
   frontWindow,
+  isPageTarget,
+  pageTarget,
+  pathOnly,
+  recordRoute,
+  stepRoute,
+  SCREENS_TARGET,
   loadWindowLayout,
   newDesk,
   routeTarget,
@@ -226,6 +233,14 @@ describe("storage per Workspace", () => {
     expect(loadWindowLayout("w2")).toBeNull();
   });
 
+  it("refuses a stored route that leaves the app", () => {
+    for (const route of ["//evil.example", "https://evil.example", "evil"]) {
+      const l = run(EMPTY_LAYOUT, open("a"));
+      store.set("lifeline:windows:w", JSON.stringify({ ...l, windows: [{ ...l.windows[0]!, route }] }));
+      expect(loadWindowLayout("w")).toBeNull();
+    }
+  });
+
   it("returns null for unreadable or misshapen data", () => {
     store.set("lifeline:windows:w", "{nope");
     expect(loadWindowLayout("w")).toBeNull();
@@ -274,5 +289,55 @@ describe("routeTarget", () => {
   it("sends anything else to a page keyed by its first segment", () => {
     expect(routeTarget("/settings/macros")).toEqual({ kind: "page", target: "page:settings" });
     expect(routeTarget("/")).toEqual({ kind: "page", target: "page:" });
+  });
+});
+
+describe("pages", () => {
+  it("are page targets by their first segment", () => {
+    expect(pageTarget("settings")).toBe("page:settings");
+    expect(isPageTarget("page:settings")).toBe(true);
+    expect(isPageTarget("culture")).toBe(false);
+    expect(routeTarget("/settings/keys")).toEqual({ kind: "page", target: "page:settings" });
+    expect(routeTarget("/screen/abc")).toEqual({ kind: "window", target: SCREENS_TARGET });
+  });
+
+  it("go when another Window comes to the front, and stay while in front", () => {
+    const withPage = run(EMPTY_LAYOUT, open("culture"), open("page:settings", "/settings"));
+    expect(dropPagesBehind(withPage)).toBe(withPage);
+    const behind = run(withPage, { type: "focus", id: "culture:1" });
+    expect(dropPagesBehind(behind).windows.map((w) => w.target)).toEqual(["culture"]);
+  });
+
+  it("are never pruned: they belong to no Workspace", () => {
+    const l = run(EMPTY_LAYOUT, open("culture"), open("page:base", "/base"), { type: "prune", targets: ["money"] });
+    expect(l.windows.map((w) => w.target)).toEqual(["page:base"]);
+  });
+});
+
+describe("a Window's own history", () => {
+  it("records navigations, drops the forward entries on a new one, and replaces in place", () => {
+    let h = recordRoute(undefined, "/a", false);
+    h = recordRoute(h, "/a/1", false);
+    h = recordRoute(h, "/a/2", false);
+    expect(h).toEqual({ entries: ["/a", "/a/1", "/a/2"], index: 2 });
+    expect(recordRoute(h, "/a/2", false)).toBe(h);
+    const back = stepRoute(h, -1)!;
+    expect(back.route).toBe("/a/1");
+    expect(recordRoute(back.history, "/a/3", false)).toEqual({ entries: ["/a", "/a/1", "/a/3"], index: 2 });
+    expect(recordRoute(back.history, "/a/x", true)).toEqual({ entries: ["/a", "/a/x", "/a/2"], index: 1 });
+  });
+
+  it("steps Back and Forward within itself, and has nowhere to go past either end", () => {
+    const h = recordRoute(recordRoute(undefined, "/a", false), "/a/1", false);
+    expect(stepRoute(h, -1)?.route).toBe("/a");
+    expect(stepRoute(h, 1)).toBeUndefined();
+    expect(stepRoute(stepRoute(h, -1)!.history, -1)).toBeUndefined();
+    expect(stepRoute(stepRoute(h, -1)!.history, 3)?.route).toBe("/a/1");
+    expect(stepRoute(undefined, -1)).toBeUndefined();
+  });
+
+  it("pathOnly drops the search and the hash", () => {
+    expect(pathOnly("/a/b?x=1#h")).toBe("/a/b");
+    expect(pathOnly("/")).toBe("/");
   });
 });

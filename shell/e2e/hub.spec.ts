@@ -114,4 +114,42 @@ test.describe("The Hub", () => {
     await expect.poll(async () => Math.round((await settings.boundingBox())!.width)).toBe(320);
     await expect(page.getByRole("navigation", { name: "Phone bar" })).toHaveCount(0);
   });
+
+  test("Back and Forward move within the front Window, after another has been in front", async ({ page }) => {
+    await page.goto("/calendar?view=week");
+    await workLocally(page);
+    const calendar = win(page, "Calendar");
+    await calendar.getByRole("tab", { name: "Day", exact: true }).click();
+    await expect(page).toHaveURL(/view=day/);
+    await calendar.getByRole("tab", { name: "Month", exact: true }).click();
+    await expect(page).toHaveURL(/view=month/);
+    await hub(page).getByRole("link", { name: "Map" }).click();
+    await expect(page).toHaveURL(/\/map/);
+    await hub(page).getByRole("link", { name: "Calendar" }).click();
+    await expect(page).toHaveURL(/view=month/);
+
+    await page.goBack();
+    await expect(page).toHaveURL(/view=day/);
+    await expect(hub(page).getByRole("link", { name: "Calendar" })).toHaveAttribute("aria-current", "page");
+    await expect(win(page, "Map")).toBeAttached();
+    await page.goForward();
+    await expect(page).toHaveURL(/view=month/);
+    await expect(hub(page).getByRole("link", { name: "Calendar" })).toHaveAttribute("aria-current", "page");
+  });
+
+  test("a Window behind another can be dragged by its bar, and comes to the front", async ({ page }) => {
+    await emptyDesk(page);
+    await hub(page).getByRole("link", { name: "Map" }).click();
+    await hub(page).getByRole("link", { name: "Graph" }).click();
+    await expect(win(page, "Graph")).toBeVisible();
+    const map = win(page, "Map");
+    const before = (await map.boundingBox())!;
+    // The cascade leaves the left of Map's bar uncovered.
+    await page.mouse.move(before.x + 12, before.y + 18);
+    await page.mouse.down();
+    await page.mouse.move(before.x + 112, before.y + 78, { steps: 5 });
+    await page.mouse.up();
+    await expect.poll(async () => Math.round((await map.boundingBox())!.x - before.x)).toBe(100);
+    await expect(hub(page).getByRole("link", { name: "Map" })).toHaveAttribute("aria-current", "page");
+  });
 });

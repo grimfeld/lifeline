@@ -30,7 +30,8 @@ Module beside the Calendar and see both at once.
 - There is one Window for each Module or Surface. A link to a Module's page (from a Peek, a
   link, the palette) opens that Module's Window, or brings it to the front.
 - The address of the page is the front Window's.
-- Bases, Settings, the Guide and the Vault open in a Window too.
+- Bases, Settings, the Guide and the Vault open in a Window too, but they are pages, not places kept on the desk: their Window closes when another Window comes to the front.
+- Back and Forward move within the Window in front: each Window keeps its own history. Coming to the front or closing a Window adds no step of its own.
 
 ## Narrow Windows
 
