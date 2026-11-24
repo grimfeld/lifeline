@@ -47,7 +47,7 @@ export function ProjectsHome() {
   const of = (s: Stage) => projects.filter((p) => p.stage === s).sort(byRank);
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 p-4 md:p-6">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 p-4 cq-md:p-6">
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="text-xl font-semibold tracking-tight">Projects</h1>
         <div className="ml-auto flex items-center gap-1">
@@ -116,7 +116,7 @@ function ListView({ of, tasks, lanes }: { of: (s: Stage) => Project[]; tasks: Ta
         {active.length === 0 ? (
           <p className="text-muted-foreground text-sm">Nothing active. Move a planned project to Active when you start on it.</p>
         ) : (
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-3 cq-md:grid-cols-2 cq-xl:grid-cols-3">
             {active.map((p) => (
               <ActiveCard key={p.id} project={p} tasks={tasks} next={nextTaskOf(lanes, tasks, p.id, today)} />
             ))}
@@ -176,7 +176,7 @@ function Row({ project, tasks }: { project: Project; tasks: Task[] }) {
       <span className="min-w-0 flex-1 truncate text-sm">{project.title}</span>
       <StageBadge stage={project.stage} />
       {project.stage !== "done" && project.stage !== "dropped" && <Deadline deadline={project.deadline} />}
-      <Progress {...p} className="w-28 max-sm:hidden" />
+      <Progress {...p} className="w-28 cq-max-sm:hidden" />
     </Link>
   );
 }

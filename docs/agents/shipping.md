@@ -88,6 +88,9 @@ refreshing it is in `shell/e2e/README.md`). The UI checks (`screens.spec.ts`, `a
 Demo (`demo.spec.ts`) run only in the nightly e2e run on master (`.github/workflows/e2e.yml`), never at
 delivery.
 
+To run the whole gate on a PR before it lands (to time the runners, or to prove a change to them), label it
+`e2e:gate`: it runs as its own `e2e-gate` check, never a required one, and the label comes off when it ends.
+
 A red nightly run doesn't block landing. It opens an issue titled "Nightly e2e run is red", labelled
 `ready-for-agent`, naming the failing specs and cases and linking the run; while that issue is open,
 each later red night comments on it instead. Close it with the PR that fixes the cases.

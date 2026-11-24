@@ -5,6 +5,7 @@ import { sharedLiveQuery } from "../data/live";
 import { reuseUnchanged } from "../data/reconcile";
 import { put, putAll, remove, type RecordPatch } from "../data/repo";
 import { newId } from "../ids";
+import { editQueue } from "../editQueue";
 import { todayStr } from "../dates";
 import { normalizeTags } from "../tags";
 import { extractLinks, extractProseTags, isImageEmbed, normalizeName } from "../markdown";
@@ -334,10 +335,29 @@ export async function removeDocumentsWhere(type: string, pred: (d: Document) => 
 }
 
 /** Patch plain fields of a Document (Bases, generic forms). Guarded fields are the caller's responsibility to exclude. */
-export async function patchDocument(id: string, patch: Record<string, unknown>): Promise<void> {
-  const existing = await documentsTable().get(id);
-  if (!existing || existing.deleted) return;
-  await putDocument({ ...existing, ...patch } as DocumentInput);
+export function patchDocument(id: string, patch: Record<string, unknown>): Promise<void> {
+  // One Document's patches run one after another: each reads what the last one
+  // wrote, so two quick edits to different keys (an alias, then a Relationship)
+  // never write back each other's old value.
+  return patchQueueOf(id)(async () => {
+    const existing = await documentsTable().get(id);
+    if (!existing || existing.deleted) return;
+    await putDocument({ ...existing, ...patch } as DocumentInput);
+  });
+}
+
+/** A Document's queue of patches, forgotten once it has drained. */
+const patchQueues = new Map<string, { run: ReturnType<typeof editQueue>; pending: number }>();
+function patchQueueOf(id: string): <T>(run: () => Promise<T>) => Promise<T> {
+  return (run) => {
+    let q = patchQueues.get(id);
+    if (!q) patchQueues.set(id, (q = { run: editQueue(), pending: 0 }));
+    const queue = q;
+    queue.pending++;
+    return queue.run(run).finally(() => {
+      if (--queue.pending === 0 && patchQueues.get(id) === queue) patchQueues.delete(id);
+    });
+  };
 }
 
 

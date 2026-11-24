@@ -39,9 +39,9 @@ export function FieldsForm({
   const list = (fields ?? def.fields).filter((f) => !f.hidden);
   if (list.length === 0) return null;
   return (
-    <div className={columns === 2 ? "grid gap-2 md:grid-cols-2" : "grid gap-2"}>
+    <div className={columns === 2 ? "grid gap-2 cq-md:grid-cols-2" : "grid gap-2"}>
       {list.map((f) => (
-        <div key={f.key} className={cn("grid gap-1", f.kind === "longtext" && "md:col-span-2")}>
+        <div key={f.key} className={cn("grid gap-1", f.kind === "longtext" && "cq-md:col-span-2")}>
           <Label htmlFor={`${idPrefix}${f.key}`} className="text-muted-foreground text-xs">
             {f.label}
             {f.guarded && !allowGuarded && <span className="ml-1 opacity-60" title="Guarded: only its App changes this">🔒</span>}

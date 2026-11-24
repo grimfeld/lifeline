@@ -54,7 +54,7 @@ export function ReportRecurring({ data, series }: { data: ReportData; series: Se
 
   return (
     <div className="grid gap-4">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 cq-sm:grid-cols-4">
         <StatTile label="Fixed spend" value={formatCents(fixedTotal)} hint={`${formatCents(Math.round(fixedTotal / Math.max(1, months.length)))} a month on the window's bills`} />
         <StatTile label="Variable spend" value={formatCents(variableTotal)} hint="everything that is not a series" />
         <StatTile label="Fixed share" value={spendTotal > 0 ? formatPercent(fixedTotal / spendTotal) : "–"} hint="of the window's spending" />

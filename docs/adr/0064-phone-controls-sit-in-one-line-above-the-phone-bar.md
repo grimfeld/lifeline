@@ -1,3 +1,8 @@
+---
+status: accepted
+amended-by: ADR 0133 (in part — the switch inside content follows the Window)
+---
+
 # Phone controls sit in one line above the Phone bar
 
 On a phone a page's controls were at the top of the screen, out of the thumb's

@@ -28,11 +28,11 @@ import { contactsApp } from "@lifeline/app-contacts";
 import { atlasApp } from "@lifeline/app-atlas";
 import { manuscriptApp } from "@lifeline/app-manuscript";
 import { pricesApp } from "@lifeline/app-prices";
-import { hubApp } from "./hub";
+import { shellApp } from "./shellApp";
 
 /**
  * Compile-time App registry (ADR 0003): every App joins here, in this order.
  * main.tsx registers it; the build reads it for the published Intakes list
  * (build/intakes.ts). mcp/src/apps.ts keeps the server in step.
  */
-export const APPS: AppManifest[] = [hubApp, choresApp, pantryApp, shoppingApp, tasksApp, projectsApp, calendarApp, statsApp, lifelevelApp, libraryApp, cinemaApp, discothequeApp, arcadeApp, commonplaceApp, museumApp, notesApp, memoriesApp, contactsApp, atlasApp, thoughtsApp, writerApp, manuscriptApp, sourcesApp, workoutApp, ledgerApp, pocketApp, pricesApp, moodApp, swearjarApp, knowledgeApp];
+export const APPS: AppManifest[] = [shellApp, choresApp, pantryApp, shoppingApp, tasksApp, projectsApp, calendarApp, statsApp, lifelevelApp, libraryApp, cinemaApp, discothequeApp, arcadeApp, commonplaceApp, museumApp, notesApp, memoriesApp, contactsApp, atlasApp, thoughtsApp, writerApp, manuscriptApp, sourcesApp, workoutApp, ledgerApp, pocketApp, pricesApp, moodApp, swearjarApp, knowledgeApp];

@@ -56,6 +56,7 @@ async function sync(): Promise<void> {
   lastPull = Date.now();
   // The first pull is the whole Account: without it every read would be empty, not just stale.
   if (!pulledOnce) {
+    // eslint-disable-next-line no-restricted-syntax -- counts every Document, gated or not, only to tell an empty store (the pull failed) from a loaded Account.
     if (lastSyncError && (await db().documents.count()) === 0) throw new Error(`Could not load the Account: ${lastSyncError}`);
     pulledOnce = true;
   }
