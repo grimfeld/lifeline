@@ -9,7 +9,8 @@ everywhere.
 - **Guide** at the foot of the Hub's index (desk) — opens the page for where you are: the
   Module you are in, the Surface, Bases, Screens, Settings, the Vault. Anywhere else, its home page,
   [Getting around](index.md).
-- **?** in the phone's header — the same, on a phone.
+- **Guide** in the phone's Hub (the Phone bar's **Hub** slot) — the same, on a phone: the page for
+  where you were before you opened the Hub.
 - **The palette** (Ctrl+K) — type "guide" and a name for its Guide entries, one per page:
   "Guide · Money", "Guide · Capture"…
 

@@ -456,6 +456,12 @@ test.describe("The phone's Hub", { tag: "@phone" }, () => {
     await places.getByRole("link", { name: "Map" }).click();
     await expect(page).toHaveURL(/\/map/);
     await expect(hubSlot(page)).not.toHaveAttribute("aria-current", "page");
+
+    // From the Map, the Hub's Guide opens the Map's page, and `/` resumes to the Map, not the Hub.
+    await hubSlot(page).click();
+    await expect(grid(page).getByRole("link", { name: "Guide" })).toHaveAttribute("href", /\/guide\/(?!phone)/);
+    await page.goto("/");
+    await expect(page).toHaveURL(/\/map/);
   });
 
   test("Find narrows the tiles, and a search with no match says so", async ({ page }) => {
@@ -468,7 +474,8 @@ test.describe("The phone's Hub", { tag: "@phone" }, () => {
     await expect(places.getByRole("link", { name: "Graph" })).toBeVisible();
     await expect(places.getByRole("link", { name: "Map" })).toHaveCount(0);
     await find.fill("zzzz nothing");
-    await expect(grid(page).getByRole("status")).toContainText("“zzzz nothing”");
+    await expect(grid(page).locator("[data-hub-no-match]")).toContainText("“zzzz nothing”");
+    await expect(grid(page).getByRole("status")).toHaveText("0 places");
     await grid(page).getByRole("button", { name: "Clear the search" }).click();
     await expect(places.getByRole("link", { name: "Map" })).toBeVisible();
   });
@@ -491,4 +498,13 @@ test.describe("The phone's Hub", { tag: "@phone" }, () => {
     await expect.poll(() => inCore(page, async (core) => (await core.currentWorkspace())!.bar, null)).toEqual([null, { kind: "surface", id: "graph" }]);
     await expect(cells.nth(1)).toContainText("Set");
   });
+});
+
+test("on the desk, /hub is the desk: the phone's grid never opens there", async ({ page }) => {
+  await page.goto("/hub");
+  const local = page.getByRole("button", { name: "Work locally" });
+  await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
+  await expect(page).not.toHaveURL(/\/hub$/);
+  await expect(page.getByRole("navigation", { name: "Hub" })).toBeVisible();
+  await expect(page.getByRole("searchbox", { name: "Find a place" })).toHaveCount(0);
 });

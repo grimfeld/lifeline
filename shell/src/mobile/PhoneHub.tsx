@@ -1,71 +1,70 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useLocation } from "react-router";
-import { Button, Input, PhoneDock } from "@lifeline/ui";
-import { DESK_SURFACES, moduleById, moduleHome, useWorkspaceModules } from "@lifeline/core";
-import { CircleHelp, LayoutDashboard, Search, Settings, Table2 } from "lucide-react";
-import { MODULE_ICONS, SURFACE_ICONS } from "../navIcons";
+import { Link } from "react-router";
+import { Button, EmptyState, Input, PhoneDock } from "@lifeline/ui";
+import { pathOnly, useCurrentWorkspaceId, useWorkspaceModules } from "@lifeline/core";
+import { CircleHelp, Search, Settings, Table2 } from "lucide-react";
 import { guideHref, guideSlugForPath } from "../guide/guidePlace";
+import { lastPlace } from "../nav/resume";
 import { WorkspacePicker } from "../components/WorkspacePicker";
 import { SyncBadge } from "../components/SyncBadge";
-
-type Icon = React.ComponentType<{ className?: string }>;
-
-interface Tile {
-  key: string;
-  title: string;
-  to: string;
-  icon: Icon;
-}
+import { findPlaces, hubPlaces, type HubPlace } from "../hub/places";
 
 /**
  * The phone's **Hub** (ADR 0133, #664), opened from the Phone bar's Hub slot:
  * a tile for each of the Workspace's Modules in its order, then the general
- * Surfaces; Bases, Settings and the Guide; the Workspace switcher; and a
- * "Find…" field above the bar that narrows the tiles. It holds what the ☰
- * drawer held: going between places is the Hub's, a Module's own navigation is
- * in its Phone dock.
+ * Surfaces (the desk's index, `hubPlaces`); Bases, Settings and the Guide; the
+ * Workspace switcher; and a "Find…" field above the bar that narrows the
+ * tiles. It holds what the ☰ drawer held: going between places is the Hub's,
+ * a Module's own navigation is in its Phone dock.
  */
 export function PhoneHub() {
   const modules = useWorkspaceModules();
-  const { pathname } = useLocation();
+  const workspaceId = useCurrentWorkspaceId();
   const [query, setQuery] = useState("");
   const ref = useRef<HTMLDivElement>(null);
   // Opening the grid moves focus into it (not into Find: that would raise the keyboard).
   useEffect(() => ref.current?.focus({ preventScroll: true }), []);
 
-  const tiles: Tile[] = [
-    ...modules.flatMap((id) => {
-      const m = moduleById(id);
-      return m ? [{ key: m.id, title: m.title, to: moduleHome(m), icon: MODULE_ICONS[m.id] ?? LayoutDashboard }] : [];
-    }),
-    ...DESK_SURFACES.map((s) => ({ key: s.id, title: s.title, to: s.path, icon: SURFACE_ICONS[s.id] ?? LayoutDashboard })),
-  ];
-  const q = query.trim().toLocaleLowerCase();
-  const shown = q ? tiles.filter((t) => t.title.toLocaleLowerCase().includes(q)) : tiles;
-  const core: Tile[] = [
+  const { modules: moduleTiles, surfaces } = hubPlaces(modules);
+  const tiles = [...moduleTiles, ...surfaces];
+  const shown = findPlaces(tiles, query);
+  // The Hub is never a place `/` resumes to, so the last place is where the person came from:
+  // the Guide opens on its page (ADR 0089), as the header's "?" did.
+  const core: HubPlace[] = [
     { key: "bases", title: "Bases", to: "/base", icon: Table2 },
     { key: "settings", title: "Settings", to: "/settings", icon: Settings },
-    { key: "guide", title: "Guide", to: guideHref(guideSlugForPath(pathname)), icon: CircleHelp },
+    { key: "guide", title: "Guide", to: guideHref(guideSlugForPath(pathOnly(lastPlace(workspaceId)))), icon: CircleHelp },
   ];
+  const searching = query.trim() !== "";
 
   return (
     <div ref={ref} tabIndex={-1} aria-label="Hub" role="region" className="flex flex-col gap-4 p-4 outline-none">
-      <h1 className="sr-only">Hub</h1>
+      {/* Said as the tiles narrow, from a region that is always there. */}
+      <p role="status" className="sr-only">
+        {searching ? (shown.length === 1 ? "1 place" : `${shown.length} places`) : ""}
+      </p>
       {shown.length > 0 ? (
         <ul aria-label="Places" className="grid grid-cols-2 gap-2">
           {shown.map((t) => (
             <li key={t.key} className="min-w-0">
-              <TileLink tile={t} />
+              <Link to={t.to} className="bg-card hover:bg-accent flex min-h-20 flex-col justify-between gap-2 rounded-lg border p-3">
+                <t.icon className="text-muted-foreground size-5 shrink-0" />
+                <span className="line-clamp-2 text-sm font-medium">{t.title}</span>
+              </Link>
             </li>
           ))}
         </ul>
       ) : (
-        <div role="status" className="text-muted-foreground flex flex-col items-start gap-2 text-sm">
-          <p>Nothing here is called “{query.trim()}”. Bases, Settings and the Guide are below; the palette finds Documents.</p>
-          <Button variant="outline" size="sm" onClick={() => setQuery("")}>
-            Clear the search
-          </Button>
-        </div>
+        <EmptyState
+          data-hub-no-match=""
+          action={
+            <Button variant="outline" size="sm" onClick={() => setQuery("")}>
+              Clear the search
+            </Button>
+          }
+        >
+          Nothing here is called “{query.trim()}”. Bases, Settings and the Guide are below; the palette finds Documents.
+        </EmptyState>
       )}
       <ul aria-label="Core" className="grid grid-cols-3 gap-2">
         {core.map((t) => (
@@ -77,12 +76,10 @@ export function PhoneHub() {
           </li>
         ))}
       </ul>
-      <div className="flex min-w-0 items-center gap-2">
-        <div className="min-w-0 flex-1">
-          <WorkspacePicker />
-        </div>
+      <div className="flex min-w-0 flex-col gap-1">
+        <WorkspacePicker />
         {/* Gone where it renders nothing (the Demo, ADR 0077). */}
-        <div className="shrink-0 empty:hidden">
+        <div className="empty:hidden">
           <SyncBadge />
         </div>
       </div>
@@ -94,15 +91,5 @@ export function PhoneHub() {
         </div>
       </PhoneDock>
     </div>
-  );
-}
-
-function TileLink({ tile }: { tile: Tile }) {
-  const Icon = tile.icon;
-  return (
-    <Link to={tile.to} className="bg-card hover:bg-accent flex min-h-20 flex-col justify-between gap-2 rounded-lg border p-3">
-      <Icon className="text-muted-foreground size-5 shrink-0" />
-      <span className="line-clamp-2 text-sm font-medium">{tile.title}</span>
-    </Link>
   );
 }

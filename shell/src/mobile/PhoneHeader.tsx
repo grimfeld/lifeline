@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
 import { useLocation } from "react-router";
 import { moduleById, moduleOfPath, useCurrentWorkspace } from "@lifeline/core";
+import { useNow } from "../components/useNow";
 
 /**
  * The phone's header (#664): the time, and the open Module's title or, outside
@@ -24,10 +24,10 @@ export function PhoneHeader() {
 }
 
 function Clock() {
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 15_000);
-    return () => clearInterval(t);
-  }, []);
-  return <time className="text-muted-foreground shrink-0 text-xs tabular-nums">{now.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}</time>;
+  const now = useNow();
+  return (
+    <time dateTime={now.toISOString()} className="text-muted-foreground shrink-0 text-xs tabular-nums">
+      {now.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
+    </time>
+  );
 }

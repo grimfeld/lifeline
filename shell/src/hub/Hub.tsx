@@ -14,14 +14,12 @@ import {
   boxInPixels,
   frontWindow,
   moduleById,
-  moduleHome,
   useWorkspaceModules,
   type Box,
   type Stage,
   type WindowState,
 } from "@lifeline/core";
-import { CircleHelp, Expand, LayoutDashboard, Maximize2, Minimize2, PanelLeft, PanelRight, Settings, Table2, X } from "lucide-react";
-import { MODULE_ICONS, SURFACE_ICONS } from "../navIcons";
+import { CircleHelp, Expand, Maximize2, Minimize2, PanelLeft, PanelRight, Settings, Table2, X } from "lucide-react";
 import { guideHref, guideSlugForPath } from "../guide/guidePlace";
 import { placeTitle } from "../nav/placeTitle";
 import { SyncBadge } from "../components/SyncBadge";
@@ -30,11 +28,11 @@ import { RouteBoundary } from "../components/ErrorBoundary";
 import { Places } from "../Places";
 import { WindowRouter } from "./WindowRouter";
 import { useDesk } from "./useDesk";
+import { hubPlaces, type HubPlace } from "./places";
+import { useNow } from "../components/useNow";
 import { isPageRoute } from "./desk";
 import { hubTakesEscape } from "./escape";
 import { setDeskControls } from "./windowCommands";
-
-type Icon = React.ComponentType<{ className?: string }>;
 
 /** A Window's title: its Module's or Surface's, or the page's. Fixed in code, never user text. */
 export function windowTitle(win: Pick<WindowState, "target" | "route">): string {
@@ -275,36 +273,23 @@ function TopBar() {
 }
 
 function Clock() {
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 15_000);
-    return () => clearInterval(t);
-  }, []);
+  const now = useNow();
   const date = now.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
   const time = now.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
   return (
     <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
-      {date} · <time>{time}</time>
+      {date} · <time dateTime={now.toISOString()}>{time}</time>
     </span>
   );
 }
 
-interface IndexRow {
-  key: string;
-  title: string;
-  to: string;
-  icon: Icon;
-}
+type IndexRow = HubPlace;
 
 /** The Workspace's Modules in its order, then the Surfaces, then the Guide and Settings at the foot. */
 function HubIndex({ windows, frontId, onFocus }: { windows: WindowState[]; frontId?: string; onFocus: (id: string) => void }) {
   const { pathname } = useLocation();
-  const modules = useWorkspaceModules();
-  const moduleRows: IndexRow[] = modules.flatMap((id) => {
-    const m = moduleById(id);
-    return m ? [{ key: m.id, title: m.title, to: moduleHome(m), icon: MODULE_ICONS[m.id] ?? LayoutDashboard }] : [];
-  });
-  const surfaceRows: IndexRow[] = DESK_SURFACES.map((s) => ({ key: s.id, title: s.title, to: s.path, icon: SURFACE_ICONS[s.id] ?? LayoutDashboard }));
+  // The same places as the phone's Hub grid (#664).
+  const { modules: moduleRows, surfaces: surfaceRows } = hubPlaces(useWorkspaceModules());
   const footRows: IndexRow[] = [
     { key: pageTarget("guide"), title: "Guide", to: guideHref(guideSlugForPath(pathname)), icon: CircleHelp },
     { key: pageTarget("settings"), title: "Settings", to: "/settings", icon: Settings },

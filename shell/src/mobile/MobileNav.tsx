@@ -12,6 +12,7 @@ import {
 } from "@lifeline/core";
 import { ChevronLeft, LayoutGrid, Plus } from "lucide-react";
 import { SURFACE_ICONS, slotIcon } from "../navIcons";
+import { PHONE_HUB_PATH } from "../nav/phoneHub";
 import { CaptureCell, SectionHeading, foldMembers, useTogglePin } from "../capture/captureParts";
 
 type FoldEntry = Extract<CaptureEntry, { kind: "fold" }>;
@@ -20,9 +21,6 @@ type FoldEntry = Extract<CaptureEntry, { kind: "fold" }>;
 function slot(active: boolean) {
   return cn("flex flex-1 flex-col items-center justify-center gap-0.5 py-1 text-2xs", active ? "text-foreground" : "text-muted-foreground");
 }
-
-/** Where the Hub slot goes: the phone's Hub, a grid of every place (#664). */
-export const PHONE_HUB_PATH = "/hub";
 
 /**
  * The **Phone bar** (ADR 0053, ADR 0063, ADR 0133): `Calendar · [slot] · ✛ · [slot] · Hub`.
