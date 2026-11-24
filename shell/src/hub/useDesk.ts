@@ -56,7 +56,11 @@ export function useDesk(stage: Stage | null) {
   const loadedFor = useRef(workspaceId);
   useEffect(() => {
     if (loadedFor.current === workspaceId) return;
+    const first = loadedFor.current === "";
     loadedFor.current = workspaceId;
+    // The Workspace becomes known after the first paint (the first pull): the
+    // desk on screen is already this Workspace's, so it is adopted, not replaced.
+    if (first && !loadWindowLayout(workspaceId)) return;
     const next = initialLayout(workspaceId);
     dispatch({ type: "load", layout: next });
     const front = frontWindow(next);
