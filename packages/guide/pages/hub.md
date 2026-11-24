@@ -33,6 +33,19 @@ Module beside the Calendar and see both at once.
 - Bases, Settings, the Guide and the Vault open in a Window too, but they are pages, not places kept on the desk: their Window closes when another Window comes to the front.
 - Back and Forward move within the Window in front: each Window keeps its own history. Coming to the front or closing a Window adds no step of its own.
 
+## Snapping
+
+- **Drag to an edge** — drop a Window on the left or right edge of the stage and it fills that
+  half. Drop it on an edge near a corner and it fills that quarter. Drop it on the middle of the
+  top edge and it fills the whole stage. While you drag over one of these places, an outline
+  shows what the drop would fill.
+- **Snap buttons** — **Snap left half** and **Snap right half** on a Window's bar.
+- **Double-click the bar** to fill the whole stage; double-click again, or on a snapped Window,
+  to put it back.
+- **Drag a snapped or full Window away** and it takes back the size it had before.
+- A snapped Window stays snapped through a reload, a resize of the browser and a Workspace
+  switch. A quarter can be narrow: the Module then shows its narrow layout.
+
 ## Narrow Windows
 
 A Window lays its content out for its own width, not the screen's. Make one narrow and the
@@ -45,11 +58,12 @@ Module shows its narrow layout, but it never grows the phone's Phone bar.
 - Switching Workspace swaps to that Workspace's Windows.
 - A new desk opens where you last were, as one Window filling the stage.
 - Close the last Window and the stage says "Nothing is open. Pick a Module on the left: each
-  opens in its own Window."
+  opens in its own Window. Drag a Window to an edge to snap it to a half, or near a corner for a
+  quarter."
 
 ## Tips
 
-- Open the Calendar and a Module side by side to plan while you work.
+- Open the Calendar and a Module side by side to plan while you work: snap one left, one right.
 - **Ctrl+K** (⌘K on a Mac) goes to any place from the keyboard; see [Capture](capture.md).
 
 ## Related

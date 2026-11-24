@@ -68,3 +68,12 @@ test("each Window is a region named for its Module, and its bar's buttons are na
   await expect(calendar.getByRole("button", { name: "Close Calendar" })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Hub" })).toBeVisible();
 });
+
+test("a Window bar's snap buttons are named", async ({ page, isMobile }) => {
+  test.skip(isMobile, "A phone has no Windows (ADR 0133)");
+  await page.goto("/calendar");
+  await workLocally(page);
+  const calendar = page.getByRole("region", { name: "Calendar", exact: true });
+  await expect(calendar.getByRole("button", { name: "Snap left half" })).toBeVisible();
+  await expect(calendar.getByRole("button", { name: "Snap right half" })).toBeVisible();
+});

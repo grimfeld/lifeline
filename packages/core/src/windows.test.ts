@@ -10,6 +10,10 @@ import {
   boxInPixels,
   clampBox,
   dropPagesBehind,
+  snapZone,
+  SNAP_EDGE,
+  LEFT_HALF,
+  RIGHT_HALF,
   frontWindow,
   isPageTarget,
   pageTarget,
@@ -339,5 +343,71 @@ describe("a Window's own history", () => {
   it("pathOnly drops the search and the hash", () => {
     expect(pathOnly("/a/b?x=1#h")).toBe("/a/b");
     expect(pathOnly("/")).toBe("/");
+  });
+});
+
+describe("snapZone", () => {
+  const S = { width: 1000, height: 800 };
+  it("the left and right edges fill a half", () => {
+    expect(snapZone({ x: 5, y: 400 }, S)).toEqual(LEFT_HALF);
+    expect(snapZone({ x: 995, y: 400 }, S)).toEqual(RIGHT_HALF);
+  });
+  it("the outer 30% of the left, right and top edges fill a quarter, from either edge", () => {
+    const tl = { x: 0, y: 0, w: 0.5, h: 0.5 };
+    expect(snapZone({ x: 5, y: 100 }, S)).toEqual(tl);
+    expect(snapZone({ x: 100, y: 5 }, S)).toEqual(tl);
+    expect(snapZone({ x: 995, y: 100 }, S)).toEqual({ x: 0.5, y: 0, w: 0.5, h: 0.5 });
+    expect(snapZone({ x: 900, y: 5 }, S)).toEqual({ x: 0.5, y: 0, w: 0.5, h: 0.5 });
+    expect(snapZone({ x: 5, y: 700 }, S)).toEqual({ x: 0, y: 0.5, w: 0.5, h: 0.5 });
+    expect(snapZone({ x: 995, y: 700 }, S)).toEqual({ x: 0.5, y: 0.5, w: 0.5, h: 0.5 });
+  });
+  it("the top edge's middle maximises", () => {
+    expect(snapZone({ x: 500, y: 5 }, S)).toBe("max");
+  });
+  it("the middle of the stage, and the bottom edge's middle, snap nothing", () => {
+    expect(snapZone({ x: 500, y: 400 }, S)).toBeNull();
+    expect(snapZone({ x: 500, y: 795 }, S)).toBeNull();
+  });
+  it("draws the lines at exactly 28px and 30%", () => {
+    expect(snapZone({ x: SNAP_EDGE - 0.5, y: 400 }, S)).toEqual(LEFT_HALF);
+    expect(snapZone({ x: SNAP_EDGE, y: 400 }, S)).toBeNull();
+    expect(snapZone({ x: 5, y: 239 }, S)).toEqual({ x: 0, y: 0, w: 0.5, h: 0.5 });
+    expect(snapZone({ x: 5, y: 240 }, S)).toEqual(LEFT_HALF);
+    expect(snapZone({ x: 299, y: 5 }, S)).toEqual({ x: 0, y: 0, w: 0.5, h: 0.5 });
+    expect(snapZone({ x: 300, y: 5 }, S)).toBe("max");
+  });
+});
+
+describe("snapping", () => {
+  const own = (l: WindowLayout) => l.windows[0]!;
+  it("snaps, keeps the first pre-snap box from zone to zone, and restores it", () => {
+    const opened = run(EMPTY_LAYOUT, open("a"));
+    const box = own(opened).box;
+    const left = run(opened, { type: "snap", id: "a:1", box: LEFT_HALF });
+    expect(own(left)).toMatchObject({ mode: "snapped", box: LEFT_HALF, restore: box });
+    const right = run(left, { type: "snap", id: "a:1", box: RIGHT_HALF });
+    expect(own(right)).toMatchObject({ mode: "snapped", box: RIGHT_HALF, restore: box });
+    expect(own(run(right, { type: "restore", id: "a:1" }))).toMatchObject({ mode: "normal", box, restore: undefined });
+  });
+  it("a top-middle drop maximises, keeping the pre-snap box", () => {
+    const opened = run(EMPTY_LAYOUT, open("a"));
+    const box = own(opened).box;
+    const max = run(opened, { type: "snap", id: "a:1", box: LEFT_HALF }, { type: "snap", id: "a:1", box: "max" });
+    expect(own(max)).toMatchObject({ mode: "maximised", restore: box });
+    expect(own(run(max, { type: "restore", id: "a:1" }))).toMatchObject({ mode: "normal", box });
+  });
+  it("the double-click toggle: maximise from snapped keeps the pre-snap box; restore from maximised", () => {
+    const opened = run(EMPTY_LAYOUT, open("a"));
+    const box = own(opened).box;
+    const max = run(opened, { type: "snap", id: "a:1", box: LEFT_HALF }, { type: "maximise", id: "a:1" });
+    expect(own(max)).toMatchObject({ mode: "maximised", restore: box });
+    expect(own(run(max, { type: "maximise", id: "a:1" }))).toMatchObject({ mode: "normal", box });
+  });
+  it("a manual place clears the pre-snap box; restore does nothing to a normal Window", () => {
+    const snapped = run(EMPTY_LAYOUT, open("a"), { type: "snap", id: "a:1", box: LEFT_HALF });
+    const placed = run(snapped, { type: "place", id: "a:1", box: { x: 0.1, y: 0.1, w: 0.4, h: 0.4 }, stage: STAGE });
+    expect(own(placed).mode).toBe("normal");
+    expect(own(placed).restore).toBeUndefined();
+    expect(run(placed, { type: "restore", id: "a:1" })).toEqual(placed);
   });
 });
