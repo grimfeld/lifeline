@@ -1,6 +1,7 @@
 ---
 status: accepted
 amends: ADR 0053 (in part — Settings is no longer the only page that serves no Documents)
+amended-by: ADR 0133 (in part — on a phone the Guide is reached from the Hub, not a "?" in the header)
 ---
 
 # The Guide is Markdown shipped with the code, one page per thing the user opens, checked against the registry

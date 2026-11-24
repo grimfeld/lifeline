@@ -37,7 +37,8 @@ import {
 import { ChevronLeft, Pencil, Plus, X } from "lucide-react";
 
 /**
- * The Commands a key may be asked for: every one the palette could run (CONTEXT.md "Key binding").
+ * The Commands a key may be asked for: every one that can run (CONTEXT.md "Key binding"), one the
+ * palette is not offering right now included (`unavailable`: a Window Command with no Window open).
  * One a key cannot run (`bindRefusal`) is listed too, and refused with why when picked.
  */
 function useBindable(): OwnedCommand[] {

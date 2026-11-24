@@ -13,7 +13,7 @@ export function BigQuote({ quote, item, className }: { quote: Quote; item: Sourc
   const attribution = [who, loc].filter(Boolean).join(" · ");
   return (
     <figure className={cn("flex h-full min-h-0 flex-col justify-center gap-2 overflow-y-auto", className)}>
-      <blockquote className="font-serif text-lg leading-snug whitespace-pre-line italic sm:text-xl" data-origin={quote.id}>
+      <blockquote className="font-serif text-lg leading-snug whitespace-pre-line italic cq-sm:text-xl" data-origin={quote.id}>
         {quote.body}
       </blockquote>
       {attribution && (

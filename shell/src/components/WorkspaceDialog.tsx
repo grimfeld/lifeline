@@ -145,7 +145,7 @@ export function WorkspaceForm({
         <div className="flex flex-col gap-1.5">
           <Label>Modules</Label>
           <p className="text-muted-foreground text-xs">
-            Which Modules stand on this workspace's Rail. A new workspace's phone bar starts from these; rearrange it under Phone bar.
+            Which Modules stand in this workspace's Hub. A new workspace's phone bar starts from these; rearrange it under Phone bar.
           </p>
           <div className="grid grid-cols-2 gap-1">
             {inhabitedModules().map((m) => (

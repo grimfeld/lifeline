@@ -36,7 +36,7 @@ export function PricesOverview({ products, shops, receipts, lines }: { products:
       {/* Its own span, as the Product page's: default 12 months, "All" included. */}
       <SpanPicker months={months} onChange={setMonths} />
 
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid gap-3 cq-md:grid-cols-2">
         <Section title="Spend">
           <Figure label="Bought" value={formatCents(o.spend.total)} hint="every line bought, unmatched included" />
           {o.spend.top.length === 0 ? (

@@ -32,7 +32,7 @@ function arrivingFragment(search: string, hash: string): { fragment: string; sha
 }
 
 function HandoffBody({ children }: { children: ReactNode }) {
-  return <div className="mx-auto grid w-full max-w-3xl gap-4 p-4 md:p-6">{children}</div>;
+  return <div className="mx-auto grid w-full max-w-3xl gap-4 p-4 cq-md:p-6">{children}</div>;
 }
 
 /**

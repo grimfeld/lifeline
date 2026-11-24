@@ -45,7 +45,7 @@ function subscribe(cb: () => void) {
   };
 }
 
-/** Below Tailwind `md`: the same line `useIsMobile` draws, kept here so the kit needs no Core. */
+/** Below Tailwind `md`: a phone-sized screen. The kit's own, so it needs no Core. */
 const PHONE = "(max-width: 767px)";
 
 function subscribePhone(cb: () => void) {
@@ -54,6 +54,13 @@ function subscribePhone(cb: () => void) {
   return () => mq.removeEventListener("change", cb);
 }
 
+/**
+ * Is this a phone? The **device** question (a viewport below 768px): for phone
+ * navigation only — the Phone bar, the Phone dock's move to the bottom, the
+ * Phone filters' sheet. A narrow Window on the desk is not a phone. For how
+ * content lays itself out (a stack, a select, a thumb-sized button), ask
+ * `useNarrow()`: it reads the container, which on a phone is the whole screen.
+ */
 export function usePhone(): boolean {
   return useSyncExternalStore(subscribePhone, () => window.matchMedia(PHONE).matches, () => false);
 }

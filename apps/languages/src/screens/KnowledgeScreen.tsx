@@ -42,7 +42,7 @@ export function KnowledgeScreen() {
   useEffect(() => void sweepClipOrphans().catch((err) => console.warn("[knowledge] sweeping orphaned clips failed", err)), []);
 
   return (
-    <div className="mx-auto grid w-full max-w-3xl gap-4 p-4 md:p-6">
+    <div className="mx-auto grid w-full max-w-3xl gap-4 p-4 cq-md:p-6">
       <div className="flex flex-wrap items-center gap-2">
         <Brain className="size-5" />
         <h1 className="mr-2 text-lg font-semibold">Knowledge</h1>

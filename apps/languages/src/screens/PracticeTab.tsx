@@ -178,7 +178,7 @@ export function PracticeTab({ topic, items, decks, recalls }: { topic: Topic; it
               </Button>
             )}
           </div>
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="grid gap-2 cq-sm:grid-cols-2">
             {decks.map((d) => {
               const di = deckItems(d, live);
               const dq = deckQueues.get(d.id)!;
@@ -214,7 +214,7 @@ export function PracticeTab({ topic, items, decks, recalls }: { topic: Topic; it
       {sources.length > 0 && (
         <section className="grid gap-1.5">
           <h2 className="text-muted-foreground text-sm font-medium">From a source</h2>
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="grid gap-2 cq-sm:grid-cols-2">
             {shownSources.map((s) => (
               <button type="button" key={s.id} className="hover:bg-accent/50 focus-visible:ring-ring flex items-center gap-3 rounded-md border px-3 py-2 text-left text-sm focus-visible:ring-2 focus-visible:outline-none" onClick={() => start({ kind: "source", id: s.id })}>
                 <BookOpen className="text-muted-foreground size-4 shrink-0" />
@@ -235,7 +235,7 @@ export function PracticeTab({ topic, items, decks, recalls }: { topic: Topic; it
 
       <LeechList items={live} recalls={recalls} />
 
-      <div className="grid gap-4 sm:grid-cols-[12rem_1fr]">
+      <div className="grid gap-4 cq-sm:grid-cols-[12rem_1fr]">
         <section className="grid content-start gap-1.5">
           <h2 className="text-muted-foreground text-sm font-medium">Retention</h2>
           <Card className="py-0">

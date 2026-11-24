@@ -97,14 +97,14 @@ export function UserScreenPage() {
           <div className="flex flex-wrap items-center gap-2">
             {editing && <Badge variant="secondary">editing</Badge>}
             {editing ? (
-              <div className="flex items-center gap-1.5 max-md:w-full">
+              <div className="flex items-center gap-1.5 cq-max-md:w-full">
                 <Tag className="text-muted-foreground size-3.5 shrink-0" />
                 <TagPicker
                   aria-label="Screen tag filter"
                   value={screen.tags ?? []}
                   onChange={(t) => void saveScreenTags(t)}
                   placeholder="Screen tag filter…"
-                  className="w-56 max-md:w-full"
+                  className="w-56 cq-max-md:w-full"
                 />
               </div>
             ) : (

@@ -89,7 +89,7 @@ export function SwearJarScreen() {
         {active.length === 0 ? (
           <p className="text-muted-foreground text-sm">No offences yet — name the first thing you want to pay for.</p>
         ) : (
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="grid gap-2 cq-sm:grid-cols-2">
             {active.map((o) => (
               <div key={o.id} className="flex items-center gap-1">
                 <div className="grid min-w-0 flex-1">

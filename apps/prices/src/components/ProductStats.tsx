@@ -58,7 +58,7 @@ export function ProductStats({ product, shops, all, obs, span }: { product: Prod
   const range = (s: PriceStats) => (s.n === 1 ? `${s.n} price` : `low ${unit(s.min)} · avg ${unit(s.avg)} · high ${unit(s.max)} · ${s.n} prices`);
 
   return (
-    <div className="grid gap-3 md:grid-cols-2">
+    <div className="grid gap-3 cq-md:grid-cols-2">
       <Section title="Spend">
         <div className="grid grid-cols-2 gap-3">
           <Figure label="Spent" value={formatCents(spend.spent)} />
