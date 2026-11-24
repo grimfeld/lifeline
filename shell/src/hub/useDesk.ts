@@ -121,9 +121,11 @@ export function useDesk(stage: Stage | null) {
     const { target } = routeTarget(location.pathname);
     histories.current.set(target, recordRoute(histories.current.get(target), path, navigationType === "REPLACE"));
     dispatch({ type: "open", target, route: path, stage: stageRef.current ?? FALLBACK_STAGE });
-    // Keyed on the address alone: the layout and the navigation type are read as they stand.
+    // Keyed on the history entry, not just the address: Back can land on an entry
+    // with the same address (after a focus replaced the one above it). The layout
+    // and the navigation type are read as they stand.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- see above
-  }, [path]);
+  }, [location.key]);
 
   /** Bring a Window to the front, its route into the URL (no new history entry). */
   const focus = useCallback(
