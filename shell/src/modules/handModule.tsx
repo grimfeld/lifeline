@@ -93,7 +93,7 @@ export function handModule(opts: {
     );
   }
 
-  return { Layout, pages: opts.pages };
+  return { Layout, pages: opts.pages, placeScreens: opts.places.flatMap((p) => (p.screen ? [p.screen] : [])) };
 }
 
 /** An App screen's route; undefined when that App is not registered, so its place is skipped. */

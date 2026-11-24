@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { EVENT_TYPE, PLACE_TYPE, appById, documentType, openPin, useDocumentTypes, useDocuments, useLocatablePins } from "@lifeline/core";
 import { cn, MapView, PageHeader, PhoneDock, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
-import { Map as MapIcon, MapPin, Sparkles, Users } from "lucide-react";
+import { Home, Map as MapIcon, MapPin, Sparkles, Users } from "lucide-react";
 import { handModule } from "../handModule";
 import { worldPins } from "./worldMap";
 
@@ -106,7 +106,7 @@ function WorldMap() {
 
 /**
  * World (ADR 0128): the People Module retitled, Contacts and Atlas side by
- * side. It opens on the map of both; People and Places keep their screens.
+ * side. It opens on the map of both; People, Households and Places keep their screens.
  */
 export const worldShell = handModule({
   id: "people",
@@ -114,6 +114,7 @@ export const worldShell = handModule({
   places: [
     { key: "map", title: "Map", icon: MapIcon, page: "" },
     { key: "people", title: "People", icon: Users, screen: "contacts.people" },
+    { key: "households", title: "Households", icon: Home, screen: "contacts.households" },
     { key: "places", title: "Places", icon: MapPin, screen: "atlas.places" },
   ],
   pages: [{ path: "", component: WorldMap, bare: true }],

@@ -58,3 +58,13 @@ test("on a phone, Add household sits in the Phone dock", { tag: "@phone" }, asyn
   await expect(dock.getByRole("button", { name: "Add household" })).toBeVisible();
   await expect(page.getByRole("main").getByRole("button", { name: "Add household" })).toHaveCount(0);
 });
+
+test("World's navigation reaches the Households list from /module/people", { tag: "@also-phone" }, async ({ page }) => {
+  await page.goto("/module/people");
+  await workLocally(page);
+  // The sidebar on a desktop, the tab in the Phone dock on a phone: whichever link is visible.
+  await page.locator('a[href="/app/people/households"]').filter({ visible: true }).click();
+  await expect(page).toHaveURL(/\/app\/people\/households$/);
+  await expect(page.getByRole("button", { name: "Add household" }).filter({ visible: true })).toBeVisible();
+  await expect(page.locator('a[href="/app/people/households"]').filter({ visible: true })).toHaveAttribute("aria-current", "page");
+});

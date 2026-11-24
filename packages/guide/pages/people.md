@@ -216,8 +216,8 @@ A **Household** is the People who live together: Paul, Mary, Tom and Lily, "the 
 name, aliases, **members** you choose, and a page of your own words. It is not a family: Paul's
 mother in another town is his Tie, not a member, and Mary keeps her own name and is still one.
 
-- **Households**, beside **People** in the People Module (its sidebar, or its tabs at the bottom,
-  against the bar, on a phone), lists every Household in the current Workspace,
+- **Households**, one of [World](world.md)'s places, after **People** (in its sidebar, or among its
+  tabs above the bar on a phone), lists every Household in the current Workspace,
   A to Z, with the names and number of its current members (former members only on its page).
   **Add household** takes a name and opens its page.
 - **A Household's page** — its name, underlined with dashes (click it to rename it; every
