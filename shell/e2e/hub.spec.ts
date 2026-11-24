@@ -305,6 +305,18 @@ test.describe("The Hub", () => {
       await expect(page.locator("[data-full-page]")).toHaveCount(0);
       await expect(page).toHaveURL(/\/map/);
       await expect(page.locator("[data-window]")).toHaveCount(1);
+
+      // From the palette over a Window: the Vault opens over the Hub too, and a Module's route opens its Window.
+      await page.keyboard.press("Control+k");
+      await page.getByRole("combobox").fill("Go to Vault");
+      await page.getByRole("option", { name: /Go to Vault/ }).first().click();
+      await expect(page.locator("[data-full-page]")).toBeVisible();
+      await expect(page).toHaveURL(/\/vault/);
+      await page.keyboard.press("Control+k");
+      await page.getByRole("combobox").fill("Go to Graph");
+      await page.getByRole("option", { name: /Go to Graph/ }).first().click();
+      await expect(page.locator("[data-full-page]")).toHaveCount(0);
+      await expect(win(page, "Graph")).toBeVisible();
     });
 
     test("a Peek opens above a Window and above a full-screen page", async ({ page }) => {

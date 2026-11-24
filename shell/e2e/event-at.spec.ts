@@ -49,7 +49,8 @@ test("an Event At a Place, found by its alias, shows where it is and is on the P
   await dialog.getByRole("button", { name: "Add event" }).click();
   await expect(dialog).toBeHidden();
   expect(await storedAt(page, title)).toBe(place);
-  await expect(page.getByText(title).locator("..")).toContainText(`At ${placeName}`);
+  // The Events page opens full screen over the Hub, whose Calendar shows the Event too.
+  await expect(page.locator("[data-full-page]").getByText(title).locator("..")).toContainText(`At ${placeName}`);
 
   await page.goto(`/app/places/place/${place}`);
   await workLocally(page);
@@ -83,7 +84,7 @@ test("an Event At a Person holds one At, which can be changed to a new Place by 
   await dialog.getByRole("button", { name: "Add event" }).click();
   await expect(dialog).toBeHidden();
   expect(await storedAt(page, title)).toBe(marc);
-  await expect(page.getByText(title).locator("..")).toContainText(`At Marc Lefèvre ${stamp}`);
+  await expect(page.locator("[data-full-page]").getByText(title).locator("..")).toContainText(`At Marc Lefèvre ${stamp}`);
 
   // Cleared from the Event's Peek (Edit opens it, #540), saved at once.
   const row = page.locator("[data-slot=card]").filter({ hasText: title });
