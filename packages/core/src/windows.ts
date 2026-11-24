@@ -168,6 +168,9 @@ function update(layout: WindowLayout, id: string, f: (w: WindowState) => WindowS
 /** The box a Window had before it was snapped or maximised: kept in `restore`, or its own when it never left. */
 const boxBeforeSnap = (w: WindowState): Box => w.restore ?? w.box;
 
+/** A Window with only its own box: no box to go back to, no mode to go back to. */
+const bare = (w: WindowState) => ({ id: w.id, target: w.target, route: w.route, box: w.box });
+
 /** A snapped or maximised Window back at the box it had before, clamped to the limits on this stage. */
 function restored(w: WindowState, stage: Stage): WindowState {
   if (w.mode !== "snapped" && w.mode !== "maximised") return w;
@@ -197,7 +200,7 @@ export function windowsReducer(layout: WindowLayout, action: WindowAction): Wind
     case "route":
       return update(layout, action.id, (w) => (w.route === action.route ? w : { ...w, route: action.route }));
     case "place":
-      return update(layout, action.id, (w) => ({ id: w.id, target: w.target, route: w.route, mode: "normal", box: clampBox(action.box, action.stage) }));
+      return update(layout, action.id, (w) => ({ ...bare(w), mode: "normal", box: clampBox(action.box, action.stage) }));
     case "maximise":
       return update(layout, action.id, (w) => {
         if (w.mode === "maximised") return { ...w, mode: "normal", box: w.restore ?? w.box, restore: undefined };
@@ -210,8 +213,7 @@ export function windowsReducer(layout: WindowLayout, action: WindowAction): Wind
       return update(layout, action.id, (w) => {
         const restore = w.mode === "normal" ? w.box : boxBeforeSnap(w);
         // From full screen too: the Window leaves it for the snap.
-        const base = { id: w.id, target: w.target, route: w.route, box: w.box };
-        return action.box === "max" ? { ...base, mode: "maximised", restore } : { ...base, mode: "snapped", box: action.box, restore };
+        return action.box === "max" ? { ...bare(w), mode: "maximised", restore } : { ...bare(w), mode: "snapped", box: action.box, restore };
       });
     case "restore":
       return update(layout, action.id, (w) => restored(w, action.stage));
@@ -220,9 +222,9 @@ export function windowsReducer(layout: WindowLayout, action: WindowAction): Wind
     case "fullScreen":
       return update(layout, action.id, (w) => {
         if (w.mode === "full") {
-          const mode = w.was ?? "normal";
           // The box and the box before a snap were kept as they were: only the mode comes back.
-          return { id: w.id, target: w.target, route: w.route, box: w.box, mode, ...(mode === "normal" ? {} : { restore: w.restore ?? w.box }) };
+          const mode = w.was ?? "normal";
+          return mode === "normal" ? { ...bare(w), mode } : { ...bare(w), mode, restore: w.restore ?? w.box };
         }
         return { ...w, mode: "full", was: w.mode, restore: w.mode === "normal" ? w.box : boxBeforeSnap(w) };
       });

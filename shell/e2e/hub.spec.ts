@@ -104,15 +104,15 @@ test.describe("The Hub", () => {
   test("a narrow Window shows its narrow layout without the Phone bar", async ({ page }) => {
     await emptyDesk(page);
     await hub(page).getByRole("link", { name: "Calendar" }).click();
-    const settings = win(page, "Calendar");
-    await expect(settings).toBeVisible();
-    const corner = settings.locator("[data-window-corner]");
+    const calendar = win(page, "Calendar");
+    await expect(calendar).toBeVisible();
+    const corner = calendar.locator("[data-window-corner]");
     const c = (await corner.boundingBox())!;
     await page.mouse.move(c.x + 4, c.y + 4);
     await page.mouse.down();
     await page.mouse.move(c.x - 2000, c.y, { steps: 5 });
     await page.mouse.up();
-    await expect.poll(async () => Math.round((await settings.boundingBox())!.width)).toBe(320);
+    await expect.poll(async () => Math.round((await calendar.boundingBox())!.width)).toBe(320);
     await expect(page.getByRole("navigation", { name: "Phone bar" })).toHaveCount(0);
   });
 
@@ -363,11 +363,59 @@ test.describe("The Hub", () => {
         return near(b.x, stage.x) && near(b.width, stage.width / 2);
       }).toBe(true);
 
-      await inCore(page, async (core) => void (await core.saveKeyBinding({ key: "Mod+Shift+Y", command: "hub/hub.window-close" })), null);
-      await page.locator("body").click({ position: { x: 1, y: 1 } });
+      // Over a full-screen page no Window is in view: the palette offers none of them.
+      await page.goto("/settings/keys");
+      await workLocally(page);
+      const keys = page.locator("[data-full-page]");
+      await expect(keys).toBeVisible();
+      await page.keyboard.press("Control+k");
+      await page.getByRole("combobox").fill("Close Window");
+      await expect(page.getByRole("option", { name: /Close Window/ })).toHaveCount(0);
+      await page.keyboard.press("Escape");
+
+      // Bound in Settings › Keys, a key runs it on the front Window.
+      await keys.getByRole("button", { name: "Bind a key" }).click();
+      const dialog = page.getByRole("dialog", { name: "Bind a key" });
+      await dialog.getByRole("combobox", { name: "Command" }).fill("Close Window");
+      await page.getByRole("option", { name: /Close Window/ }).first().click();
+      await dialog.getByRole("button", { name: "Key", exact: true }).press("Control+Shift+Y");
+      await dialog.getByRole("button", { name: "Bind", exact: true }).click();
+      await expect(dialog).toBeHidden();
+      await keys.getByRole("button", { name: /^Close / }).click();
+      await expect(keys).toHaveCount(0);
+      await expect(win(page, "Graph")).toBeVisible();
       await page.keyboard.press("Control+Shift+Y");
       await expect(win(page, "Graph")).toHaveCount(0);
       await expect(win(page, "Map")).toBeVisible();
+    });
+
+    test("Back from a full-screen page returns to the Window's place, not a step back inside it", async ({ page }) => {
+      await page.goto("/calendar?view=week");
+      await workLocally(page);
+      const calendar = win(page, "Calendar");
+      await calendar.getByRole("tab", { name: "Day", exact: true }).click();
+      await expect(page).toHaveURL(/view=day/);
+      await hub(page).getByRole("link", { name: "Settings" }).click();
+      await expect(page.locator("[data-full-page]")).toBeVisible();
+      await page.goBack();
+      await expect(page.locator("[data-full-page]")).toHaveCount(0);
+      await expect(page).toHaveURL(/view=day/);
+      // The next Back is a step inside the Calendar's own history.
+      await page.goBack();
+      await expect(page).toHaveURL(/view=week/);
+    });
+
+    test("Esc while typing in a field on a full-screen page is the field's", async ({ page }) => {
+      await page.goto("/base/task");
+      await workLocally(page);
+      const bases = page.locator("[data-full-page]");
+      await bases.getByRole("textbox", { name: "Search" }).fill("anything");
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(200);
+      await expect(bases).toBeVisible();
+      await bases.focus();
+      await page.keyboard.press("Escape");
+      await expect(bases).toHaveCount(0);
     });
   });
 });

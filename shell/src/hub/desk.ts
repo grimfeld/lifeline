@@ -1,5 +1,11 @@
 import { EMPTY_LAYOUT, loadWindowLayout, newDesk, pathOnly, routeTarget, windowsReducer, type WindowAction, type WindowLayout } from "@lifeline/core";
 
+/** Whether an address opens as a full-screen page over the Hub (#663) rather than in a Window. `/` is the desk itself. */
+export function isPageRoute(route: string): boolean {
+  const path = pathOnly(route);
+  return path !== "/" && routeTarget(path).kind === "page";
+}
+
 /** The desk's own actions on top of the window layout's: loading a Workspace's set. */
 export type DeskAction = WindowAction | { type: "load"; layout: WindowLayout };
 
@@ -16,7 +22,7 @@ export function deskReducer(layout: WindowLayout, action: DeskAction): WindowLay
 export function initialLayout(workspaceId: string, asked: string, lastPlace: (workspaceId: string) => string): WindowLayout {
   const saved = loadWindowLayout(workspaceId);
   if (saved) return saved;
-  const inWindow = (route: string) => pathOnly(route) !== "/" && routeTarget(pathOnly(route)).kind === "window";
+  const inWindow = (route: string) => pathOnly(route) !== "/" && !isPageRoute(route);
   const place = inWindow(asked) ? asked : lastPlace(workspaceId);
   if (!inWindow(place)) return EMPTY_LAYOUT;
   return newDesk(routeTarget(pathOnly(place)).target, place);

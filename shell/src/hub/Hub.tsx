@@ -29,7 +29,9 @@ import { WorkspacePicker } from "../components/WorkspacePicker";
 import { RouteBoundary } from "../components/ErrorBoundary";
 import { Places } from "../Places";
 import { WindowRouter } from "./WindowRouter";
-import { isPageRoute, useDesk } from "./useDesk";
+import { useDesk } from "./useDesk";
+import { isPageRoute } from "./desk";
+import { hubTakesEscape } from "./escape";
 import { setDeskControls } from "./windowCommands";
 
 type Icon = React.ComponentType<{ className?: string }>;
@@ -70,18 +72,20 @@ export function Hub() {
   const front = frontWindow(desk.layout);
   const full = front?.mode === "full";
 
-  // The Window Commands act on the front Window through this (#663).
+  // The Window Commands act on the front Window through this (#663): none
+  // under a full-screen page, where no Window is in view to act on.
   const { act, close, closePage } = desk;
+  const commandFront = page ? undefined : front;
   useEffect(() => {
-    setDeskControls({ front, act, close });
-  }, [front, act, close]);
+    setDeskControls({ front: commandFront, act, close });
+  }, [commandFront, act, close]);
   useEffect(() => () => setDeskControls(null), []);
 
-  // Esc closes a full-screen page, or leaves full screen. Not when a dialog,
-  // a menu or a Peek has the key (focus is outside the Hub then), nor while
-  // typing: a field keeps its own Esc.
+  // Esc closes a full-screen page, or leaves full screen, unless what has
+  // focus keeps its own Esc (hubTakesEscape). Read through a ref, kept current
+  // after each commit, so the listener is added once.
   const escape = useRef<() => boolean>(() => false);
-  escape.current = () => {
+  const onEscape = () => {
     if (page) {
       closePage();
       return true;
@@ -90,12 +94,13 @@ export function Hub() {
     act({ type: "fullScreen", id: front.id });
     return true;
   };
+  useLayoutEffect(() => {
+    escape.current = onEscape;
+  });
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape" || e.defaultPrevented || e.isComposing) return;
-      const t = e.target instanceof HTMLElement ? e.target : null;
-      if (t && t !== document.body && !rootRef.current?.contains(t)) return;
-      if (t && (t.isContentEditable || t.closest("input, textarea, select"))) return;
+      if (!hubTakesEscape(e.target, rootRef.current)) return;
       if (escape.current()) e.preventDefault();
     };
     window.addEventListener("keydown", onKey);
@@ -122,6 +127,14 @@ export function Hub() {
     // A Window gone mid-drag (closed, or a Workspace switch) takes its outline with it.
     setOutline(null);
   }, [ids]);
+  // Entering full screen moves focus into the Window, unless it is there
+  // already (its own button): the Hub's chrome it may have been on is gone.
+  const fullId = full ? front?.id : undefined;
+  useEffect(() => {
+    if (!fullId) return;
+    const el = document.getElementById(windowDomId(fullId));
+    if (el && !el.contains(document.activeElement)) el.focus({ preventScroll: true });
+  }, [fullId]);
   // Windows render in a fixed order — stacking is z-index alone — so bringing one
   // to the front never moves its node (which would drop focus and pointer capture).
   const byId = [...desk.layout.windows].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
@@ -203,11 +216,11 @@ function FullScreenPage({ onClose }: { onClose: () => void }) {
   }, []);
   return (
     <section ref={ref} aria-label={title} tabIndex={-1} data-full-page="" className="bg-background absolute inset-0 z-10 flex flex-col outline-none">
-      <div style={{ height: BAR_HEIGHT }} className="bg-sidebar flex shrink-0 items-center gap-2 border-b pr-1 pl-3">
+      <div data-page-bar="" style={{ height: BAR_HEIGHT }} className="bg-sidebar flex shrink-0 items-center gap-2 border-b pr-1 pl-3">
         <span className="min-w-0 flex-1 truncate text-sm font-medium">{title}</span>
         <span aria-hidden className="text-muted-foreground shrink-0 text-xs">Esc</span>
         <Tip label={`Close ${title}`}>
-          <Button size="icon-sm" variant="ghost" onClick={onClose}>
+          <Button size="icon-sm" variant="ghost" aria-keyshortcuts="Escape" onClick={onClose}>
             <X />
           </Button>
         </Tip>
@@ -307,7 +320,12 @@ function HubIndex({ windows, frontId, onFocus }: { windows: WindowState[]; front
         <div className="bg-border mx-2 my-1.5 h-px shrink-0" />
         {surfaceRows.map(row)}
       </div>
-      <div className="flex flex-col gap-0.5 border-t p-2">{footRows.map(row)}</div>
+      {/* The Guide and Settings are full-screen pages, never Windows: plain links. */}
+      <div className="flex flex-col gap-0.5 border-t p-2">
+        {footRows.map((r) => (
+          <IndexLink key={r.key} row={r} open={false} front={false} />
+        ))}
+      </div>
     </nav>
   );
 }
@@ -496,7 +514,7 @@ function WindowFrame({
         )}
         {/* One button both ways, so focus stays on it: in full screen it names the way back. */}
         <Tip label={full ? "Hub · Esc" : "Full screen"}>
-          <Button size={full ? "sm" : "icon-sm"} variant={full ? "outline" : "ghost"} onClick={onFullScreen}>
+          <Button size={full ? "sm" : "icon-sm"} variant={full ? "outline" : "ghost"} aria-keyshortcuts={full ? "Escape" : undefined} onClick={onFullScreen}>
             {full ? "Hub · Esc" : <Expand />}
           </Button>
         </Tip>

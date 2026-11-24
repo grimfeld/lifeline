@@ -16,13 +16,10 @@ import {
   type WindowHistory,
 } from "@lifeline/core";
 import { lastPlace } from "../nav/resume";
-import { deskReducer, initialLayout } from "./desk";
+import { deskReducer, initialLayout, isPageRoute } from "./desk";
 
 /** The full path of a location: what a Window's route holds. */
 const fullPath = (l: { pathname: string; search: string; hash: string }) => l.pathname + l.search + l.hash;
-
-/** Whether an address opens as a full-screen page over the Hub (#663) rather than in a Window. `/` is the desk itself. */
-export const isPageRoute = (pathname: string) => pathname !== "/" && routeTarget(pathname).kind === "page";
 
 /** The stage before it is first measured. */
 const FALLBACK_STAGE: Stage = { width: 1280, height: 720 };
