@@ -9,7 +9,6 @@ import {
   OPEN_SIZE,
   boxInPixels,
   clampBox,
-  dropPagesBehind,
   snapZone,
   SNAP_EDGE,
   LEFT_HALF,
@@ -41,6 +40,15 @@ initApps([
     module: "culture",
     types: [],
     screens: [{ id: "library", title: "library", path: "library", component: () => null }],
+    cards: [],
+    commands: [],
+  } satisfies AppManifest,
+  // An App with no Module: its screens are full-screen pages on the desk (the Calendar App's Events).
+  {
+    id: "events",
+    title: "events",
+    types: [],
+    screens: [{ id: "events", title: "events", path: "events", component: () => null }],
     cards: [],
     commands: [],
   } satisfies AppManifest,
@@ -238,6 +246,20 @@ describe("storage per Workspace", () => {
     expect(loadWindowLayout("w2")).toBeNull();
   });
 
+  it("drops a page's Window a layout saved before full-screen pages still holds", () => {
+    const l = run(EMPTY_LAYOUT, open("a"), open("page:settings", "/settings"));
+    saveWindowLayout("w1", l);
+    expect(loadWindowLayout("w1")?.windows.map((w) => w.target)).toEqual(["a"]);
+  });
+
+  it("keeps full screen, and the mode it goes back to, across a reload", () => {
+    const l = run(EMPTY_LAYOUT, open("a"), { type: "maximise", id: "a:1" }, { type: "fullScreen", id: "a:1" });
+    saveWindowLayout("w1", l);
+    expect(loadWindowLayout("w1")).toEqual(l);
+    store.set("lifeline:windows:w1", JSON.stringify({ ...l, windows: [{ ...l.windows[0], was: "full" }] }));
+    expect(loadWindowLayout("w1")).toBeNull();
+  });
+
   it("refuses a stored route that leaves the app", () => {
     for (const route of ["//evil.example", "https://evil.example", "evil"]) {
       const l = run(EMPTY_LAYOUT, open("a"));
@@ -306,16 +328,70 @@ describe("pages", () => {
     expect(routeTarget("/screen/abc")).toEqual({ kind: "window", target: SCREENS_TARGET });
   });
 
-  it("go when another Window comes to the front, and stay while in front", () => {
-    const withPage = run(EMPTY_LAYOUT, open("culture"), open("page:settings", "/settings"));
-    expect(dropPagesBehind(withPage)).toBe(withPage);
-    const behind = run(withPage, { type: "focus", id: "culture:1" });
-    expect(dropPagesBehind(behind).windows.map((w) => w.target)).toEqual(["culture"]);
+  it("are never Windows: prune drops one a layout saved before still holds", () => {
+    const l = run(EMPTY_LAYOUT, open("culture"), open("page:base", "/base"), { type: "prune", targets: ["culture"] });
+    expect(l.windows.map((w) => w.target)).toEqual(["culture"]);
+  });
+});
+
+describe("route to Window or full-screen page", () => {
+  it.each([
+    ["/module/culture", { kind: "window", target: "culture" }],
+    ["/app/library/shelf", { kind: "window", target: "culture" }],
+    ["/calendar", { kind: "window", target: "calendar" }],
+    ["/screens", { kind: "window", target: SCREENS_TARGET }],
+    ["/screen/abc", { kind: "window", target: SCREENS_TARGET }],
+    ["/base", { kind: "page", target: "page:base" }],
+    ["/base/task", { kind: "page", target: "page:base" }],
+    ["/vault/d/abc", { kind: "page", target: "page:vault" }],
+    ["/settings/keys", { kind: "page", target: "page:settings" }],
+    ["/guide/hub", { kind: "page", target: "page:guide" }],
+    ["/app/events", { kind: "page", target: "page:app" }],
+    ["/nowhere/at/all", { kind: "page", target: "page:nowhere" }],
+  ] as const)("%s", (path, expected) => {
+    expect(routeTarget(path)).toEqual(expected);
+  });
+});
+
+describe("full screen", () => {
+  const fs = (id: string): WindowAction => ({ type: "fullScreen", id });
+
+  it("from a normal Window, and back to its box", () => {
+    const l = run(EMPTY_LAYOUT, open("a"));
+    const box = l.windows[0]!.box;
+    const full = run(l, fs("a:1"));
+    expect(full.windows[0]).toMatchObject({ mode: "full", was: "normal", restore: box });
+    expect(boxInPixels(full.windows[0]!, STAGE)).toEqual({ x: 0, y: 0, w: 1200, h: 800 });
+    expect(run(full, fs("a:1")).windows[0]).toEqual(l.windows[0]);
   });
 
-  it("are never pruned: they belong to no Workspace", () => {
-    const l = run(EMPTY_LAYOUT, open("culture"), open("page:base", "/base"), { type: "prune", targets: ["money"] });
-    expect(l.windows.map((w) => w.target)).toEqual(["page:base"]);
+  it("from a maximised or snapped Window, back to that mode with its box before the snap kept", () => {
+    const l = run(EMPTY_LAYOUT, open("a"));
+    const box = l.windows[0]!.box;
+    const max = run(l, { type: "maximise", id: "a:1" });
+    expect(run(max, fs("a:1"), fs("a:1")).windows[0]).toEqual(max.windows[0]);
+    const snapped = run(l, { type: "snap", id: "a:1", box: LEFT_HALF });
+    const back = run(snapped, fs("a:1"), fs("a:1")).windows[0]!;
+    expect(back).toEqual(snapped.windows[0]);
+    expect(back.restore).toEqual(box);
+  });
+
+  it("is left by a snap, and maximise does nothing to it", () => {
+    const l = run(EMPTY_LAYOUT, open("a"));
+    const box = l.windows[0]!.box;
+    const full = run(l, fs("a:1"));
+    expect(run(full, { type: "maximise", id: "a:1" })).toEqual(full);
+    const snapped = run(full, { type: "snap", id: "a:1", box: RIGHT_HALF }).windows[0]!;
+    expect(snapped).toEqual({ id: "a:1", target: "a", route: "/a", mode: "snapped", box: RIGHT_HALF, restore: box });
+  });
+
+  it("goes with the Window when it closes, which remembers its own box", () => {
+    const l = run(EMPTY_LAYOUT, open("a"), open("b"));
+    const box = l.windows[1]!.box;
+    const closed = run(l, fs("b:1"), { type: "close", id: "b:1" });
+    expect(frontWindow(closed)?.id).toBe("a:1");
+    expect(frontWindow(closed)?.mode).toBe("normal");
+    expect(closed.remembered.b).toEqual(box);
   });
 });
 

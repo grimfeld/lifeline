@@ -77,3 +77,18 @@ test("a Window bar's snap buttons are named", async ({ page, isMobile }) => {
   await expect(calendar.getByRole("button", { name: "Snap left half" })).toBeVisible();
   await expect(calendar.getByRole("button", { name: "Snap right half" })).toBeVisible();
 });
+
+test("a Window bar's maximise and full-screen buttons are named, and a full-screen page's close", async ({ page, isMobile }) => {
+  test.skip(isMobile, "A phone has no Windows (ADR 0133)");
+  await page.goto("/calendar");
+  await workLocally(page);
+  const calendar = page.getByRole("region", { name: "Calendar", exact: true });
+  // A new desk opens its Window maximised: the button restores it.
+  await expect(calendar.getByRole("button", { name: "Restore" })).toBeVisible();
+  await calendar.getByRole("button", { name: "Full screen" }).click();
+  await expect(calendar.getByRole("button", { name: "Hub · Esc" })).toBeVisible();
+  await calendar.getByRole("button", { name: "Hub · Esc" }).click();
+  await page.goto("/settings");
+  await workLocally(page);
+  await expect(page.getByRole("region", { name: "Settings", exact: true }).getByRole("button", { name: "Close Settings" })).toBeVisible();
+});

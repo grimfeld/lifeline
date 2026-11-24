@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { inCore } from "./support/core";
 
 /**
  * The Hub (ADR 0133, spec #661): on the desk, Modules and Surfaces open as
@@ -102,16 +103,16 @@ test.describe("The Hub", () => {
 
   test("a narrow Window shows its narrow layout without the Phone bar", async ({ page }) => {
     await emptyDesk(page);
-    await hub(page).getByRole("link", { name: "Settings" }).click();
-    const settings = win(page, "Settings");
-    await expect(settings).toBeVisible();
-    const corner = settings.locator("[data-window-corner]");
+    await hub(page).getByRole("link", { name: "Calendar" }).click();
+    const calendar = win(page, "Calendar");
+    await expect(calendar).toBeVisible();
+    const corner = calendar.locator("[data-window-corner]");
     const c = (await corner.boundingBox())!;
     await page.mouse.move(c.x + 4, c.y + 4);
     await page.mouse.down();
     await page.mouse.move(c.x - 2000, c.y, { steps: 5 });
     await page.mouse.up();
-    await expect.poll(async () => Math.round((await settings.boundingBox())!.width)).toBe(320);
+    await expect.poll(async () => Math.round((await calendar.boundingBox())!.width)).toBe(320);
     await expect(page.getByRole("navigation", { name: "Phone bar" })).toHaveCount(0);
   });
 
@@ -238,6 +239,183 @@ test.describe("The Hub", () => {
       const after = (await calendar.boundingBox())!;
       expect(near(after.width, stage.width) || after.width < stage.width).toBe(true);
       expect(near(after.width, stage.width / 2)).toBe(false);
+    });
+  });
+
+  test.describe("maximise, full screen and full-screen pages", () => {
+    const stageBox = async (page: Page) => (await page.locator("[data-hub-stage]").boundingBox())!;
+    const near = (a: number, b: number) => Math.abs(a - b) <= 2;
+
+    test("Maximise fills the stage and keeps the Hub; Restore puts the Window back", async ({ page }) => {
+      await emptyDesk(page);
+      await hub(page).getByRole("link", { name: "Map" }).click();
+      const map = win(page, "Map");
+      const before = (await map.boundingBox())!;
+      await map.getByRole("button", { name: "Maximise" }).click();
+      const stage = await stageBox(page);
+      await expect.poll(async () => near((await map.boundingBox())!.width, stage.width)).toBe(true);
+      await expect(hub(page)).toBeVisible();
+      await map.getByRole("button", { name: "Restore" }).click();
+      await expect.poll(async () => Math.round((await map.boundingBox())!.width)).toBe(Math.round(before.width));
+    });
+
+    test("full screen hides the Hub; Esc or Hub · Esc brings it back, and a reload keeps it", async ({ page }) => {
+      await emptyDesk(page);
+      await hub(page).getByRole("link", { name: "Graph" }).click();
+      const graph = win(page, "Graph");
+      const before = (await graph.boundingBox())!;
+      await graph.getByRole("button", { name: "Full screen" }).click();
+      await expect(hub(page)).toHaveCount(0);
+      const display = await page.evaluate(() => document.documentElement.clientWidth);
+      await expect.poll(async () => near((await graph.boundingBox())!.width, display)).toBe(true);
+      await page.keyboard.press("Escape");
+      await expect(hub(page)).toBeVisible();
+      await expect.poll(async () => Math.round((await graph.boundingBox())!.width)).toBe(Math.round(before.width));
+
+      await graph.getByRole("button", { name: "Full screen" }).click();
+      await page.reload();
+      await workLocally(page);
+      await expect(win(page, "Graph")).toBeVisible();
+      await expect(hub(page)).toHaveCount(0);
+      await win(page, "Graph").getByRole("button", { name: "Hub · Esc" }).click();
+      await expect(hub(page)).toBeVisible();
+    });
+
+    test("Settings and Bases open full screen over the Hub, never as Windows; Esc and the close button return to the Hub as it was", async ({ page }) => {
+      await emptyDesk(page);
+      await hub(page).getByRole("link", { name: "Map" }).click();
+      await expect(page).toHaveURL(/\/map/);
+      await hub(page).getByRole("link", { name: "Settings" }).click();
+      const settings = page.getByRole("region", { name: "Settings", exact: true });
+      await expect(settings).toBeVisible();
+      await expect(page.locator("[data-window]")).toHaveCount(1);
+      await page.keyboard.press("Escape");
+      await expect(settings).toHaveCount(0);
+      await expect(page).toHaveURL(/\/map/);
+      await expect(win(page, "Map")).toBeVisible();
+
+      await page.getByRole("link", { name: "Bases" }).click();
+      const bases = page.locator("[data-full-page]");
+      await expect(bases).toBeVisible();
+      // A reload opens it again over the Hub.
+      await page.reload();
+      await workLocally(page);
+      await expect(page.locator("[data-full-page]")).toBeVisible();
+      await page.locator("[data-full-page]").getByRole("button", { name: /^Close / }).click();
+      await expect(page.locator("[data-full-page]")).toHaveCount(0);
+      await expect(page).toHaveURL(/\/map/);
+      await expect(page.locator("[data-window]")).toHaveCount(1);
+
+      // From the palette over a Window: the Vault opens over the Hub too, and a Module's route opens its Window.
+      await page.keyboard.press("Control+k");
+      await page.getByRole("combobox").fill("Go to Vault");
+      await page.getByRole("option", { name: /Go to Vault/ }).first().click();
+      await expect(page.locator("[data-full-page]")).toBeVisible();
+      await expect(page).toHaveURL(/\/vault/);
+      await page.keyboard.press("Control+k");
+      await page.getByRole("combobox").fill("Go to Graph");
+      await page.getByRole("option", { name: /Go to Graph/ }).first().click();
+      await expect(page.locator("[data-full-page]")).toHaveCount(0);
+      await expect(win(page, "Graph")).toBeVisible();
+    });
+
+    test("a Peek opens above a Window and above a full-screen page", async ({ page }) => {
+      await page.goto("/calendar");
+      await workLocally(page);
+      await expect(win(page, "Calendar")).toBeVisible();
+      const id = await inCore(page, async (core) => (await core.createDocument({ type: "contacts_person", title: "Hub Peek Person" })).id as string, null);
+      await inCore(page, async (core, docId: string) => core.openPeek(docId), id);
+      const peek = page.getByRole("dialog").first();
+      await expect(peek).toBeVisible();
+      await peek.getByText("Hub Peek Person").first().click();
+      await page.keyboard.press("Escape");
+      await expect(peek).toHaveCount(0);
+      // Esc went to the Peek, not to the Hub: the Calendar stays.
+      await expect(win(page, "Calendar")).toBeVisible();
+
+      await page.goto("/settings");
+      await workLocally(page);
+      await expect(page.locator("[data-full-page]")).toBeVisible();
+      await inCore(page, async (core, docId: string) => core.openPeek(docId), id);
+      await expect(page.getByRole("dialog").first()).toBeVisible();
+      await page.getByRole("dialog").first().getByText("Hub Peek Person").first().click();
+      await page.keyboard.press("Escape");
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+      await expect(page.locator("[data-full-page]")).toBeVisible();
+    });
+
+    test("the palette offers the Window Commands only with a Window open, and a bound one acts on the front Window", async ({ page }) => {
+      await emptyDesk(page);
+      await page.keyboard.press("Control+k");
+      await page.getByRole("combobox").fill("Snap Window left");
+      await expect(page.getByRole("option", { name: /Snap Window left/ })).toHaveCount(0);
+      await page.keyboard.press("Escape");
+
+      await hub(page).getByRole("link", { name: "Map" }).click();
+      await hub(page).getByRole("link", { name: "Graph" }).click();
+      await expect(win(page, "Graph")).toBeVisible();
+      await page.keyboard.press("Control+k");
+      await page.getByRole("combobox").fill("Snap Window left");
+      await page.getByRole("option", { name: /Snap Window left/ }).first().click();
+      const stage = await stageBox(page);
+      await expect.poll(async () => {
+        const b = (await win(page, "Graph").boundingBox())!;
+        return near(b.x, stage.x) && near(b.width, stage.width / 2);
+      }).toBe(true);
+
+      // Over a full-screen page no Window is in view: the palette offers none of them.
+      await page.goto("/settings/keys");
+      await workLocally(page);
+      const keys = page.locator("[data-full-page]");
+      await expect(keys).toBeVisible();
+      await page.keyboard.press("Control+k");
+      await page.getByRole("combobox").fill("Close Window");
+      await expect(page.getByRole("option", { name: /Close Window/ })).toHaveCount(0);
+      await page.keyboard.press("Escape");
+
+      // Bound in Settings › Keys, a key runs it on the front Window.
+      await keys.getByRole("button", { name: "Bind a key" }).click();
+      const dialog = page.getByRole("dialog", { name: "Bind a key" });
+      await dialog.getByRole("combobox", { name: "Command" }).fill("Close Window");
+      await page.getByRole("option", { name: /Close Window/ }).first().click();
+      await dialog.getByRole("button", { name: "Key", exact: true }).press("Control+Shift+Y");
+      await dialog.getByRole("button", { name: "Bind", exact: true }).click();
+      await expect(dialog).toBeHidden();
+      await keys.getByRole("button", { name: /^Close / }).click();
+      await expect(keys).toHaveCount(0);
+      await expect(win(page, "Graph")).toBeVisible();
+      await page.keyboard.press("Control+Shift+Y");
+      await expect(win(page, "Graph")).toHaveCount(0);
+      await expect(win(page, "Map")).toBeVisible();
+    });
+
+    test("Back from a full-screen page returns to the Window's place, not a step back inside it", async ({ page }) => {
+      await page.goto("/calendar?view=week");
+      await workLocally(page);
+      const calendar = win(page, "Calendar");
+      await calendar.getByRole("tab", { name: "Day", exact: true }).click();
+      await expect(page).toHaveURL(/view=day/);
+      await hub(page).getByRole("link", { name: "Settings" }).click();
+      await expect(page.locator("[data-full-page]")).toBeVisible();
+      await page.goBack();
+      await expect(page.locator("[data-full-page]")).toHaveCount(0);
+      await expect(page).toHaveURL(/view=day/);
+      // The next Back is a step inside the Calendar's own history.
+      await page.goBack();
+      await expect(page).toHaveURL(/view=week/);
+    });
+
+    test("Esc while typing in a field on a full-screen page is the field's", async ({ page }) => {
+      await page.goto("/base/task");
+      await workLocally(page);
+      const bases = page.locator("[data-full-page]");
+      await bases.getByRole("textbox", { name: "Search" }).fill("anything");
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(200);
+      await expect(bases).toBeVisible();
+      await bases.focus();
+      await page.keyboard.press("Escape");
+      await expect(bases).toHaveCount(0);
     });
   });
 });

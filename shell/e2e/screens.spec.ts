@@ -1486,8 +1486,12 @@ async function firstOfType(page: Page, type: string): Promise<string> {
 async function closeAllWindows(page: Page) {
   if ((page.viewportSize()?.width ?? 0) < 768) return;
   await workLocally(page);
-  for (const close of await page.getByRole("button", { name: /^Close / }).all()) await close.click();
-  await expect(page.getByText("Nothing is open.")).toBeVisible();
+  // The Window may render after the first look, and the signed-out notice can land late: close until the stage is empty.
+  await expect(async () => {
+    await workLocally(page);
+    for (const close of await page.getByRole("button", { name: /^Close / }).all()) await close.click({ timeout: 2000 });
+    await expect(page.getByText("Nothing is open.")).toBeVisible({ timeout: 1000 });
+  }).toPass({ timeout: 20_000 });
 }
 
 /**
