@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
-import { mkdirSync, mkdtempSync, readdirSync as ls, readFileSync, utimesSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync as ls, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { portFree, preinstalledChromium, slotCount, takeSlot, tryTakeSlot } from "./e2e-env.mjs";
@@ -110,15 +110,110 @@ test("a run clearing a dead lock holds the slot's reclaim lock: another run find
   assert.deepEqual(got.holders, [{ pid: 11, worktree: "/a" }]);
 });
 
-test("a reclaim lock left by a run killed mid-clear goes after a minute, and the slot is taken", () => {
-  const dir = slotDir();
-  tryTakeSlot({ dir, count: 1, pid: 11, worktree: "/a", isAlive: () => true });
+// Reclaim locks (#648): judged by the pid of the run that made them, never by age alone.
+
+/** Leaves a reclaim lock on slot 0 as a run with pid `owner` would (no pid file when undefined). */
+const reclaimLock = (dir, owner, ageMs = 0) => {
   const mutex = join(dir, "slot-0.json.reclaim");
   mkdirSync(mutex);
-  const old = new Date(Date.now() - 2 * 60_000);
-  utimesSync(mutex, old, old);
-  assert.equal(tryTakeSlot({ dir, count: 1, pid: 12, worktree: "/b", isAlive: (pid) => pid !== 11 }).slot, 0);
+  if (owner !== undefined) writeFileSync(join(mutex, "pid"), String(owner));
+  if (ageMs) {
+    const then = new Date(Date.now() - ageMs);
+    utimesSync(mutex, then, then);
+  }
+  return mutex;
+};
+
+test("a run clearing a dead lock writes its pid into the reclaim lock, and removes it when done", () => {
+  const dir = slotDir();
+  tryTakeSlot({ dir, count: 1, pid: 11, worktree: "/a", isAlive: () => true });
+  let seen;
+  const isAlive = (pid) => {
+    if (pid === 11) seen = readFileSync(join(dir, "slot-0.json.reclaim", "pid"), "utf8");
+    return pid !== 11;
+  };
+  assert.equal(tryTakeSlot({ dir, count: 1, pid: 12, worktree: "/b", isAlive }).slot, 0);
+  assert.equal(seen, "12");
   assert.deepEqual(ls(dir), ["slot-0.json"]);
+});
+
+test("a reclaim lock whose run is alive is left alone, however old", () => {
+  const dir = slotDir();
+  tryTakeSlot({ dir, count: 1, pid: 11, worktree: "/a", isAlive: () => true });
+  reclaimLock(dir, 20, 10 * 60_000);
+  const got = tryTakeSlot({ dir, count: 1, pid: 12, worktree: "/b", isAlive: (pid) => pid !== 11 });
+  assert.deepEqual(got.holders, [{ pid: 11, worktree: "/a" }]);
+  assert.equal(readFileSync(join(dir, "slot-0.json.reclaim", "pid"), "utf8"), "20");
+});
+
+test("a reclaim lock whose run is dead is cleared at once, and the slot is taken", () => {
+  const dir = slotDir();
+  tryTakeSlot({ dir, count: 1, pid: 11, worktree: "/a", isAlive: () => true });
+  reclaimLock(dir, 20);
+  const got = tryTakeSlot({ dir, count: 1, pid: 12, worktree: "/b", isAlive: (pid) => pid !== 11 && pid !== 20 });
+  assert.equal(got.slot, 0);
+  assert.deepEqual(ls(dir), ["slot-0.json"]);
+});
+
+test("a reclaim lock with no pid in it waits out a short grace, then goes", () => {
+  const dir = slotDir();
+  tryTakeSlot({ dir, count: 1, pid: 11, worktree: "/a", isAlive: () => true });
+  const mutex = reclaimLock(dir, undefined);
+  const isAlive = (pid) => pid !== 11;
+  assert.ok("holders" in tryTakeSlot({ dir, count: 1, pid: 12, worktree: "/b", isAlive }), "a run killed before writing its pid: not yet");
+  const then = new Date(Date.now() - 60_000);
+  utimesSync(mutex, then, then);
+  assert.equal(tryTakeSlot({ dir, count: 1, pid: 12, worktree: "/b", isAlive }).slot, 0);
+  assert.deepEqual(ls(dir), ["slot-0.json"]);
+});
+
+test("two runs finding the same stale reclaim lock never both take the slot", () => {
+  const dir = slotDir();
+  tryTakeSlot({ dir, count: 1, pid: 11, worktree: "/a", isAlive: () => true });
+  reclaimLock(dir, 20);
+  const dead = (pid) => pid === 11 || pid === 20;
+  let second;
+  // Run 13 has read the dead pid 20; before it acts, run 12 goes through the whole stale path.
+  const first = tryTakeSlot({
+    dir,
+    count: 1,
+    pid: 13,
+    worktree: "/c",
+    isAlive: (pid) => {
+      if (pid === 20 && !second) second = tryTakeSlot({ dir, count: 1, pid: 12, worktree: "/b", isAlive: (p) => !dead(p) });
+      return !dead(pid);
+    },
+  });
+  assert.equal(second.slot, 0);
+  assert.deepEqual(first.holders, [{ pid: 12, worktree: "/b" }]);
+  assert.deepEqual(ls(dir), ["slot-0.json"]);
+  assert.equal(JSON.parse(readFileSync(join(dir, "slot-0.json"), "utf8")).pid, 12);
+});
+
+test("a run that moves aside a reclaim lock another run has just made puts it back, and leaves the slot", () => {
+  const dir = slotDir();
+  tryTakeSlot({ dir, count: 1, pid: 11, worktree: "/a", isAlive: () => true });
+  const mutex = reclaimLock(dir, 20);
+  let raced = false;
+  // Between run 13 reading the dead pid 20 and moving the lock, run 12 clears it and makes its own.
+  const got = tryTakeSlot({
+    dir,
+    count: 1,
+    pid: 13,
+    worktree: "/c",
+    isAlive: (pid) => {
+      if (pid === 20 && !raced) {
+        raced = true;
+        rmSync(mutex, { recursive: true });
+        mkdirSync(mutex);
+        writeFileSync(join(mutex, "pid"), "12");
+      }
+      return pid !== 11 && pid !== 20;
+    },
+  });
+  assert.deepEqual(got.holders, [{ pid: 11, worktree: "/a" }]);
+  assert.equal(readFileSync(join(mutex, "pid"), "utf8"), "12");
+  assert.deepEqual(ls(dir).sort(), ["slot-0.json", "slot-0.json.reclaim"]);
 });
 
 test("a waiting run says who holds the slots once, again when that changes, and starts when one frees", async () => {
