@@ -472,5 +472,23 @@ test.describe("The phone's Hub", { tag: "@phone" }, () => {
     await grid(page).getByRole("button", { name: "Clear the search" }).click();
     await expect(places.getByRole("link", { name: "Map" })).toBeVisible();
   });
-});
 
+  test("a bar stored with three slots shows its first two, and Settings arranges two; saving drops the third", async ({ page }) => {
+    await page.goto("/settings");
+    await workLocally(page);
+    await inCore(page, async (core) => {
+      const ws = (await core.currentWorkspace())!;
+      await core.saveWorkspace({ ...ws, bar: [{ kind: "surface", id: "map" }, { kind: "surface", id: "graph" }, { kind: "surface", id: "calendar" }] });
+    }, null);
+    const cells = bar(page).getByRole("button");
+    await expect(cells.nth(1)).toContainText("Map");
+    await expect(cells.nth(3)).toContainText("Graph");
+    await expect(cells).toHaveCount(5);
+
+    // Settings › Phone bar: two slots to arrange, the Hub fixed beside them.
+    await expect(page.getByRole("textbox", { name: /^Label for / })).toHaveCount(2);
+    await page.getByRole("button", { name: "Empty this slot" }).first().click();
+    await expect.poll(() => inCore(page, async (core) => (await core.currentWorkspace())!.bar, null)).toEqual([null, { kind: "surface", id: "graph" }]);
+    await expect(cells.nth(1)).toContainText("Set");
+  });
+});
