@@ -42,7 +42,8 @@ Module beside the Calendar and see both at once.
 - **Snap buttons** — **Snap left half** and **Snap right half** on a Window's bar.
 - **Double-click the bar** to fill the whole stage; double-click again, or on a snapped Window,
   to put it back.
-- **Drag a snapped or full Window away** and it takes back the size it had before.
+- **Drag a snapped Window, or one filling the whole stage, away** and it takes back the size it
+  had before. A click on its bar, or a small wobble, leaves it where it is.
 - A snapped Window stays snapped through a reload, a resize of the browser and a Workspace
   switch. A quarter can be narrow: the Module then shows its narrow layout.
 

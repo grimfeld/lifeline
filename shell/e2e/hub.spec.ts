@@ -218,5 +218,26 @@ test.describe("The Hub", () => {
         return near(b.x, stage.x) && near(b.width, stage.width / 2);
       }).toBe(true);
     });
+
+    test("a click or a small wobble on a maximised Window's bar leaves it maximised", async ({ page }) => {
+      await page.goto("/calendar");
+      await workLocally(page);
+      const calendar = win(page, "Calendar");
+      const stage = await stageBox(page);
+      await expect.poll(async () => near((await calendar.boundingBox())!.width, stage.width)).toBe(true);
+      const bar = (await calendar.locator("[data-window-bar]").boundingBox())!;
+      await page.mouse.move(bar.x + 40, bar.y + 18);
+      await page.mouse.down();
+      await page.mouse.move(bar.x + 42, bar.y + 19, { steps: 2 });
+      await page.mouse.up();
+      await page.mouse.move(bar.x + 40, bar.y + 18);
+      await page.mouse.down();
+      await page.mouse.move(bar.x + 52, bar.y + 20, { steps: 3 });
+      await page.mouse.up();
+      await expect(page.locator("[data-snap-outline]")).toHaveCount(0);
+      const after = (await calendar.boundingBox())!;
+      expect(near(after.width, stage.width) || after.width < stage.width).toBe(true);
+      expect(near(after.width, stage.width / 2)).toBe(false);
+    });
   });
 });
