@@ -79,7 +79,7 @@ merges master into each approved PR, waits for its checks and merges it. Open a 
 ready only once it's finished and `/ship:pr-review` has run.
 
 Run `pnpm check` in the foreground with a 600000 ms timeout: it takes a few minutes, and a wait keyed on a process
-name can match another agent's run.
+name can match another agent's run. Read its exit code (`pnpm check; echo EXIT=$?`), not only the tail of its output.
 
 Agents working in parallel run only their own change's e2e specs, with
 `pnpm test:e2e:quiet` (dot reporter: a dot per case, then the failures); the whole gate runs on each
