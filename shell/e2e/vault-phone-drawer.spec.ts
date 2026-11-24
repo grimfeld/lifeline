@@ -1,4 +1,5 @@
-import { test, expect } from "@playwright/test";
+import { expect } from "@playwright/test";
+import { test } from "./support/test";
 import { workLocally } from "./support/journal";
 
 /** On a phone, ☰ on /vault opens the Vault's sidebar, with a way back to the Rail (#319, ADR 0068). */

@@ -10,7 +10,7 @@ your life, "Work" for work's Tasks and Research, with no Money in sight.
   - Every Workspace you make after it is **separated**: it sees only what it holds, and nothing
     from the default.
   - Nothing is ever visible from two Workspaces.
-- **Its Modules** — which Modules stand on its Rail and offer their capture Commands.
+- **Its Modules** — which Modules stand in the Hub's index and offer their capture Commands.
   - Modules never hide data; they only decide what is on the shelf.
   - The Surfaces, the Bases and the command palette are always there, whatever the Modules.
 - **Its own arrangements** — its Screens, its Module Overviews, its Phone bar and its capture
@@ -18,7 +18,7 @@ your life, "Work" for work's Tasks and Research, with no Money in sight.
 
 ## What you can do
 
-- **Switch Workspace** — the top of the Rail on the desk, or the name in the phone's header.
+- **Switch Workspace** — the Hub's top bar on the desk, or the name in the phone's header.
   Switching takes you to where you last were in that Workspace.
 - **New workspace** — from the same menu, or in [Settings](settings.md). Give it a name and tick
   its Modules.
