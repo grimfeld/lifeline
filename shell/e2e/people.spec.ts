@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
+import { test } from "./support/test";
 import { inCore } from "./support/core";
 import { openPalette } from "./support/palette";
 import { selectText } from "./support/selection";
