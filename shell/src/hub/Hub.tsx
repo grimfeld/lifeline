@@ -290,7 +290,7 @@ function WindowFrame({
       >
         <span className="min-w-0 flex-1 truncate text-sm font-medium">{title}</span>
         <Tip label={`Close ${title}`}>
-          <Button size="icon-sm" variant="ghost" aria-label={`Close ${title}`} onClick={onClose}>
+          <Button size="icon-sm" variant="ghost" onClick={onClose}>
             <X />
           </Button>
         </Tip>
