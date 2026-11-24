@@ -25,12 +25,16 @@ function deskReducer(layout: WindowLayout, action: DeskAction): WindowLayout {
   return action.type === "load" ? action.layout : windowsReducer(layout, action);
 }
 
-/** The layout a Workspace opens with on this device: its saved one, or a new desk on the last place. */
-function initialLayout(workspaceId: string): WindowLayout {
+/**
+ * The layout a Workspace opens with on this device: its saved one, or a new
+ * desk — one maximised Window on the address asked for, or on the last place
+ * (what `/` resolves to).
+ */
+function initialLayout(workspaceId: string, asked = "/"): WindowLayout {
   const saved = loadWindowLayout(workspaceId);
   if (saved) return saved;
-  const place = lastPlace(workspaceId);
-  return newDesk(routeTarget(place).target, place);
+  const place = asked.split(/[?#]/)[0] === "/" ? lastPlace(workspaceId) : asked;
+  return newDesk(routeTarget(place.split(/[?#]/)[0]!).target, place);
 }
 
 /**
@@ -47,7 +51,7 @@ export function useDesk(stage: Stage | null) {
   const modules = useWorkspaceModules();
   const location = useLocation();
   const navigate = useNavigate();
-  const [layout, dispatch] = useReducer(deskReducer, workspaceId, initialLayout);
+  const [layout, dispatch] = useReducer(deskReducer, workspaceId, (id) => initialLayout(id, fullPath(window.location)));
   const stageRef = useRef(stage);
   stageRef.current = stage;
   const fallbackStage = { width: 1280, height: 720 };

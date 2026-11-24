@@ -57,3 +57,13 @@ test("each row's checkbox in Tidy given names is named for its Person and descri
   await expect(box).toBeVisible();
   await expect(box).toHaveAccessibleDescription(/Given name Anne · Family name Dupont · drops alias Anne/);
 });
+
+test("each Window is a region named for its Module, and its bar's buttons are named", async ({ page, isMobile }) => {
+  test.skip(isMobile, "A phone has no Windows (ADR 0133)");
+  await page.goto("/calendar");
+  await workLocally(page);
+  const calendar = page.getByRole("region", { name: "Calendar", exact: true });
+  await expect(calendar).toBeVisible();
+  await expect(calendar.getByRole("button", { name: "Close Calendar" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Hub" })).toBeVisible();
+});
