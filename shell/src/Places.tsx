@@ -1,6 +1,6 @@
 import { Suspense, type ReactNode } from "react";
 import { Navigate, Route, Routes, useParams, useSearchParams } from "react-router";
-import { lazyChunk, ScreenLoading } from "@lifeline/ui";
+import { lazyChunk, ScreenLoading, usePhone } from "@lifeline/ui";
 import { HANDOFF_DONE_PATH, HANDOFF_PATH } from "@lifeline/handoff";
 import { MODULES, appById, frames, screenRoute, screensOf, useCurrentWorkspaceId, type AppScreenDef, type FrameDef } from "@lifeline/core";
 import { CalendarPage } from "./surfaces/CalendarSurface";
@@ -16,6 +16,7 @@ import { FrameLayout, ModuleLayout } from "./modules/ModuleLayout";
 import { FALLBACK_PLACE, lastPlace } from "./nav/resume";
 import { HandoffPage, HandoffSaved } from "./handoff/HandoffPage";
 import { RouteBoundary } from "./components/ErrorBoundary";
+import { PhoneHub } from "./mobile/PhoneHub";
 
 // The heavier Surfaces load when first visited, not with the shell (CR-23).
 const MapPage = lazyChunk(() => import("./surfaces/MapPage").then((m) => ({ default: m.MapPage })));
@@ -55,6 +56,11 @@ function LegacyTimeRedirect({ view }: { view: "week" | "schedule" }) {
   const d = params.get("d");
   const to = view === "week" || params.get("view") === "week" ? "week" : "day";
   return <Navigate to={`/calendar?view=${to}${d ? `&d=${d}` : ""}`} replace />;
+}
+
+/** The phone's Hub grid (#664). The desk's Hub is the page itself: there, `/hub` is the desk as it was. */
+function HubPlace() {
+  return usePhone() ? <CorePage><PhoneHub /></CorePage> : <Navigate to="/" replace />;
 }
 
 /** A Core destination — a general Surface, the Bases, Screens, Settings, the Guide: no chrome of its own. A throw below shows the broken-page message, not a blank shell (#301). */
@@ -140,6 +146,7 @@ export function Places() {
       <Route path="/base/:type" element={<CorePage><BasePage /></CorePage>} />
       <Route path="/screens" element={<CorePage><ScreensIndex /></CorePage>} />
       <Route path="/screen/:id" element={<CorePage><UserScreenPage /></CorePage>} />
+      <Route path="/hub" element={<HubPlace />} />
       <Route path="/settings" element={<CorePage><SettingsPage /></CorePage>} />
       <Route path="/settings/macros" element={<CorePage><MacrosPage /></CorePage>} />
       <Route path="/settings/keys" element={<CorePage><KeysPage /></CorePage>} />

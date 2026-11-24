@@ -13,7 +13,6 @@ import {
 } from "@lifeline/ui";
 import {
   BAR_PINNED,
-  BAR_SLOT_ORDER,
   CAPTURE_PINS_MAX,
   DATE_VOCABULARIES,
   inhabitedModules,
@@ -33,7 +32,7 @@ import {
   type CaptureEntry,
   type SlotOption,
 } from "@lifeline/core";
-import { ArrowDown, ArrowUp, CalendarDays, Check, ChevronRight, Keyboard, ListOrdered, Lock, Pin, Plus, Smartphone, X } from "lucide-react";
+import { ArrowDown, ArrowUp, CalendarDays, Check, ChevronRight, Keyboard, LayoutGrid, ListOrdered, Lock, Pin, Plus, Smartphone, X } from "lucide-react";
 import { entryIcon, foldMembers } from "../capture/captureParts";
 import { SURFACE_ICONS, slotIcon } from "../navIcons";
 import { WorkspaceDialog, WorkspaceForm } from "../components/WorkspaceDialog";
@@ -183,8 +182,7 @@ function PhoneBarSection() {
   }
 
   /** One of the user's cells in the preview, by its stored index. */
-  function slotCell(i: number | undefined, border: boolean) {
-    if (i === undefined) return null;
+  function slotCell(i: number, border: boolean) {
     const s = config[i];
     const found = s ? options.find((o) => sameSlot(o.slot, s)) : undefined;
     const Icon = s ? (found?.icon ?? slotIcon(s.kind, s.id)) : Plus;
@@ -208,7 +206,7 @@ function PhoneBarSection() {
           <Smartphone className="size-4" /> Phone bar
         </h2>
         <p className="text-muted-foreground text-sm">
-          The bar at the foot of the phone. Calendar and capture are fixed; the other three are yours. This bar belongs to{" "}
+          The bar at the foot of the phone. Calendar, capture and the Hub are fixed; the other two are yours. This bar belongs to{" "}
           <strong>{ws?.name ?? "this workspace"}</strong> — each workspace has its own.
         </p>
       </div>
@@ -224,20 +222,23 @@ function PhoneBarSection() {
             </div>
           );
         })}
-        {slotCell(BAR_SLOT_ORDER[0], true)}
+        {slotCell(0, true)}
         <div className="text-muted-foreground flex flex-1 flex-col items-center gap-0.5 border-r py-2 text-2xs">
           <Plus className="size-5" /> Capture
           <Lock className="size-2.5 opacity-50" />
         </div>
-        {slotCell(BAR_SLOT_ORDER[1], true)}
-        {slotCell(BAR_SLOT_ORDER[2], false)}
+        {slotCell(1, true)}
+        <div className="text-muted-foreground flex flex-1 flex-col items-center gap-0.5 py-2 text-2xs">
+          <LayoutGrid className="size-5" /> Hub
+          <Lock className="size-2.5 opacity-50" />
+        </div>
       </div>
 
       <div className="flex flex-col gap-2">
-        {BAR_SLOT_ORDER.map((i, pos) => [config[i] ?? null, i, pos] as const).map(([s, i, pos]) => (
+        {config.map((s, i) => (
           <SlotRow
             key={i}
-            index={pos}
+            index={i}
             slot={s}
             option={s ? options.find((o) => sameSlot(o.slot, s)) : undefined}
             onPick={() => setPicking(i)}

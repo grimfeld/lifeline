@@ -11,6 +11,8 @@ export const CORE_PAGES: [root: string, slug: string][] = [
   ["/settings", "settings"],
   ["/vault", "vault"],
   ["/handoff", "peek"],
+  // The phone's Hub grid (#664): what the phone page tells.
+  ["/hub", "phone"],
 ];
 
 /**

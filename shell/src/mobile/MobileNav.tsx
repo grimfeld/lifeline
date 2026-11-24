@@ -2,7 +2,6 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { PhoneDockHost, Sheet, SheetContent, SheetTitle, cn, usePhone } from "@lifeline/ui";
 import {
-  BAR_LEFT_SLOT,
   BAR_PINNED,
   useBarSlots,
   useCaptureSheet,
@@ -11,7 +10,7 @@ import {
   type CaptureCommand,
   type CaptureEntry,
 } from "@lifeline/core";
-import { ChevronLeft, Plus } from "lucide-react";
+import { ChevronLeft, LayoutGrid, Plus } from "lucide-react";
 import { SURFACE_ICONS, slotIcon } from "../navIcons";
 import { CaptureCell, SectionHeading, foldMembers, useTogglePin } from "../capture/captureParts";
 
@@ -22,22 +21,24 @@ function slot(active: boolean) {
   return cn("flex flex-1 flex-col items-center justify-center gap-0.5 py-1 text-2xs", active ? "text-foreground" : "text-muted-foreground");
 }
 
+/** Where the Hub slot goes: the phone's Hub, a grid of every place (#664). */
+export const PHONE_HUB_PATH = "/hub";
+
 /**
- * The **Phone bar** (ADR 0053, ADR 0063): `Calendar · [slot] · ✛ · [slot] · [slot]`.
+ * The **Phone bar** (ADR 0053, ADR 0063, ADR 0133): `Calendar · [slot] · ✛ · [slot] · Hub`.
  *
  * The Calendar is pinned at the far left because time is what a phone is
  * taken out of a pocket for, and it belongs to no Module — so under ADR
  * 0049's derivation, the one composition rule it allowed, it could never win a
  * slot at all. Capture is pinned in the centre because the other cells are
- * places to go and this one is a thing to do.
+ * places to go and this one is a thing to do. The **Hub** is pinned at the far
+ * right: it opens the grid of every place, the phone's way between them (#664).
  *
- * The other three are the user's, arranged in Settings and stored on the
+ * The other two are the user's, arranged in Settings and stored on the
  * Workspace, so switching Workspace still reconfigures the phone — by an
  * arrangement rather than by which shelves the Workspace happens to hold. A
  * slot whose destination is gone renders empty rather than being refilled, so
- * the pinned two never move under the thumb.
- *
- * `☰` is not here any more; it opens the drawer from the header (PhoneHeader).
+ * the pinned three never move under the thumb. There is no `☰` drawer.
  *
  * Rendered below `md` only.
  */
@@ -168,13 +169,23 @@ export function MobileNav() {
             );
           })}
 
-          {slotCell(slots[BAR_LEFT_SLOT] ?? null, BAR_LEFT_SLOT)}
+          {slotCell(slots[0] ?? null, 0)}
 
           <button type="button" className={slot(false)} onClick={() => setCaptureOpen(true)}>
             <Plus className="size-5" /> Capture
           </button>
 
-          {slots.filter((_, i) => i !== BAR_LEFT_SLOT).map((s, i) => slotCell(s, i))}
+          {slotCell(slots[1] ?? null, 1)}
+
+          {/* Marked while the grid is open; a tile there takes the mark away. */}
+          <button
+            type="button"
+            className={slot(location.pathname === PHONE_HUB_PATH)}
+            aria-current={location.pathname === PHONE_HUB_PATH ? "page" : undefined}
+            onClick={() => navigate(PHONE_HUB_PATH)}
+          >
+            <LayoutGrid className="size-5" /> Hub
+          </button>
         </nav>
       </div>
 

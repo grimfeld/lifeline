@@ -99,11 +99,10 @@ for (const w of WIDTHS) {
       await expect(syncBadges(page)).toHaveCount(0);
       await expect(page.getByTitle(/sync/i)).toHaveCount(0);
       if (w.isMobile) {
-        // The Phone header's drawer, where the badge sat under the Rail.
-        await page.getByRole("button", { name: "Menu" }).click();
-        await expect(page.getByRole("dialog")).toBeVisible();
+        // The phone's Hub, where the badge sits beside the Workspace switcher (#664).
+        await page.getByRole("button", { name: "Hub", exact: true }).click();
+        await expect(page.getByRole("region", { name: "Hub" })).toBeVisible();
         await expect(syncBadges(page)).toHaveCount(0);
-        await page.keyboard.press("Escape");
       }
       await open(page, "/settings");
       await expect(syncBadges(page)).toHaveCount(0);

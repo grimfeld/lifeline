@@ -1,6 +1,6 @@
-import type { ReactNode } from "react";
-import { NavLink } from "react-router";
-import { cn, PhoneDock } from "@lifeline/ui";
+import { useEffect, useState, type ComponentType, type ReactNode } from "react";
+import { NavLink, useLocation } from "react-router";
+import { cn, PhoneDock, Sheet, SheetContent, SheetTitle } from "@lifeline/ui";
 import {
   appsOfModule,
   frames,
@@ -10,7 +10,7 @@ import {
   screenRoute,
   type FrameDef,
 } from "@lifeline/core";
-import { LayoutDashboard } from "lucide-react";
+import { FolderTree, LayoutDashboard } from "lucide-react";
 import { useTabHref, useVaultTabMemory, VAULT_TABS, type VaultTab } from "../mobile/vaultTabs";
 import { MODULE_SHELLS } from "./shells";
 import { navRowClass, RawDataLinks } from "./RawDataLinks";
@@ -60,12 +60,12 @@ function ModuleChrome({ moduleId, bare, children }: { moduleId: string; bare: bo
 }
 
 /** Whether a Module on the stand-in shows a single screen, and so wears no chrome of its own. */
-export function isSingleScreen(moduleId: string): boolean {
+function isSingleScreen(moduleId: string): boolean {
   return !MODULE_SHELLS[moduleId] && !layoutOf(moduleId) && moduleScreens(moduleId).length <= 1;
 }
 
 /** A Module's hand-written layout, if it has one: the frame mounted at its home. */
-export function layoutOf(moduleId: string | undefined): FrameDef | undefined {
+function layoutOf(moduleId: string | undefined): FrameDef | undefined {
   const home = moduleById(moduleId)?.home;
   return home ? frames().find((f) => f.path === home) : undefined;
 }
@@ -88,6 +88,7 @@ export function FrameLayout({ frame, bare = false, children }: { frame: FrameDef
         <PhoneDock slot="module">
           <div className="flex gap-1 overflow-x-auto px-2 py-1.5 cq-md:hidden">
             <VaultTabs />
+            <SidebarSheet title={frame.title} sidebar={Sidebar} />
           </div>
         </PhoneDock>
         <main className={cn("min-w-0 flex-1", bare ? "overflow-hidden" : "overflow-y-auto")}>{children}</main>
@@ -120,7 +121,7 @@ function FrameModuleLayout({ moduleId, frame, bare, children }: { moduleId: stri
  * types its Apps own — at the foot. A Module links down to its Bases but never
  * re-hosts them (ADR 0057).
  */
-export function ModuleNav({ moduleId }: { moduleId: string }) {
+function ModuleNav({ moduleId }: { moduleId: string }) {
   const m = moduleById(moduleId);
   const screens = moduleScreens(moduleId);
   const apps = appsOfModule(moduleId).filter((a) => screens.some((s) => s.appId === a.id));
@@ -187,6 +188,34 @@ function VaultTabs() {
       {VAULT_TABS.map((t) => (
         <VaultTabLink key={t.id} tab={t} active={current?.id === t.id} />
       ))}
+    </>
+  );
+}
+
+/**
+ * On the phone, a frame's sidebar (the Vault's tree, search and tags) in a
+ * sheet from its own tab, **Browse**: the frame's own navigation, in its
+ * Phone dock, now the ☰ drawer that held it is gone (#664). A pick that goes
+ * somewhere closes it — the tree's rows are buttons that navigate, so the
+ * location is what is watched.
+ */
+function SidebarSheet({ title, sidebar: Sidebar }: { title: string; sidebar: ComponentType }) {
+  const [open, setOpen] = useState(false);
+  const location = useLocation();
+  useEffect(() => setOpen(false), [location.pathname, location.search]);
+  return (
+    <>
+      <button type="button" className={tabClass({ isActive: open })} onClick={() => setOpen(true)}>
+        <FolderTree className="size-3.5" /> Browse
+      </button>
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetContent side="left" aria-describedby={undefined} className="bg-sidebar text-sidebar-foreground gap-0 overflow-y-auto p-0">
+          <SheetTitle className="sr-only">{title}</SheetTitle>
+          <div className="flex min-h-0 flex-1 flex-col">
+            <Sidebar />
+          </div>
+        </SheetContent>
+      </Sheet>
     </>
   );
 }
