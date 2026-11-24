@@ -131,9 +131,11 @@ export function useDesk(stage: Stage | null) {
   const focus = useCallback(
     (id: string) => {
       const win = layoutRef.current.windows.find((w) => w.id === id);
-      if (!win || frontWindow(layoutRef.current)?.id === id) return;
+      if (!win) return;
+      // Never judged from the layout as last rendered: a Window opened a moment
+      // ago may not be in front of it yet, and this one must still come forward.
       dispatch({ type: "focus", id });
-      navigate(win.route, { replace: true });
+      if (fullPath(window.location) !== win.route) navigate(win.route, { replace: true });
     },
     [navigate],
   );

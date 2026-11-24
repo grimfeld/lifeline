@@ -125,6 +125,7 @@ test.describe("The Hub", () => {
     await expect(page).toHaveURL(/view=month/);
     await hub(page).getByRole("link", { name: "Map" }).click();
     await expect(page).toHaveURL(/\/map/);
+    await expect(hub(page).getByRole("link", { name: "Map" })).toHaveAttribute("aria-current", "page");
     await hub(page).getByRole("link", { name: "Calendar" }).click();
     await expect(page).toHaveURL(/view=month/);
 
