@@ -34,7 +34,8 @@ master each night; each runner runs the setup projects its cases need. A red nig
 
 ### The four runners
 
-The nightly run splits the suite four ways with `--shard`. A PR's four runners instead split
+The nightly run splits the suite four ways with `--shard`, in the same Playwright image as the
+gate (ADR 0134). A PR's four runners instead split
 the spec files by how long each takes, from `e2e/durations.json`
 (`scripts/e2e-shards.mjs`): `--shard` splits by count, in file order, so slow files next to
 each other in the alphabet land on one runner. A file is never split between runners, so one
