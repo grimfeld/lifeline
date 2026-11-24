@@ -1,4 +1,4 @@
-import { useDocumentTypes, VAULT_FRAME, type AppManifest, type CardSettings } from "@lifeline/core";
+import { useDocumentTypes, VAULT_FRAME, type AppManifest, type CardSettings, type CommandDef } from "@lifeline/core";
 import { FileText, Hash, LayoutDashboard, MapPin, Sun, Table2, Vault, Waypoints } from "lucide-react";
 import { TodayCard } from "./surfaces/TodayCard";
 import { AgendaCard } from "./surfaces/AgendaCard";
@@ -10,13 +10,16 @@ import { REPORT_KIND_OPTIONS, REPORT_WINDOW_OPTIONS, ReportCard, useReportDocume
 import { VaultSidebar } from "./vault/VaultSidebar";
 import { VaultDocPage } from "./vault/VaultDocPage";
 import { VaultHome } from "./vault/VaultHome";
+import { useWindowCommands } from "./hub/windowCommands";
 
 /**
  * The shell's own manifest: Core's Surfaces packaged like any App's cards
  * (so they appear in the card picker), the generic Document Cards (ADR 0018),
  * and the Vault — Core's raw editor for bodies (ADR 0068), as the Bases are for fields.
  */
-export const hubApp: AppManifest = {
+export const shellApp: AppManifest = {
+  // "hub" predates the Hub (ADR 0133) and stays: it is stored in Macros' steps
+  // ("hub/hub.go-today") and in Screens' Card ids. Only the code name changed.
   id: "hub",
   title: "Lifeline",
   color: "var(--chart-yellow)",
@@ -231,13 +234,16 @@ export const hubApp: AppManifest = {
   useCommands: () => {
     // One "Open <plural> Base" per Document type.
     const types = useDocumentTypesForCommands();
-    return types.map((t) => ({
+    // The Window Commands (#663): the Hub's, on the front Window.
+    const windowCommands = useWindowCommands();
+    const bases: CommandDef[] = types.map((t) => ({
       id: `hub.base.${t.id}`,
       title: `Open ${t.label} Base`,
       keywords: ["base", "documents", t.label.toLowerCase()],
       icon: t.icon ?? (t.body === "required" ? FileText : Hash),
       run: ({ navigate }) => navigate(`/base/${t.id}`),
     }));
+    return [...bases, ...windowCommands];
   },
 };
 

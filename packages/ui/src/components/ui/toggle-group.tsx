@@ -4,14 +4,15 @@ import * as React from "react"
 import { ToggleGroup as ToggleGroupPrimitive } from "radix-ui"
 
 import { cn } from "../../lib/utils"
-import { usePhone } from "./phone-dock"
+import { useNarrow } from "./content-container"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./select"
 
 /**
  * A single-choice switch: segments, status chips, a shelf picker (ADR 0079).
  * On the desk it looks like `TabsList` — the choice in view raised on a muted
  * track — and is a radio group: arrow keys move between choices, a screen
- * reader hears the group's name and the checked choice. On a phone it is a
+ * reader hears the group's name and the checked choice. In a narrow container
+ * (a phone, a narrow Window) it is a
  * `Select` of the same items (ADR 0064), the way `TabsList` becomes one, so a
  * screen passes one component and the phone layout follows.
  *
@@ -29,8 +30,8 @@ function ToggleGroup({
   value: string
   onValueChange: (value: string) => void
 }) {
-  const phone = usePhone()
-  if (phone) {
+  const narrow = useNarrow()
+  if (narrow) {
     return (
       <Select value={value} onValueChange={onValueChange}>
         <SelectTrigger data-slot="toggle-group" aria-label={ariaLabel} className={cn("min-w-0 *:data-[slot=select-value]:gap-1.5", className)}>

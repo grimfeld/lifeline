@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
+import { test } from "./support/test";
 import { openPalette } from "./support/palette";
 import { TEMPLATE, calendar, calendarTile, expectCalendarAt, linkHeadings, openDay, openPeriod, seedJournal, sidebar, titlesOf, workLocally } from "./support/journal";
 import { CORE_URL } from "./support/seed";

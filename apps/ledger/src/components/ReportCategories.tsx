@@ -89,7 +89,7 @@ export function ReportCategories({ data }: { data: ReportData }) {
         {slices.length === 0 ? (
           <Empty>{kind === "expense" ? "No spending in this window." : "No income in this window."}</Empty>
         ) : (
-          <div className="grid items-center gap-4 sm:grid-cols-[minmax(0,240px)_minmax(0,1fr)]">
+          <div className="grid items-center gap-4 cq-sm:grid-cols-[minmax(0,240px)_minmax(0,1fr)]">
             <ResponsiveContainer width="100%" height={220}>
               <PieChart>
                 <Pie data={slices.map((s) => ({ ...s, value: s.value / 100 }))} dataKey="value" nameKey="title" innerRadius="55%" outerRadius="85%" paddingAngle={1} stroke="var(--background)" strokeWidth={2}>

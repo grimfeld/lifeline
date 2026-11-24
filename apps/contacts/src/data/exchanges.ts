@@ -1,4 +1,6 @@
-import { EXCHANGE_TYPE, PERSON_TYPE, createDocument, documentsOfUngated, documentsTable, getDocument, putDocument, removeDocument, todayStr, useDocuments, workspaceScope, type Document } from "@lifeline/core";
+import { EXCHANGE_TYPE, PERSON_TYPE, createDocument, documentsOfUngated, getDocument, putDocument, removeDocument, todayStr, useDocuments, workspaceScope, type Document } from "@lifeline/core";
+// eslint-disable-next-line no-restricted-imports -- peopleOf reads past the gates on purpose, so a title counts a Private Person as "someone" and never names them, locked or not; keepWithInside reads an Exchange after it has moved out of the Workspace.
+import { documentsTable } from "@lifeline/core";
 import { EXCHANGES_FOLDER, type Exchange } from "../domain/types";
 import { exchangeKindOf, exchangeProblem, exchangeTitleOf, type ExchangeKind } from "../domain/exchanges";
 

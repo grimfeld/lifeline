@@ -60,7 +60,16 @@ const LINE_RULES = [
     id: "sm-breakpoint",
     heading: "Layout",
     test: /(?<![\w-])sm:(?!max-w-)/,
-    message: "layout switches at md (the phone line); sm: is only for dialog widths",
+    message: "sm: is only for dialog widths; content uses the container variants (cq-sm:, cq-md:)",
+  },
+  {
+    // ADR 0133: content follows its container. The viewport's `md:` stays for phone
+    // navigation (the dock's `max-md:contents` wrappers pass) and portalled content,
+    // which a line can't tell apart: those carry `ui-allow: viewport-breakpoint`.
+    id: "viewport-breakpoint",
+    heading: "Layout",
+    test: /(?<![\w-])!?(?:max-(?:sm|md|lg|xl|2xl)|md|lg|xl|2xl):(?<!max-md:)|(?<![\w-])!?max-md:(?!contents\b)/,
+    message: "viewport breakpoint in content — content follows its container: cq-md:, cq-max-md: (the viewport's md: is for phone navigation and portalled content only)",
   },
   {
     id: "page-title",
@@ -72,7 +81,7 @@ const LINE_RULES = [
     id: "phone-hook",
     heading: "Layout",
     test: /\buseIsMobile\b/,
-    message: "useIsMobile is deprecated — use usePhone() from @lifeline/ui",
+    message: "useIsMobile is gone — usePhone() from @lifeline/ui for phone navigation (the device), useNarrow() for layout (the container)",
   },
   {
     id: "native-time",

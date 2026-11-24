@@ -1,6 +1,6 @@
 ---
 status: accepted
-superseded-by: ADR 0049 (in part — "one bottom bar per Workspace"), ADR 0053 (in part — the phone home is a user Screen)
+superseded-by: ADR 0049 (in part — "one bottom bar per Workspace"), ADR 0053 (in part — the phone home is a user Screen), ADR 0133 (in part — the ☰ menu)
 ---
 
 > "The phone home is a user Screen" is superseded by ADR 0053: `screens.phoneHome`, the `/phone` route and the phone-home page are gone, and `/` resumes the last place (ADR 0057). Its other parts that later ADRs changed are listed in the frontmatter.

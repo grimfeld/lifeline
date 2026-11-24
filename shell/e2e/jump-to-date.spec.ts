@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
+import { test } from "./support/test";
 import { openCalendar, pickDate } from "./support/date-picker";
 import { inCore } from "./support/core";
 

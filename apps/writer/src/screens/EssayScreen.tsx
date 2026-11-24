@@ -168,12 +168,12 @@ export function EssayScreen() {
           <TabEditor key={active} id={active} index={index} onDeleted={() => (active === id ? navigate(RESEARCH_HREF) : close(active))} />
         </div>
         <PhoneDock>
-          <Button size="sm" variant="outline" className="lg:hidden" onClick={() => setSheet(true)}>
+          <Button size="sm" variant="outline" className="cq-lg:hidden" onClick={() => setSheet(true)}>
             <Library /> Material
           </Button>
         </PhoneDock>
       </div>
-      <aside className="w-80 shrink-0 overflow-y-auto border-l p-3 max-lg:hidden" aria-label="Material">
+      <aside className="w-80 shrink-0 overflow-y-auto border-l p-3 cq-max-lg:hidden" aria-label="Material">
         <MaterialPane essay={essay} index={index} onOpen={open} />
       </aside>
       <Sheet open={sheet} onOpenChange={setSheet}>

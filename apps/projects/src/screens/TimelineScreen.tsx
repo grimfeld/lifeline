@@ -31,7 +31,7 @@ export function TimelineScreen() {
   const months = Array.from({ length: SPAN }, (_, i) => monthStart(from, i));
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 p-4 md:p-6">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 p-4 cq-md:p-6">
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="text-xl font-semibold tracking-tight">Timeline</h1>
         <div className="ml-auto flex items-center gap-1">

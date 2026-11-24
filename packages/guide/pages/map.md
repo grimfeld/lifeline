@@ -5,7 +5,7 @@ museums visited, people's homes, places from your Journal.
 
 ## Getting there
 
-- **Map** on the Rail, or **Go to Map** in the palette (Ctrl+K).
+- **Map** in the Hub's index, or **Go to Map** in the palette (Ctrl+K).
 - Put it in a Phone bar slot to have it one tap away.
 
 ## What you can do

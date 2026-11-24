@@ -179,7 +179,7 @@ export function UpcomingView({ ctx }: { ctx: CalendarCtx }) {
   let lastWeek = "";
 
   return (
-    <div className="flex h-full flex-col gap-3 p-4 max-md:gap-2 max-md:p-3">
+    <div className="flex h-full flex-col gap-3 p-4 cq-max-md:gap-2 cq-max-md:p-3">
       {ctx.header()}
       <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto flex max-w-3xl flex-col pb-8">

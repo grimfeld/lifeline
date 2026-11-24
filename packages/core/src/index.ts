@@ -99,3 +99,4 @@ export * from "./macroCheck";
 export * from "./builtinMacros";
 export * from "./selectionMenu";
 export * from "./intakeGroups";
+export * from "./windows";

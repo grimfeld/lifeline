@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { EditorState } from "@codemirror/state";
 import { ensureSyntaxTree } from "@codemirror/language";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
@@ -14,9 +14,15 @@ const stateOf = (doc: string) => {
   return state;
 };
 
-describe("proseAt", () => {
+// The Markdown parse is slow on a loaded machine: 20 s, not 5 s, so parallel `pnpm check` runs don't time it out (#644).
+const PARSE_TIMEOUT = 20_000;
+
+describe("proseAt", { timeout: PARSE_TIMEOUT }, () => {
   const doc = "a [[x]] `[[y]]`\n\n```\n[[z]]\n```\n\n# Head #t\n\nend #u";
-  const state = stateOf(doc);
+  let state: EditorState;
+  beforeAll(() => {
+    state = stateOf(doc);
+  }, PARSE_TIMEOUT);
   it("is prose for a plain link", () => expect(proseAt(state, doc.indexOf("[[x"))).toBe(true));
   it("is not prose inside inline code", () => expect(proseAt(state, doc.indexOf("[[y"))).toBe(false));
   it("is not prose inside a fence", () => expect(proseAt(state, doc.indexOf("[[z"))).toBe(false));

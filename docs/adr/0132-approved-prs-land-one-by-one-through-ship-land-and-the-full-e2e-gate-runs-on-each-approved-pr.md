@@ -1,6 +1,7 @@
 ---
 status: accepted
 supersedes: ADR 0096, ADR 0126
+amended-by: ADR 0134 (in part — the four runners split by recorded time, and every e2e run uses Playwright's image)
 amends: ADR 0129 (in part — the whole gate runs on each approved PR, not on an integration PR)
 ---
 

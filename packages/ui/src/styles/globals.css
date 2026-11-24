@@ -5,6 +5,37 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Content follows its container, not the viewport. `content-container` (the
+ * kit's `ContentContainer`: the page root, and each Window) is a size container
+ * named `content`; inside it, content shapes itself with the `cq-` variants,
+ * which are the viewport breakpoints' widths measured on that container:
+ * `cq-md:` where content used `md:`, `cq-max-md:` where it used `max-md:`.
+ * Tailwind's own `@md:` is a different scale (28rem), hence the names.
+ * <body> is a `content` container too: content portalled into it (a dialog,
+ * a Sheet, the Peek) sits outside the page's containers, and there the `cq-`
+ * variants measure the viewport, exactly as `md:` did. Phone navigation (the
+ * Phone bar, the Phone dock) keeps the viewport's `md:`: it is the device's.
+ * The widths are NARROW_BELOW in content-container.tsx (768px = 48rem).
+ */
+@utility content-container {
+    container: content / inline-size;
+}
+@layer base {
+    body {
+        container: content / inline-size;
+    }
+}
+@custom-variant cq-sm { @container content (width >= 40rem) { @slot; } }
+@custom-variant cq-md { @container content (width >= 48rem) { @slot; } }
+@custom-variant cq-lg { @container content (width >= 64rem) { @slot; } }
+@custom-variant cq-xl { @container content (width >= 80rem) { @slot; } }
+@custom-variant cq-2xl { @container content (width >= 96rem) { @slot; } }
+@custom-variant cq-max-sm { @container content (width < 40rem) { @slot; } }
+@custom-variant cq-max-md { @container content (width < 48rem) { @slot; } }
+@custom-variant cq-max-lg { @container content (width < 64rem) { @slot; } }
+@custom-variant cq-max-xl { @container content (width < 80rem) { @slot; } }
+
 @theme inline {
     --animate-jar-shake: jar-shake 0.5s ease-in-out;
     @keyframes jar-shake {

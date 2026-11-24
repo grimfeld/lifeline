@@ -41,10 +41,10 @@ export function ResearchScreen() {
   }
 
   return (
-    <div className="mx-auto grid w-full max-w-4xl gap-5 p-4 md:p-6">
+    <div className="mx-auto grid w-full max-w-4xl gap-5 p-4 cq-md:p-6">
       <div className="flex items-center gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">Research</h1>
-        <span className="text-muted-foreground text-sm tabular-nums max-md:hidden">{essays.length} essays</span>
+        <span className="text-muted-foreground text-sm tabular-nums cq-max-md:hidden">{essays.length} essays</span>
       </div>
       <PhoneDock>
         <div className="flex items-center gap-2 max-md:contents">
@@ -74,7 +74,7 @@ export function ResearchScreen() {
             <h2 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
               {topic ? `#${topic}` : "No topic"} <span className="tabular-nums opacity-70">{list.length}</span>
             </h2>
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className="grid gap-2 cq-sm:grid-cols-2">
               {list.map((e) => (
                 <Link key={`${topic}-${e.id}`} to={essayHref(e.id)} className="bg-card hover:bg-accent/40 grid min-w-0 gap-1 rounded-lg border p-3 transition-colors">
                   <div className="flex min-w-0 items-center gap-2">

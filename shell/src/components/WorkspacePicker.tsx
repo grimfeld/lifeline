@@ -8,20 +8,17 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  Tip,
 } from "@lifeline/ui";
 import { setCurrentWorkspace, useCurrentWorkspace, useWorkspaces } from "@lifeline/core";
 import { Check, ChevronsUpDown, Lock, Plus, Settings2 } from "lucide-react";
 import { WorkspaceDialog } from "./WorkspaceDialog";
 
 /**
- * The Workspace picker (ADR 0047): the top cell of the Rail (`compact`, ADR
- * 0057), and name + chevron in the phone's header.
- *
- * The phone header uses the same component (ADR 0049), which is why the
- * trigger is sized by its container rather than fixed.
+ * The Workspace picker (ADR 0047): name + chevron, on the Hub's top bar and in
+ * the phone's Hub grid (#664). The trigger is sized by its container rather
+ * than fixed.
  */
-export function WorkspacePicker({ className, compact = false }: { className?: string; compact?: boolean }) {
+export function WorkspacePicker({ className }: { className?: string }) {
   const workspaces = useWorkspaces();
   const current = useCurrentWorkspace();
   const [creating, setCreating] = useState(false);
@@ -36,18 +33,10 @@ export function WorkspacePicker({ className, compact = false }: { className?: st
   if (!current) {
     return (
       <>
-        {compact ? (
-          <Tip label="Setting up… — make a workspace">
-            <Button variant="outline" size="icon-lg" className={className} onClick={() => setCreating(true)}>
-              <Plus className="text-muted-foreground size-4" />
-            </Button>
-          </Tip>
-        ) : (
-          <Button variant="ghost" className={cn("w-full justify-start gap-1.5 px-2", className)} onClick={() => setCreating(true)}>
-            <span className="text-muted-foreground truncate">Setting up…</span>
-            <Plus className="text-muted-foreground ml-auto size-3.5 shrink-0" />
-          </Button>
-        )}
+        <Button variant="ghost" className={cn("w-full justify-start gap-1.5 px-2", className)} onClick={() => setCreating(true)}>
+          <span className="text-muted-foreground truncate">Setting up…</span>
+          <Plus className="text-muted-foreground ml-auto size-3.5 shrink-0" />
+        </Button>
         {creating && <WorkspaceDialog open createFirst onOpenChange={(o) => !o && setCreating(false)} />}
       </>
     );
@@ -56,25 +45,14 @@ export function WorkspacePicker({ className, compact = false }: { className?: st
   return (
     <>
       <DropdownMenu>
-        {compact ? (
-          // The Rail's top cell (ADR 0057): the Workspace as its initial.
-          <Tip label={`Workspace: ${current.name}`}>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon-lg" className={cn("text-sm font-semibold", className)}>
-                {current.name.trim().charAt(0).toUpperCase() || "?"}
-              </Button>
-            </DropdownMenuTrigger>
-          </Tip>
-        ) : (
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className={cn("w-full justify-start gap-1.5 px-2 font-medium", className)}>
-              {current.separated && <Lock className="text-muted-foreground size-3.5 shrink-0" />}
-              <span className="truncate">{current.name}</span>
-              <ChevronsUpDown className="text-muted-foreground ml-auto size-3.5 shrink-0" />
-            </Button>
-          </DropdownMenuTrigger>
-        )}
-        <DropdownMenuContent align="start" side={compact ? "right" : "bottom"} className="w-56">
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className={cn("w-full justify-start gap-1.5 px-2 font-medium", className)}>
+            {current.separated && <Lock className="text-muted-foreground size-3.5 shrink-0" />}
+            <span className="truncate">{current.name}</span>
+            <ChevronsUpDown className="text-muted-foreground ml-auto size-3.5 shrink-0" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" side="bottom" className="w-56">
           {workspaces.map((w) => (
             <DropdownMenuItem
               key={w.id}

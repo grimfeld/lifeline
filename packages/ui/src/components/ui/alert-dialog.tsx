@@ -6,14 +6,14 @@ import { AlertDialog as AlertDialogPrimitive } from "radix-ui"
 import { cn } from "../../lib/utils"
 import { useReturnFocus } from "../../lib/useReturnFocus"
 import { Button } from "./button"
-import { usePhone } from "./phone-dock"
+import { useNarrow } from "./content-container"
 
 /**
  * The one confirmation (ADR 0079): only for what Undo can't bring back — an empty
  * Document type, a Workspace. Radix focuses Cancel first and closes on Escape; the
  * action is `variant="destructive"` and names what it does ("Delete type").
- * On a phone it sits full width at the bottom, its buttons stacked full width and
- * thumb-sized (Button size="touch", 44px).
+ * Narrow (a phone, or opened from a narrow container) it sits full width at the
+ * bottom, its buttons stacked full width and thumb-sized (Button size="touch", 44px).
  */
 function AlertDialog({
   ...props
@@ -60,13 +60,19 @@ function AlertDialogContent({
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Content>) {
   const returnFocus = useReturnFocus({ onOpenAutoFocus, onCloseAutoFocus })
+  // Portalled into <body>, outside every content container: the narrow look
+  // follows its opener's container through context, not a container query.
+  const narrow = useNarrow()
   return (
     <AlertDialogPortal>
       <AlertDialogOverlay />
       <AlertDialogPrimitive.Content
         data-slot="alert-dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-lg bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none md:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 max-md:top-auto max-md:bottom-0 max-md:left-0 max-md:max-h-dvh max-md:max-w-none max-md:translate-x-0 max-md:translate-y-0 max-md:overflow-y-auto max-md:rounded-b-none max-md:pb-[max(1rem,env(safe-area-inset-bottom))]",
+          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-lg bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          narrow
+            ? "top-auto bottom-0 left-0 max-h-dvh max-w-none translate-x-0 translate-y-0 overflow-y-auto rounded-b-none pb-[max(1rem,env(safe-area-inset-bottom))]"
+            : "max-w-sm",
           className
         )}
         {...props}
@@ -93,11 +99,13 @@ function AlertDialogFooter({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  const narrow = useNarrow()
   return (
     <div
       data-slot="alert-dialog-footer"
       className={cn(
-        "-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-lg border-t bg-muted/50 p-4 max-md:rounded-none max-md:pb-[max(1rem,env(safe-area-inset-bottom))] md:flex-row md:justify-end",
+        "-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-lg border-t bg-muted/50 p-4",
+        narrow ? "rounded-none pb-[max(1rem,env(safe-area-inset-bottom))]" : "flex-row justify-end",
         className
       )}
       {...props}
@@ -133,10 +141,10 @@ function AlertDialogDescription({
 
 type ButtonSize = React.ComponentProps<typeof Button>["size"]
 
-/** Thumb-sized on a phone, the default on the desk. The phone footer's column stretches it full width. */
+/** Thumb-sized when narrow (a phone), the default on the desk. The narrow footer's column stretches it full width. */
 function useFooterSize(size: ButtonSize): ButtonSize {
-  const phone = usePhone()
-  return size ?? (phone ? "touch" : "default")
+  const narrow = useNarrow()
+  return size ?? (narrow ? "touch" : "default")
 }
 
 function AlertDialogAction({

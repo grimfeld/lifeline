@@ -37,7 +37,7 @@ export function TemplatesScreen() {
   }
 
   return (
-    <div className="mx-auto grid w-full max-w-3xl gap-5 p-4 md:p-6">
+    <div className="mx-auto grid w-full max-w-3xl gap-5 p-4 cq-md:p-6">
       <div className="grid gap-1">
         <h1 className="text-xl font-semibold tracking-tight">Templates</h1>
         <p className="text-muted-foreground text-sm">Each kind of page has its own. A new one starts from the default; pick another when you make it.</p>

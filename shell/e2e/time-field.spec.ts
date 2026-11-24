@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
+import { test } from "./support/test";
 import { CORE_URL } from "./support/seed";
 import { setTime } from "./support/time-field";
 
