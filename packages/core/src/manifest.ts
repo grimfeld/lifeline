@@ -373,6 +373,11 @@ export interface CommandDef {
    * `run` or `dialog`): it is then never listed by its title.
    */
   inline?: (query: string) => InlineOffer | undefined;
+  /**
+   * Not offered right now: the palette leaves it out, though Settings › Keys
+   * still lists it to bind. A Window Command with no Window open (#663).
+   */
+  unavailable?: boolean;
 }
 
 /**

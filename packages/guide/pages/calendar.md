@@ -1,7 +1,7 @@
 # Calendar
 
 The one place for time: every dated thing in Lifeline — Events, Tasks, Chores, Deadlines and
-more — on one calendar, in five views. Reach it from the Rail, or the far left of the Phone bar.
+more — on one calendar, in five views. Reach it from the Hub's index, or the far left of the Phone bar.
 
 ## Views
 

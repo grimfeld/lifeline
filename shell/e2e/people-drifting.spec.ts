@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
+import { test } from "./support/test";
 import { inCore } from "./support/core";
 
 /** Drifting (#420, ADR 0131): People with a Relationship not in touch for 90 days; leave someone out, bring them back. Who drifts, and in what order, is drifting.test's. */

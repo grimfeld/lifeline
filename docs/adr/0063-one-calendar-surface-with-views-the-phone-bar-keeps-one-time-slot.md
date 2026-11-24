@@ -1,9 +1,12 @@
 ---
 status: accepted
 supersedes: ADR 0053 (in part — the two pinned time slots)
+superseded-by: ADR 0133 (in part — the cell left of capture left empty, and the slots' stored order)
 ---
 
 # One Calendar Surface with views; the Phone bar keeps one time slot
+
+> Since ADR 0133 (#664) the Phone bar's far right is a fixed **Hub** slot and the user has two slots, one either side of capture, stored in that order; a new Workspace's bar fills both. The rest stands.
 
 Time was three Surfaces: the month Calendar, the Week planner (day columns and
 the Unplaced pool) and the Schedule (hours, day or week — day only on a

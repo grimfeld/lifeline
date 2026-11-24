@@ -66,7 +66,7 @@ export function overviewPage(opts: {
     }
 
     return (
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-2 p-2 md:p-4">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-2 p-2 cq-md:p-4">
         <div className="flex flex-wrap items-center gap-2 px-2 pt-2">
           <div className="min-w-0 flex-1">
             <ModuleHomeHeader title={opts.title} subtitle={opts.subtitle?.()} />

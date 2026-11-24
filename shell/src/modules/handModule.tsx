@@ -58,7 +58,7 @@ export function handModule(opts: {
   function Tabs() {
     return (
       <PhoneDock slot="module">
-        <div className="flex gap-1 overflow-x-auto px-2 py-1.5 md:hidden">
+        <div className="flex gap-1 overflow-x-auto px-2 py-1.5 cq-md:hidden">
           {resolved().map((p) => (
             <NavLink
               key={p.key}
@@ -82,7 +82,7 @@ export function handModule(opts: {
   function Layout({ children, bare = false }: { children: ReactNode; bare?: boolean }) {
     return (
       <>
-        <aside className="bg-sidebar text-sidebar-foreground flex w-56 shrink-0 flex-col border-r max-md:hidden">
+        <aside className="bg-sidebar text-sidebar-foreground flex w-56 shrink-0 flex-col border-r cq-max-md:hidden">
           <Nav />
         </aside>
         <div className="flex min-w-0 flex-1 flex-col">
@@ -93,7 +93,7 @@ export function handModule(opts: {
     );
   }
 
-  return { Layout, Nav, pages: opts.pages };
+  return { Layout, pages: opts.pages };
 }
 
 /** An App screen's route; undefined when that App is not registered, so its place is skipped. */

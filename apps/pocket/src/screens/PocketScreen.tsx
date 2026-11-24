@@ -131,7 +131,7 @@ export function PocketScreen() {
             </button>
             {bucketRows.length === 0 && <p className="text-muted-foreground text-sm">{empty}</p>}
             {key === "current" && bucketRows.length > 0 && (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <div className="grid grid-cols-2 gap-3 cq-sm:grid-cols-3">
                 {bucketRows.map((row) => (
                   <JarTile key={row.allowance.id} row={row} today={today} onEdit={() => setEditing(row.allowance)} onSpend={() => openSpend(row.allowance.id)} onOpen={() => setSheetId(row.allowance.id)} />
                 ))}

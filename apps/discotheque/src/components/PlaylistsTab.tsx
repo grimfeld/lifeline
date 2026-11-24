@@ -56,7 +56,7 @@ export function PlaylistsTab({ items, onOpenWork }: { items: Work[]; onOpenWork:
           <CardContent className="text-muted-foreground p-8 text-center text-sm">No playlists yet — make the first one.</CardContent>
         </Card>
       ) : (
-        <ul className="grid gap-2 sm:grid-cols-2">
+        <ul className="grid gap-2 cq-sm:grid-cols-2">
           {sorted.map((p) => {
             const works = worksOf(p, byId);
             return (

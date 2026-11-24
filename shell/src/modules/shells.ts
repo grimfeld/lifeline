@@ -22,8 +22,6 @@ export interface ModuleShell {
    * screens (`/app/...`) alike. `bare` content manages its own scrolling.
    */
   Layout: ComponentType<{ children: ReactNode; bare?: boolean }>;
-  /** Its navigation as the phone drawer shows it, above the Rail. Absent: the drawer shows the Rail alone. */
-  Nav?: ComponentType;
   /** Its own pages, routed under `/module/<id>/`; the one with path "" is its home. */
   pages: { path: string; component: ComponentType; bare?: boolean }[];
 }

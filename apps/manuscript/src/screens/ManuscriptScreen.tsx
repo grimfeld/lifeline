@@ -64,7 +64,7 @@ function OuttakesView({ manuscriptId, chapters, current }: { manuscriptId: strin
   const [into, setInto] = useState(current ?? chapters[0]?.id ?? "");
   const title = (id: string) => chapters.find((c) => c.id === id)?.title;
   return (
-    <div className="mx-auto grid w-full max-w-2xl gap-3 p-4 md:p-6">
+    <div className="mx-auto grid w-full max-w-2xl gap-3 p-4 cq-md:p-6">
       <div className="grid gap-1">
         <h1 className="text-lg font-semibold">Outtakes</h1>
         <p className="text-muted-foreground text-sm">What you cut, kept — select a passage in a Chapter and press the scissors to put it here.</p>
@@ -181,13 +181,13 @@ export function ManuscriptScreen() {
 
   return (
     <div className="flex h-full min-h-0">
-      <aside className="bg-sidebar text-sidebar-foreground flex w-64 shrink-0 flex-col border-r max-md:hidden">
+      <aside className="bg-sidebar text-sidebar-foreground flex w-64 shrink-0 flex-col border-r cq-max-md:hidden">
         <Binder manuscript={manuscript} chapters={chapters} outtakes={outtakes.length} current={current} onPick={pick} />
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
         {page}
         <PhoneDock>
-          <Button size="sm" variant="outline" className="md:hidden" onClick={() => setBinder(true)}>
+          <Button size="sm" variant="outline" className="cq-md:hidden" onClick={() => setBinder(true)}>
             <BookOpenText /> Binder
           </Button>
         </PhoneDock>

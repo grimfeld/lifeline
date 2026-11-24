@@ -119,7 +119,7 @@ export function PersonScreen() {
         <header className="grid min-w-0 gap-1">
           {/* In Edit the Name keeps the heading's type: py-0 lets its 28px line sit inside the kit Input's 32px box, uncut. */}
           <PageHeader
-            title={editing ? <InlineText label="Name" required value={person.title} onCommit={(title) => patchPerson(person.id, { title })} className="-mx-1 py-0 text-xl font-semibold tracking-tight md:text-xl" /> : person.title}
+            title={editing ? <InlineText label="Name" required value={person.title} onCommit={(title) => patchPerson(person.id, { title })} className="-mx-1 py-0 text-xl font-semibold tracking-tight cq-md:text-xl" /> : person.title}
             documentTitle={person.title}
           />
           <InlineText
@@ -129,7 +129,7 @@ export function PersonScreen() {
             onCommit={(relationship) => patchPerson(person.id, { relationship })}
             className="-mx-1 text-sm"
           />
-          <div className="grid min-w-0 gap-1 md:grid-cols-2">
+          <div className="grid min-w-0 gap-1 cq-md:grid-cols-2">
             <InlineText label="Given name" value={person.givenName ?? ""} placeholder="Given name" onCommit={(givenName) => patchPerson(person.id, { givenName })} className="-mx-1 text-sm" />
             <InlineText label="Family name" value={person.familyName ?? ""} placeholder="Family name" onCommit={(familyName) => patchPerson(person.id, { familyName })} className="-mx-1 text-sm" />
           </div>
@@ -147,7 +147,7 @@ export function PersonScreen() {
         <LogExchangeDialog open={logging} onOpenChange={setLogging} initial={withThem} />
 
         {/* A grid track of 22rem: the cards' column, wide enough for an Address on two lines. */}
-        <div className="grid min-w-0 gap-6 md:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
+        <div className="grid min-w-0 gap-6 cq-md:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
           <div className="grid min-w-0 content-start gap-6">
             <ContactDetailsSection person={person} editing={detailEditing} onEditing={setDetailEditing} />
             <AddressesSection person={person} />

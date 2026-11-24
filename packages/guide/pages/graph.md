@@ -5,7 +5,7 @@ line — a picture of how your notes, people, books and places hang together.
 
 ## Getting there
 
-- **Graph** on the Rail, or **Go to Graph** in the palette (Ctrl+K).
+- **Graph** in the Hub's index, or **Go to Graph** in the palette (Ctrl+K).
 
 ## What you see
 

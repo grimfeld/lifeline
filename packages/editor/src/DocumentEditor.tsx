@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { useOpenLinkRef, usePeekLinkRef } from "./openDocument";
-import { Badge, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, Label, MiniMap, Sheet, SheetContent, SheetTitle, TagInput, Textarea, Tip, PageHeader, cn, toast, usePhone } from "@lifeline/ui";
+import { Badge, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, Label, MiniMap, Sheet, SheetContent, SheetTitle, TagInput, Textarea, Tip, PageHeader, cn, toast, useNarrow } from "@lifeline/ui";
 import {
   isLinkable,
   isModShortcut,
@@ -88,14 +88,14 @@ export interface DocumentEditorProps {
  */
 export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, linksPanel = true, docDate = null, onCreateUnresolved, onDeleted, toolbar, banner, allowGuarded, save, remove: removeFn, minimal = false, bodyOnly = false, bodyLabel }: DocumentEditorProps) {
   const navigate = useNavigate();
-  const isMobile = usePhone();
+  const narrow = useNarrow();
   const [panelOpen, setPanelOpen] = useState(showPanel);
-  /** Phone: the panel is a right sheet, not a column — it starts closed whatever `showPanel` says. */
+  /** Narrow (a phone, a narrow Window): the panel is a right sheet, not a column — it starts closed whatever `showPanel` says. */
   const [panelSheet, setPanelSheet] = useState(false);
-  const panelShown = isMobile ? panelSheet : panelOpen;
-  const togglePanel = () => (isMobile ? setPanelSheet((o) => !o) : setPanelOpen((o) => !o));
+  const panelShown = narrow ? panelSheet : panelOpen;
+  const togglePanel = () => (narrow ? setPanelSheet((o) => !o) : setPanelOpen((o) => !o));
   const [mode, setMode] = useState<"edit" | "read" | "text">("edit");
-  /** Phone: the Fields + Tags strip is folded away — on a phone the body is the point. */
+  /** Narrow: the Fields + Tags strip is folded away — in a narrow box the body is the point. */
   const [detailsOpen, setDetailsOpen] = useState(false);
   /**
    * The header recedes while the body is being written and comes back on a
@@ -321,7 +321,7 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, l
   /** The right-hand panel's contents: a column on the desktop, a sheet on a phone. */
   const panel = (
     <>
-      {!isMobile && (
+      {!narrow && (
         <div className="text-muted-foreground mb-2 flex items-center gap-1 text-xs">
           <Link2 className="size-3" /> ⌘-click a link to open it
         </div>
@@ -363,7 +363,7 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, l
             a height transition is what stops the text jumping under the caret. */}
         <div
           className={cn(
-            "flex flex-wrap items-center gap-2 overflow-hidden border-b px-3 py-2 transition-[max-height,opacity,padding] duration-200 md:flex-nowrap md:px-4",
+            "flex flex-wrap items-center gap-2 overflow-hidden border-b px-3 py-2 transition-[max-height,opacity,padding] duration-200 cq-md:flex-nowrap cq-md:px-4",
             quiet ? "max-h-0 border-b-0 py-0 opacity-0" : "max-h-40 opacity-100",
           )}
           // Collapsed chrome must leave the tab order too, or Tab walks into
@@ -392,13 +392,13 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, l
               aria-label="Title"
             />
           )}
-          <Badge variant="secondary" className="shrink-0 cursor-pointer max-md:hidden" title={`Open the ${def?.label ?? doc.type} Base`} onClick={() => navigate(basePath(doc.type))}>
+          <Badge variant="secondary" className="shrink-0 cursor-pointer cq-max-md:hidden" title={`Open the ${def?.label ?? doc.type} Base`} onClick={() => navigate(basePath(doc.type))}>
             {label}
           </Badge>
-          <div className="ml-auto flex flex-wrap items-center justify-end gap-1 max-md:basis-full md:flex-nowrap">
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-1 cq-max-md:basis-full cq-md:flex-nowrap">
             {toolbar}
             <Tip label="Fields and tags">
-              <Button size="icon" variant="ghost" className={cn("md:hidden", detailsOpen && "bg-accent")} onClick={() => setDetailsOpen((o) => !o)}>
+              <Button size="icon" variant="ghost" className={cn("cq-md:hidden", detailsOpen && "bg-accent")} onClick={() => setDetailsOpen((o) => !o)}>
                 <SlidersHorizontal />
               </Button>
             </Tip>
@@ -418,7 +418,7 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, l
             )}
             {hasPanel && (
               <Tip label="Toggle links panel">
-                <Button size="icon" variant="ghost" className={cn(isMobile && panelShown && "bg-accent")} onClick={togglePanel}>
+                <Button size="icon" variant="ghost" className={cn(narrow && panelShown && "bg-accent")} onClick={togglePanel}>
                   {panelShown ? <PanelRightClose /> : <PanelRightOpen />}
                 </Button>
               </Tip>
@@ -454,7 +454,7 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, l
         </div>
         {banner}
         {mode === "text" ? (
-          <div className="flex min-h-0 flex-1 flex-col gap-2 p-3 md:p-4">
+          <div className="flex min-h-0 flex-1 flex-col gap-2 p-3 cq-md:p-4">
             <Textarea aria-label="Document text" className="min-h-0 flex-1 resize-none font-mono text-sm" value={text} onChange={(e) => setText(e.target.value)} spellCheck={false} />
             <div className="flex justify-end gap-2">
               <Button variant="ghost" size="sm" onClick={() => setMode("edit")}>
@@ -467,7 +467,7 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, l
           </div>
         ) : (
           <>
-            <div className={cn("grid gap-2 border-b px-3 py-2 md:px-4", !detailsOpen && "max-md:hidden", minimal && "hidden")}>
+            <div className={cn("grid gap-2 border-b px-3 py-2 cq-md:px-4", !detailsOpen && "cq-max-md:hidden", minimal && "hidden")}>
               {fields.some((f) => !f.hidden) && (
                 <FieldsForm def={{ fields }} value={fieldValues} allowGuarded={allowGuarded} onChange={changeFields} />
               )}
@@ -495,7 +495,7 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, l
             </div>
             {hasBody && (
               // Names the Document, so selecting in its body — read or edited — can hand the passage off (ADR 0073).
-              <div className="flex min-h-0 flex-1 flex-col px-3 md:px-4" data-origin={doc.id}>
+              <div className="flex min-h-0 flex-1 flex-col px-3 cq-md:px-4" data-origin={doc.id}>
                 {mode === "read" ? (
                   <>
                     <div className="min-h-0 flex-1 overflow-y-auto py-3" onDoubleClick={() => setMode("edit")}>
@@ -516,10 +516,10 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, l
       </div>
       {/* Not merely CSS-hidden on a phone: the sheet below holds the same panel, and mounting both
           would run every App's document panel twice. */}
-      {hasPanel && panelOpen && !isMobile && <aside className="w-80 min-w-0 shrink-0 overflow-x-hidden overflow-y-auto border-l p-3 max-md:hidden">{panel}</aside>}
-      {/* Phone: the same panel as a right sheet — there is no width for a column, and
+      {hasPanel && panelOpen && !narrow && <aside className="w-80 min-w-0 shrink-0 overflow-x-hidden overflow-y-auto border-l p-3 cq-max-md:hidden">{panel}</aside>}
+      {/* Narrow: the same panel as a right sheet — there is no width for a column, and
           the links, the local graph and an App's own panels are not desk-only (ADR 0021). */}
-      <Sheet open={hasPanel && isMobile && panelSheet} onOpenChange={setPanelSheet}>
+      <Sheet open={hasPanel && narrow && panelSheet} onOpenChange={setPanelSheet}>
         <SheetContent side="right" aria-describedby={undefined} className="w-[85%] max-w-sm overflow-hidden">
           <SheetTitle>Links</SheetTitle>
           {/* Opening a link navigates, which remounts the editor (keyed by Document) — the sheet goes with it. */}

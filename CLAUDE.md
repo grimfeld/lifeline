@@ -59,7 +59,7 @@ The **Guide** is Lifeline's in-app manual (`/guide`, and Claude's MCP `guide` to
   Find the page from the App's entry in `packages/guide/src/index.ts` (the `apps` lists), or the Module or Surface it
   sits in. Core changes go on the Core page that covers them (capture, bases, screens, peek, phone…).
 - `pnpm --filter @lifeline/shell test` fails when a Command or Card title is missing from its App's page,
-  or a Module or Surface has no page, or a shell route (`App.tsx`, `/settings/macros` too) has none of its own: point it at its page in `CORE_PAGES` (`shell/src/guide/guidePlace.ts`), or give it an `UNLISTED_ROUTES` entry with a reason. A new App joins a page's `apps` list. A new Module, Surface or Core page
+  or a Module or Surface has no page, or a shell route (`Places.tsx`, `/settings/macros` too) has none of its own: point it at its page in `CORE_PAGES` (`shell/src/guide/guidePlace.ts`), or give it an `UNLISTED_ROUTES` entry with a reason. A new App joins a page's `apps` list. A new Module, Surface or Core page
   gets a page of its own, an entry in `packages/guide/src/index.ts` and a link on `index.md`. A deliberate omission
   goes in `UNLISTED` in `shell/src/guide/guide.test.ts`, with a reason.
 - The test only sees titles, so a rework that keeps them is on you: reread the page and fix what is no longer true.
@@ -79,7 +79,7 @@ merges master into each approved PR, waits for its checks and merges it. Open a 
 ready only once it's finished and `/ship:pr-review` has run.
 
 Run `pnpm check` in the foreground with a 600000 ms timeout: it takes a few minutes, and a wait keyed on a process
-name can match another agent's run.
+name can match another agent's run. Read its exit code (`pnpm check; echo EXIT=$?`), not only the tail of its output.
 
 Agents working in parallel run only their own change's e2e specs, with
 `pnpm test:e2e:quiet` (dot reporter: a dot per case, then the failures); the whole gate runs on each
