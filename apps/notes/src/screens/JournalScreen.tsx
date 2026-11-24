@@ -59,7 +59,7 @@ export function JournalScreen() {
           </Button>
           <DatePickerButton aria-label="Jump to date" variant="ghost" size="icon-sm" value={date} onPick={go} />
           {note && <JournalLinksButton docId={note.id} index={index} />}
-          <div role="group" aria-label="Days around" className="hidden items-center gap-1 xl:flex">
+          <div role="group" aria-label="Days around" className="hidden items-center gap-1 cq-xl:flex">
             {strip.map((d) => (
               <button
                 key={d}

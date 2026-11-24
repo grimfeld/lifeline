@@ -3,26 +3,40 @@
 Lifeline is the same app on a phone, laid out for one thumb: going places at the foot, a page's
 controls just above it, capture always in the middle.
 
+There are no Windows on a phone: every place fills the screen.
+
 ## The header
 
-- **☰** (top left) — opens the drawer.
-  - Inside a Module it opens on that Module's own navigation; **All places** goes back to the
-    full Rail.
-  - Elsewhere it opens on the Rail: Modules, Surfaces, Bases, Screens, Settings, and the sync
-    status.
-- **The Workspace's name** — tap to switch Workspace, make a new one, or open Settings.
-- **?** — opens the Guide page for where you are.
+The time, and the open Module's name, or the Workspace's name outside a Module. Nothing in it is
+tapped: going places is the bar's.
 
 ## The Phone bar
 
 Five slots at the foot of every page:
 
 - **Calendar** — far left, always. It opens on the view you last used on this phone.
-- **One slot of yours** — left of the middle.
+- **A slot of yours** — left of the middle.
 - **Capture** (**+**) — the middle, always. See [Capture](capture.md).
-- **Two slots of yours** — on the right.
+- **A slot of yours** — right of the middle.
+- **Hub** — far right, always. It opens the Hub.
 
-Your three slots can point at any Module, Surface or Screen, or a page inside a Module.
+Your two slots can point at any Module, Surface or Screen, or a page inside a Module.
+
+## The Hub
+
+Tap **Hub** for every place at once:
+
+- **Tiles** — this Workspace's Modules in their order, then Calendar, Map, Graph and Screens.
+  Tap one to go there.
+- **Bases**, **Settings** and **Guide** — in a row below the tiles. The Guide opens the page for
+  where you were before you opened the Hub.
+- **The Workspace switcher** — switch Workspace, make a new one, or open Settings; the sync status
+  sits below it.
+- **Find…** — at the foot, right above the bar: type to narrow the tiles to the places whose
+  name holds what you typed. When none does, it says so; **Clear the search** brings them back.
+
+The Hub slot is marked while the Hub is open. A Module's own pages are in its tabs in the Phone
+dock, not in the Hub.
 
 ### Configuring the bar
 
@@ -32,6 +46,9 @@ In [Settings](settings.md) › **Phone bar**:
 - Type a short label for it — what the slot says on the bar.
 - **×** empties a slot.
 - Each Workspace has its own bar; a new one starts from its Modules.
+- A bar arranged when it had three slots keeps the two that were right of the middle: the nearer
+  one moves left of the middle and the far one stays right of it. The slot that was left of the
+  middle is dropped; set it again in Settings › Phone bar.
 - If what a slot points at is gone (a Screen deleted, a Module removed), the slot stays empty —
   shown as **Set** — rather than being refilled. Tap it to choose again.
 

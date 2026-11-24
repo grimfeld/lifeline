@@ -5,7 +5,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { Tabs as TabsPrimitive } from "radix-ui"
 
 import { cn } from "../../lib/utils"
-import { usePhone } from "./phone-dock"
+import { useNarrow } from "./content-container"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./select"
 
 /**
@@ -76,16 +76,16 @@ const tabsListVariants = cva(
   }
 )
 
-/** The tab buttons on the desk; on a phone, a select of the same choices. */
+/** The tab buttons on the desk; in a narrow container (a phone), a select of the same choices. */
 function TabsList({
   className,
   variant = "default",
   ...props
 }: React.ComponentProps<typeof TabsPrimitive.List> &
   VariantProps<typeof tabsListVariants>) {
-  const phone = usePhone()
+  const narrow = useNarrow()
   const tabs = React.useContext(TabsValue)
-  if (phone && tabs) {
+  if (narrow && tabs) {
     return (
       <Select value={tabs.value} onValueChange={tabs.setValue}>
         <SelectTrigger data-slot="tabs-list" aria-label={props["aria-label"] ?? "View"} className={cn("min-w-0 *:data-[slot=select-value]:gap-1.5", className)}>

@@ -138,7 +138,8 @@ export function CommandPalette() {
     } else runCommand(e.command);
   }
 
-  const commands = useAllCommands();
+  // A Command not offered right now (a Window Command with no Window open) is left out (#663).
+  const commands = useAllCommands().filter((c) => !c.unavailable);
   const { pinned } = useCaptureSheet();
   // A Command's Key binding is shown beside it (CONTEXT.md "Key binding").
   const bindings = useKeyBindings();

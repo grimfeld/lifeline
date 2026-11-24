@@ -1,6 +1,5 @@
 import {
   documentsOf,
-  documentsTable,
   getDocument,
   newId,
   normalizeTags,
@@ -12,6 +11,8 @@ import {
   useLiveQuery,
   type DateStr,
 } from "@lifeline/core";
+// eslint-disable-next-line no-restricted-imports -- occurrence overrides are read by compound index ([type+taskId], [type+taskId+sourceDate]), which no gated reader offers; they follow their Task, which was read through the gates.
+import { documentsTable } from "@lifeline/core";
 import {
   TASK,
   TASK_OCCURRENCE,

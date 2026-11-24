@@ -10,7 +10,7 @@ import { JournalCalendar } from "./JournalCalendar";
 import { JournalLinks } from "./JournalLinks";
 import { PeriodReports } from "./TypeReports";
 
-const ASIDE = "flex w-64 shrink-0 flex-col gap-5 overflow-y-auto border-l p-3 max-lg:hidden";
+const ASIDE = "flex w-64 shrink-0 flex-col gap-5 overflow-y-auto border-l p-3 cq-max-lg:hidden";
 
 /**
  * The Journal's side column beside a Day (ADR 0068): the Day's links first —

@@ -27,14 +27,15 @@ pnpm test:e2e:quiet --project=desktop people.spec.ts                    # dot re
 
 No `--` before the flags: pnpm would hand it to Playwright, which then reads them as
 file filters. A PR runs only the gate specs it changes, three times each
-(`.github/workflows/check.yml`, `e2e-changed`), or once on four runners past 150 cases. The
+(`.github/workflows/e2e-runners.yml`, called by `check.yml`), or once on four runners past 150 cases. The
 whole gate runs on every PR carrying `ship` (ADR 0132), and everything runs on
 master each night; each runner runs the setup projects its cases need. A red nightly run opens
 (or comments on) a `ready-for-agent` issue naming the failing cases (`scripts/e2e-failures.mjs`).
 
 ### The four runners
 
-The nightly run splits the suite four ways with `--shard`. A PR's four runners instead split
+The nightly run splits the suite four ways with `--shard`, in the same Playwright image as the
+gate (ADR 0134). A PR's four runners instead split
 the spec files by how long each takes, from `e2e/durations.json`
 (`scripts/e2e-shards.mjs`): `--shard` splits by count, in file order, so slow files next to
 each other in the alphabet land on one runner. A file is never split between runners, so one
@@ -48,9 +49,51 @@ gh run download <run-id> --pattern 'e2e-results-*' --dir /tmp/e2e-results
 node scripts/e2e-shards.mjs durations /tmp/e2e-results/*/e2e-results.json > shell/e2e/durations.json
 ```
 
-To time the four runners on a branch before it lands, run the Check workflow by hand
-(Actions → Check → Run workflow) with **gate** ticked: it runs the whole gate as an
-approved PR does.
+To time the four runners on a branch before it lands, or prove a PR against the whole gate,
+label its PR **`e2e:gate`** (`.github/workflows/e2e-gate.yml`): it runs the whole gate on the
+PR's head as an approved PR does, shows as its own `e2e-gate` check with each runner's cases
+and minutes in the run's summary, and takes the label off when it ends; add it again to rerun. A run you cancel by hand leaves the label on: take it off yourself.
+An agent can add a label where a workflow dispatch is refused. Without a PR, run the Check
+workflow by hand (Actions → Check → Run workflow) with **gate** ticked.
+
+### A CI runner, locally
+
+To run one CI runner's cases in the image CI uses (`mcr.microsoft.com/playwright`, at
+`@playwright/test`'s version in `shell/package.json`), from the worktree's root. A cloud
+container has Docker installed, but its daemon isn't running, and a container reaches the
+network only through the session's proxy and trusts its CA only when told. A laptop's Docker
+Desktop needs none of the proxy steps: drop the proxy variables and the CA bundle.
+
+```sh
+# The daemon, in the background, then wait for it to answer.
+(dockerd > /tmp/dockerd.log 2>&1 &)
+timeout 60 sh -c 'until docker info > /dev/null 2>&1; do sleep 1; done'
+
+# The gate's image (dockerd pulls through the session's proxy).
+PW=$(node -p "require('./shell/package.json').devDependencies['@playwright/test'].replace(/^[\\^~]/, '')")
+docker pull mcr.microsoft.com/playwright:v$PW-noble
+
+# A fresh clone of the branch's commits (not uncommitted work) to mount into the container.
+rm -rf /tmp/e2e-runner && git clone -q --branch "$(git branch --show-current)" "$PWD" /tmp/e2e-runner
+
+# Runner 2 of 4's files, planned as e2e-runners.yml plans them.
+(cd shell && pnpm exec playwright test --list --reporter=json --project=desktop --project=mobile) > /tmp/e2e-list.json
+node scripts/e2e-shards.mjs plan 4 /tmp/e2e-list.json shell/e2e/durations.json > /tmp/e2e-plan.json
+FILES=$(node -p "require('/tmp/e2e-plan.json').include[1].files")
+
+# The runner: host network for the proxy, the CA bundle for Node, pnpm (the image has none).
+docker run --rm --network host --ipc=host \
+  -e CI=1 -e HTTPS_PROXY -e HTTP_PROXY -e NO_PROXY -e https_proxy -e http_proxy -e no_proxy \
+  -e NODE_EXTRA_CA_CERTS=/ca.crt -v /root/.ccr/ca-bundle.crt:/ca.crt:ro \
+  -e FILES="$FILES" -e PNPM="$(node -p "require('./package.json').packageManager")" \
+  -v /tmp/e2e-runner:/work -w /work \
+  mcr.microsoft.com/playwright:v$PW-noble \
+  bash -c 'npm i -g "$PNPM" && pnpm install --frozen-lockfile && cd shell && pnpm exec playwright test $FILES --project=desktop --project=mobile --reporter=dot'
+```
+
+The container runs the fresh clone, never the worktree: its `pnpm install` writes Linux
+`node_modules` for the image, and on the worktree it would overwrite the ones your own runs
+use. `include[0]` to `include[3]` are the four runners; `plan 1` gives the whole gate on one.
 
 ## Widths
 
@@ -84,6 +127,7 @@ In a cloud container the config launches the Chromium in
 and never change that directory. The two Demo builds start only when the run includes the `demo` or
 `demo-setup` project (no `--project` at all, or one of those).
 
+- Import `test` from `./support/test`, never from `@playwright/test`: every page load then starts a new desk, so a `goto` lands as the one maximised Window, as a whole page did before the Hub (ADR 0133). Only `hub.spec.ts` keeps the saved window layout, because that is what it tests.
 - Open the command palette with `openPalette(page)` from `support/palette.ts`, never a bare key press: it waits for a closing palette, then for the input. Press `Control` (editor chords: `pressMod` in `support/keys.ts`), never `ControlOrMeta` (the `desktop` project is a Windows user agent; `scripts/e2e-keys.test.mjs` checks).
 - `seed.setup.ts` runs first: `support/seed.ts` runs every headless Command,
   gives every Document type a Document with every Field filled, and places
