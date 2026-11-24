@@ -97,7 +97,7 @@ export function CaptureForm({ source, defaultSource, initialMode = "note", autoF
         onChange={(e) => setText(e.target.value)}
         aria-label={mode === "note" ? "Note" : "Quote"}
       />
-      <div className={cn("grid gap-2", mode === "quote" && "sm:grid-cols-[10rem_1fr]")}>
+      <div className={cn("grid gap-2", mode === "quote" && "cq-sm:grid-cols-[10rem_1fr]")}>
         <Input placeholder="Where — page, chapter, 34:12" value={locator} onChange={(e) => setLocator(e.target.value)} aria-label="Where" className="min-w-0" />
         {mode === "quote" && <Input placeholder="Your comment (optional)" value={comment} onChange={(e) => setComment(e.target.value)} aria-label="Comment" className="min-w-0" />}
       </div>

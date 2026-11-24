@@ -46,7 +46,7 @@ export function QuoteEditor({ source, quote, onDone, onCancel, autoFocus = true 
   return (
     <div className="grid gap-2" onKeyDown={onKeyDown}>
       <Textarea rows={3} autoFocus={autoFocus} placeholder="Quote…" value={text} onChange={(e) => setText(e.target.value)} aria-label="Quote" />
-      <div className="grid gap-2 sm:grid-cols-[10rem_1fr]">
+      <div className="grid gap-2 cq-sm:grid-cols-[10rem_1fr]">
         <Input placeholder="Page / chapter / time" value={locator} onChange={(e) => setLocator(e.target.value)} aria-label="Locator" />
         <Input placeholder="Your comment (optional)" value={comment} onChange={(e) => setComment(e.target.value)} aria-label="Comment" />
       </div>

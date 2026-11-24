@@ -77,7 +77,7 @@ export function TypeReports({ type, index }: { type: DocumentTypeDef; index: Lin
           )}
         </div>
       )}
-      <div className="grid min-w-0 gap-4 md:grid-cols-2">
+      <div className="grid min-w-0 gap-4 cq-md:grid-cols-2">
         {chosen.map((r) => (
           <RankingReport key={r.kind} index={index} typeId={type.id} setting={r} window={window} onOpen={onOpen} />
         ))}

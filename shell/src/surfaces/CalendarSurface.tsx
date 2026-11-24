@@ -10,6 +10,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
   PageHeader,
+  useNarrow,
   usePhone,
   PhoneDock,
 } from "@lifeline/ui";
@@ -52,7 +53,10 @@ export interface CalendarCtx {
   /** The days this view shows for the day in view. */
   days: DateStr[];
   tags: TagFilter;
+  /** The device: touch wording and gestures. Layout asks `narrow`. */
   isMobile: boolean;
+  /** The Window is narrow: stacked, compact layout. */
+  narrow: boolean;
   /** Move the day in view, and the view with it when one is named. */
   go: (d: DateStr, view?: CalendarView) => void;
   /** Open one day: in Day view where this Calendar offers it, else Upcoming from that day. */
@@ -116,6 +120,7 @@ function label(view: CalendarView, days: DateStr[], anchor: DateStr): string {
 export function CalendarSurface({ views = CALENDAR_VIEWS.map((v) => v.id) }: { views?: CalendarView[] }) {
   const [params, setParams] = useSearchParams();
   const isMobile = usePhone();
+  const narrow = useNarrow();
   const scope = useSurfaceScope();
   const place = scope?.moduleId ?? "general";
   const today = todayStr();
@@ -217,7 +222,7 @@ export function CalendarSurface({ views = CALENDAR_VIEWS.map((v) => v.id) }: { v
     </PhoneDock>
   );
 
-  const ctx: CalendarCtx = { view, anchor, today, days, tags, isMobile, go, openDay, header };
+  const ctx: CalendarCtx = { view, anchor, today, days, tags, isMobile, narrow, go, openDay, header };
 
   return (
     <div

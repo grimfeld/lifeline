@@ -54,6 +54,7 @@ export function MapPage() {
           {pins.length} {pins.length === 1 ? "pin" : "pins"}
         </span>
         <PhoneDock order={1}>
+          {/* ui-allow: viewport-breakpoint — inside the PhoneDock, which is the phone's own chrome: these follow the device, as the dock does. */}
           <div className="ml-auto flex min-w-0 flex-wrap items-center gap-1 max-md:w-full">
             {providers.map((p) => {
               const on = !hidden.has(p.value);
@@ -82,6 +83,7 @@ export function MapPage() {
                   onClick={() => setToTry((on) => !on)}
                   aria-pressed={toTry}
                   className={cn(
+                    // ui-allow: viewport-breakpoint — inside the PhoneDock, which is the phone's own chrome: these follow the device, as the dock does.
                     "flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs transition-colors max-md:h-8 max-md:justify-center max-md:px-3",
                     toTry ? "bg-accent" : "text-muted-foreground",
                   )}
@@ -89,6 +91,7 @@ export function MapPage() {
                   <Sparkles className="size-3" /> To try
                 </button>
                 <Select value={kind || ANY} onValueChange={(v) => setKind(v === ANY ? "" : v)}>
+                  {/* ui-allow: viewport-breakpoint — inside the PhoneDock, which is the phone's own chrome: these follow the device, as the dock does. */}
                   <SelectTrigger size="sm" className="min-w-0 max-md:h-8 max-md:flex-1 md:w-40" aria-label="Kind">
                     <SelectValue />
                   </SelectTrigger>

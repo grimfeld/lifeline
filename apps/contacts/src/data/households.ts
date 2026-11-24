@@ -1,5 +1,7 @@
 import { useMemo } from "react";
-import { PERSON_TYPE, createDocument, documentsOfUngated, documentsTable, getDocument, normalizeTags, patchDocument, removeDocument, renameDocument, useDocuments, type Document } from "@lifeline/core";
+import { PERSON_TYPE, createDocument, documentsOfUngated, getDocument, normalizeTags, patchDocument, removeDocument, renameDocument, useDocuments, type Document } from "@lifeline/core";
+// eslint-disable-next-line no-restricted-imports -- dropMembersOutside reads a Household past the Workspace gate: it runs after the Household has moved out of view.
+import { documentsTable } from "@lifeline/core";
 import { HOUSEHOLD, type Household, type Membership } from "../domain/types";
 import { hasMember, membershipsOf, normalizeMembership } from "../domain/households";
 import { cleanAliases } from "../domain/person";

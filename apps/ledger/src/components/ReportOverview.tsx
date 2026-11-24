@@ -53,7 +53,7 @@ export function ReportOverview({ data }: { data: ReportData }) {
 
   return (
     <div className="grid gap-4">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-2 cq-sm:grid-cols-3 cq-lg:grid-cols-5">
         <StatTile label="Income" value={formatCents(summary.income)} hint={`${formatCents(summary.averageIncome)} / month`} />
         <StatTile label="Spending" value={formatCents(summary.spent)} hint={`${formatCents(summary.averageSpent)} / month`} />
         <StatTile label="Net" value={formatSigned(summary.net)} tone={summary.net < 0 ? "bad" : "good"} hint={`over ${months.length} month${months.length === 1 ? "" : "s"}`} />

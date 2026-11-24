@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
+import { test } from "./support/test";
 
 /**
  * Scanning a book's barcode on the phone (#382): the Add dialog offers it where

@@ -6,7 +6,7 @@ Base.
 
 ## The Bases list
 
-Open **Bases** on the Rail (or **Go to Bases** in the palette).
+Open **Bases** in the Hub's top bar on the desk (or **Go to Bases** in the palette).
 
 - Every type, with how many Documents it holds, and which App owns it (or "user-defined").
 - **New type** — make a type of your own. See [Documents](documents.md).
