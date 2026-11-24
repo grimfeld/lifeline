@@ -52,6 +52,45 @@ To time the four runners on a branch before it lands, run the Check workflow by 
 (Actions → Check → Run workflow) with **gate** ticked: it runs the whole gate as an
 approved PR does.
 
+### A CI runner, locally
+
+To run one CI runner's cases in the image CI uses (`mcr.microsoft.com/playwright`, at
+`@playwright/test`'s version in `shell/package.json`), from the worktree's root. A cloud
+container has Docker installed, but its daemon isn't running, and a container reaches the
+network only through the session's proxy and trusts its CA only when told. A laptop's Docker
+Desktop needs none of the proxy steps: drop the proxy variables and the CA bundle.
+
+```sh
+# The daemon, in the background, then wait for it to answer.
+(dockerd > /tmp/dockerd.log 2>&1 &)
+timeout 60 sh -c 'until docker info > /dev/null 2>&1; do sleep 1; done'
+
+# The gate's image (dockerd pulls through the session's proxy).
+PW=$(node -p "require('./shell/package.json').devDependencies['@playwright/test'].replace(/^[\\^~]/, '')")
+docker pull mcr.microsoft.com/playwright:v$PW-noble
+
+# A fresh clone of the branch's commits (not uncommitted work) to mount into the container.
+rm -rf /tmp/e2e-runner && git clone -q --branch "$(git branch --show-current)" "$PWD" /tmp/e2e-runner
+
+# Runner 2 of 4's files, planned as check.yml plans them.
+(cd shell && pnpm exec playwright test --list --reporter=json --project=desktop --project=mobile) > /tmp/e2e-list.json
+node scripts/e2e-shards.mjs plan 4 /tmp/e2e-list.json shell/e2e/durations.json > /tmp/e2e-plan.json
+FILES=$(node -p "require('/tmp/e2e-plan.json').include[1].files")
+
+# The runner: host network for the proxy, the CA bundle for Node, pnpm (the image has none).
+docker run --rm --network host --ipc=host \
+  -e CI=1 -e HTTPS_PROXY -e HTTP_PROXY -e NO_PROXY -e https_proxy -e http_proxy -e no_proxy \
+  -e NODE_EXTRA_CA_CERTS=/ca.crt -v /root/.ccr/ca-bundle.crt:/ca.crt:ro \
+  -e FILES="$FILES" -e PNPM="$(node -p "require('./package.json').packageManager")" \
+  -v /tmp/e2e-runner:/work -w /work \
+  mcr.microsoft.com/playwright:v$PW-noble \
+  bash -c 'npm i -g "$PNPM" && pnpm install --frozen-lockfile && cd shell && pnpm exec playwright test $FILES --project=desktop --project=mobile --reporter=dot'
+```
+
+The container runs the fresh clone, never the worktree: its `pnpm install` writes Linux
+`node_modules` for the image, and on the worktree it would overwrite the ones your own runs
+use. `include[0]` to `include[3]` are the four runners; `plan 1` gives the whole gate on one.
+
 ## Widths
 
 A gate case runs at desktop width. A case whose flow differs on the phone carries a tag:
