@@ -46,11 +46,11 @@ export function HouseholdScreen() {
     <Page width="wide">
       {back}
       <PageHeader
-        title={<InlineText label="Name" required value={household.title} onCommit={(title) => patchHousehold(household.id, { title })} className="-mx-1 py-0 text-xl font-semibold tracking-tight md:text-xl" />}
+        title={<InlineText label="Name" required value={household.title} onCommit={(title) => patchHousehold(household.id, { title })} className="-mx-1 py-0 text-xl font-semibold tracking-tight cq-md:text-xl" />}
         documentTitle={household.title}
       />
       {/* A grid track of 22rem: the members' column, as a Person page's cards. */}
-      <div className="grid min-w-0 gap-6 md:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
+      <div className="grid min-w-0 gap-6 cq-md:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
         <div className="grid min-w-0 content-start gap-6">
           <Section title="Members">
             <HouseholdMembers household={household} />

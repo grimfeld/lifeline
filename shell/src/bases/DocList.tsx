@@ -163,7 +163,7 @@ const ListItem = memo(function ListItem({ doc, def, fields, compact, isSelected,
         .filter((f) => f.key !== "title" && f.key !== "tags")
         .slice(0, compact ? 1 : 3)
         .map((f) => (
-          <span key={f.key} className="text-muted-foreground hidden max-w-40 truncate text-xs md:inline">
+          <span key={f.key} className="text-muted-foreground hidden max-w-40 truncate text-xs cq-md:inline">
             <CellValue doc={doc} field={f} />
           </span>
         ))}

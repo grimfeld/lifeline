@@ -1,5 +1,5 @@
-import { Button, cn, Sheet, SheetContent, SheetTitle } from "@lifeline/ui";
-import { formatHuman, useIsMobile } from "@lifeline/core";
+import { Button, cn, Sheet, SheetContent, SheetTitle, usePhone } from "@lifeline/ui";
+import { formatHuman } from "@lifeline/core";
 import { Pencil, Plus, RefreshCw } from "lucide-react";
 import { faceColor, faceOf, type Spend } from "../domain/types";
 import { jarLevel, type AllowanceRow } from "../domain/derive";
@@ -29,12 +29,12 @@ export function AllowanceSheet({
   onRenew: () => void;
   onEditSpend: (s: Spend) => void;
 }) {
-  const isMobile = useIsMobile();
+  const phone = usePhone();
   const a = row?.allowance;
   const over = !!row && row.left < 0;
   return (
     <Sheet open={!!row} onOpenChange={onOpenChange}>
-      <SheetContent side={isMobile ? "bottom" : "right"} aria-describedby={undefined} className="gap-3 p-4 sm:max-w-md">
+      <SheetContent side={phone ? "bottom" : "right"} aria-describedby={undefined} className="gap-3 p-4 sm:max-w-md">
         {row && a && (
           <>
             <div className="flex items-center gap-3 pr-2">

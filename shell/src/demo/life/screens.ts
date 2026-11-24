@@ -9,7 +9,6 @@ import {
   put,
   saveWorkspace,
   seedBar,
-  BAR_LEFT_SLOT,
   type ScreenLayoutItem,
   type UserScreen,
 } from "@lifeline/core";
@@ -55,10 +54,9 @@ export async function seedHome(_c: LifeClock): Promise<void> {
   const id = newId();
   await put<UserScreen>("screens", { id, name: "Home", layout, sort: 0, workspace: ws.id });
 
-  // The slot left of capture on the Phone bar; the right two stay as seeded.
-  const bar = [...(ws.bar ?? seedBar(ws.modules))];
-  while (bar.length <= BAR_LEFT_SLOT) bar.push(null);
-  bar[BAR_LEFT_SLOT] = { kind: "screen", id };
+  // The slot left of capture on the Phone bar; the first seeded Module moves right of it.
+  const seeded = ws.bar ?? seedBar(ws.modules);
+  const bar = [{ kind: "screen" as const, id }, seeded[0] ?? null];
   await saveWorkspace({ ...ws, bar });
 
   rememberPlace(currentWorkspaceId(), `/screen/${id}`);

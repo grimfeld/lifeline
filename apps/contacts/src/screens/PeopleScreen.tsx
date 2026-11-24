@@ -161,8 +161,8 @@ export function PeopleScreen() {
               <div className="grid min-w-0 gap-4">
                 {/* Each letter's section has a 2rem track for the letter: one capital, with room before the names. */}
                 {byLetter(shown).map(([letter, ps]) => (
-                  <section key={letter} className="grid min-w-0 gap-1 md:grid-cols-[2rem_minmax(0,1fr)]">
-                    <h3 className="text-muted-foreground px-2 pt-2 text-sm font-medium md:px-0">{letter}</h3>
+                  <section key={letter} className="grid min-w-0 gap-1 cq-md:grid-cols-[2rem_minmax(0,1fr)]">
+                    <h3 className="text-muted-foreground px-2 pt-2 text-sm font-medium cq-md:px-0">{letter}</h3>
                     <ul className="grid min-w-0">
                       {ps.map((p) => (
                         <PersonRow key={p.id} person={p} lastSeen={lastSeen.get(p.id)} news={news} showRelationship={!activeRelationship} />

@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
+import { test } from "./support/test";
 import { inCore } from "./support/core";
 import { openPalette } from "./support/palette";
 
@@ -56,4 +57,48 @@ test("each row's checkbox in Tidy given names is named for its Person and descri
   const box = dialog.getByRole("checkbox", { name: "Tidy Anne Dupont", exact: true });
   await expect(box).toBeVisible();
   await expect(box).toHaveAccessibleDescription(/Given name Anne · Family name Dupont · drops alias Anne/);
+});
+
+test("each Window is a region named for its Module, and its bar's buttons are named", async ({ page, isMobile }) => {
+  test.skip(isMobile, "A phone has no Windows (ADR 0133)");
+  await page.goto("/calendar");
+  await workLocally(page);
+  const calendar = page.getByRole("region", { name: "Calendar", exact: true });
+  await expect(calendar).toBeVisible();
+  await expect(calendar.getByRole("button", { name: "Close Calendar" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Hub" })).toBeVisible();
+});
+
+test("a Window bar's snap buttons are named", async ({ page, isMobile }) => {
+  test.skip(isMobile, "A phone has no Windows (ADR 0133)");
+  await page.goto("/calendar");
+  await workLocally(page);
+  const calendar = page.getByRole("region", { name: "Calendar", exact: true });
+  await expect(calendar.getByRole("button", { name: "Snap left half" })).toBeVisible();
+  await expect(calendar.getByRole("button", { name: "Snap right half" })).toBeVisible();
+});
+
+test("a Window bar's maximise and full-screen buttons are named, and a full-screen page's close", async ({ page, isMobile }) => {
+  test.skip(isMobile, "A phone has no Windows (ADR 0133)");
+  await page.goto("/calendar");
+  await workLocally(page);
+  const calendar = page.getByRole("region", { name: "Calendar", exact: true });
+  // A new desk opens its Window maximised: the button restores it.
+  await expect(calendar.getByRole("button", { name: "Restore" })).toBeVisible();
+  await calendar.getByRole("button", { name: "Full screen" }).click();
+  await expect(calendar.getByRole("button", { name: "Hub · Esc" })).toBeVisible();
+  await calendar.getByRole("button", { name: "Hub · Esc" }).click();
+  await page.goto("/settings");
+  await workLocally(page);
+  await expect(page.getByRole("region", { name: "Settings", exact: true }).getByRole("button", { name: "Close Settings" })).toBeVisible();
+});
+
+test("the Phone bar's Hub slot and the phone Hub's tiles and Find are named", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "The Phone bar and its Hub are the phone's (#664)");
+  await page.goto("/hub");
+  await workLocally(page);
+  await expect(page.getByRole("button", { name: "Hub", exact: true })).toHaveAttribute("aria-current", "page");
+  const hub = page.getByRole("region", { name: "Hub" });
+  await expect(hub.getByRole("list", { name: "Places" }).getByRole("link").first()).toHaveAccessibleName(/\S/);
+  await expect(page.getByRole("searchbox", { name: "Find a place" })).toBeVisible();
 });

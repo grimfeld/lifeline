@@ -42,7 +42,7 @@ export function SourceScreen() {
   const ownFields = isOwn ? (def?.fields ?? []).filter((f) => f.key !== "aliases") : [];
 
   return (
-    <div className="mx-auto grid w-full max-w-3xl gap-5 p-4 md:p-6">
+    <div className="mx-auto grid w-full max-w-3xl gap-5 p-4 cq-md:p-6">
       <div className="flex items-center gap-2">
         <Button asChild size="sm" variant="ghost" className="h-7">
           <Link to={SHELF_HREF}>

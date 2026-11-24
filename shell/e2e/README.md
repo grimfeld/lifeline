@@ -124,6 +124,7 @@ In a cloud container the config launches the Chromium in
 and never change that directory. The two Demo builds start only when the run includes the `demo` or
 `demo-setup` project (no `--project` at all, or one of those).
 
+- Import `test` from `./support/test`, never from `@playwright/test`: every page load then starts a new desk, so a `goto` lands as the one maximised Window, as a whole page did before the Hub (ADR 0133). Only `hub.spec.ts` keeps the saved window layout, because that is what it tests.
 - Open the command palette with `openPalette(page)` from `support/palette.ts`, never a bare key press: it waits for a closing palette, then for the input. Press `Control` (editor chords: `pressMod` in `support/keys.ts`), never `ControlOrMeta` (the `desktop` project is a Windows user agent; `scripts/e2e-keys.test.mjs` checks).
 - `seed.setup.ts` runs first: `support/seed.ts` runs every headless Command,
   gives every Document type a Document with every Field filled, and places
