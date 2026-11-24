@@ -211,7 +211,7 @@ function useLinkOptions(linkType: string | string[] | undefined, linkRole?: stri
 }
 
 /** A `links` field (ADR 0052): the chosen Documents as removable chips, and a picker to add one more. */
-function LinksField({ id, linkType, linkRole, value, disabled, onChange }: { id: string; linkType?: string | string[]; linkRole?: string; value: unknown; disabled?: boolean; onChange: (v: unknown) => void }) {
+export function LinksField({ id, linkType, linkRole, value, disabled, onChange }: { id: string; linkType?: string | string[]; linkRole?: string; value: unknown; disabled?: boolean; onChange: (v: unknown) => void }) {
   const { options, many, singularLabel } = useLinkOptions(linkType, linkRole);
   const ids = Array.isArray(value) ? value.map(String).filter(Boolean) : typeof value === "string" && value ? [value] : [];
   const byId = new Map(options.map((o) => [o.value, o]));

@@ -1,10 +1,11 @@
 # Journal
 
 Living day to day in writing: one page per Day, a review for each week, month, quarter and
-year, and the people, places and other kinds of page you write about.
+year, the moments you keep as Memories, and the people, places and other kinds of page you write
+about.
 
 Its sidebar (on a phone, the tabs in the Phone dock): **Today**, **This week**, **This month**,
-**This quarter**, **This year**, **Types** and **Templates**.
+**This quarter**, **This year**, **Memories**, **Types** and **Templates**.
 
 ## Journal
 
@@ -125,6 +126,30 @@ Place these on a Screen or any Overview.
 - **Random note** — a page at random, of a type or from a folder; reroll for another.
 - **Saved search** — a full-text search over titles, aliases and text, kept on screen.
 
+## Memories
+
+What you keep here: **Memories**, moments worth remembering. A Memory has a **title**, a **date**
+of its own (the day it happened, today unless you say otherwise), its words and photos, and
+**About**: links to what it remembers — an Event, People, a Place, a Work, any page — or nothing.
+
+- **The Memories place** — a grid of tiles, the newest date first (two columns on a phone). Each
+  tile shows the Memory's first photo, or its title alone when it has none, with its title and
+  its date; tap one to open the Memory. With no Memories yet it says so and offers **New
+  memory**.
+- **New memory** — pick or take a photo (or skip it), then give it a title and its day; the
+  Memory is kept with the photo in its text and opens on its own page for the words. A photo is
+  shrunk like any attachment; one over 20 MB, or a file that is not an image, is refused and
+  keeps nothing. Where: the palette (Ctrl+K), the **+** capture sheet on the phone, and the
+  Memories place.
+- **The Memory page** — its title, date, About and words, all editable, and under them its
+  **Backlinks** (and unlinked mentions): what links to it. **Delete** in its bar removes it at once;
+  **Undo** in the toast brings it back. Photos go in its text as any image does, pasted or dropped in.
+- A Memory about an Event, a Person or a Place shows in that page's **Backlinks**, as "via
+  About".
+- A Memory dated a day shows in that day's **Daylog** as a "Memory" row linking to it.
+- Deleting a Memory leaves its photos behind as unused attachments; **Clean up unused
+  attachments…** removes them.
+
 ## Capture
 
 **+** on the phone (or Ctrl+K at the desk) offers **Quick capture** from the Journal: a line
@@ -132,6 +157,8 @@ for today's Day, stamped with the time.
 
 ## Ask Claude
 
+- "Remember the dinner at Chez Janou with Ana last Saturday" — `memories_add`: a Memory with a
+  title, its day, its words and what it is about (no photos: you add those).
 - "Jot down that the plumber came" — `notes_capture`: one line appended to today's Day with the
   time, as **Quick capture** does.
 - "What did I write last Tuesday?" — `search_documents`, `get_document`.

@@ -1,7 +1,7 @@
 import { useId } from "react";
 import { Checkbox, DatePicker, Field, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TimeField } from "@lifeline/ui";
-import type { CommandArg } from "@lifeline/core";
-import { PeopleField } from "@lifeline/editor";
+import { PERSON_TYPE, type CommandArg } from "@lifeline/core";
+import { LinksField, PeopleField } from "@lifeline/editor";
 
 const NONE = "\u0000none";
 
@@ -66,10 +66,14 @@ export function ArgInput({ arg, value, error, onChange }: { arg: CommandArg; val
         </Field>
       );
     case "links":
-      // Every list of links a Command takes is a list of People, picked as a People field picks them (completing names and aliases).
-      return (
+      // A list of People is picked as a People field picks them (completing names and aliases); any other list (a Memory's About) as a Links field is.
+      return arg.linkType === PERSON_TYPE ? (
         <Field label={label} hint={arg.hint} error={error}>
           <PeopleField label={label} placeholder="Add a person…" value={entries(value)} onChange={(ids) => onChange(ids.length ? ids : undefined)} />
+        </Field>
+      ) : (
+        <Field label={label} hint={arg.hint} error={error}>
+          <LinksField id={id} linkType={arg.linkType} linkRole={arg.linkRole} value={entries(value)} onChange={(v) => onChange(Array.isArray(v) && v.length ? v : undefined)} />
         </Field>
       );
     default:

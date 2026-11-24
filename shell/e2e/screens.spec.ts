@@ -1178,6 +1178,11 @@ const SCREENS: ScreenCase[] = [
   { name: "Journal · Calendar years", path: "/app/journal?d=2001-02-14", afterOpen: zoomCalendar(2) },
   { name: "Journal · Types", path: "/app/journal/t" },
   { name: "Journal · Types (old link)", path: "/app/journal/c" },
+  // The Memories grid (ADR 0136): a tile with the longest title, and the empty state.
+  { name: "Journal · Memories", path: "/app/journal/memories", type: "memories_memory" },
+  { name: "Journal · Memories (none)", path: "/app/journal/memories" },
+  // A Memory's page (ADR 0136): the longest title, and an About of three long-titled Documents.
+  { name: "Journal · Memory", path: "/app/journal/memories/:id", type: "memories_memory" },
   {
     // The Type editor over the seeded type with long Field, option and type labels, every fold-out open.
     name: "Journal · Types · Type editor",

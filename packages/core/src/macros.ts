@@ -3,7 +3,7 @@ import { commandKey, commandNavigates, commandRun, invokeCommand, isInvocable, r
 import { db, MACROS, type SyncedRecord } from "./data/db";
 import { put, remove } from "./data/repo";
 import { newId } from "./ids";
-import { checkMacro, reasonLine, type DocumentLookup } from "./macroCheck";
+import { checkMacro, reasonLine, storeLookup, type DocumentLookup } from "./macroCheck";
 import type { CommandArg, CommandCtx, InvokeContext } from "./manifest";
 
 /**
@@ -129,7 +129,7 @@ export interface RunOptions {
   ctx?: CommandCtx;
   /** Opens a dialog-only step's dialog; resolves once it is closed, with whether it was done (false: cancelled). */
   openDialog?: (def: OwnedCommand) => Promise<boolean>;
-  /** Where the check looks up fixed links; the local store by default. */
+  /** Where the check looks up fixed links; the local store by default, through `invoke.sees` when given. */
   lookup?: DocumentLookup;
   /** Who runs it, handed to every headless step (ADR 0115): an agent's Macro captures as the agent. */
   invoke?: InvokeContext;
@@ -185,7 +185,8 @@ async function runStep(def: OwnedCommand, step: MacroStep, index: number, opts: 
  * be skipped; what is done stays done (nothing is rolled back).
  */
 export async function runMacro(macro: MacroShape, commands: readonly OwnedCommand[], opts: RunOptions = {}): Promise<MacroReport> {
-  const check = await checkMacro(macro, commands, opts.lookup);
+  // An agent's run looks its fixed links up only among the Documents it may see (ADR 0114), so its broken reasons never name another.
+  const check = await checkMacro(macro, commands, opts.lookup ?? storeLookup(opts.invoke?.sees));
   if (!check.ok) return brokenReport(macro, commands, check.reasons.map(reasonLine));
   const outcomes: (StepOutcome | undefined)[] = [];
   const steps: StepReport[] = [];
@@ -309,7 +310,7 @@ export function macroCommand(macro: MacroShape & { id: string }, commands: reado
  */
 export async function runMacroHeadless(macro: MacroShape, commands: readonly OwnedCommand[], raw: Record<string, unknown>, who?: InvokeContext): Promise<MacroReport> {
   if (!isMacroHeadless(macro, commands)) throw new Error(`“${macro.name}” cannot be run without a dialog`);
-  const asked = await readCommandArgs(macroArgs(macro, commands), raw);
+  const asked = await readCommandArgs(macroArgs(macro, commands), raw, who?.sees);
   const r = await runMacro(macro, commands, { asked, invoke: who });
   if (r.broken) throw new Error(`“${macro.name}” is broken: ${r.broken.join("; ")}`);
   return r;
